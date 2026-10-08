@@ -15,3 +15,6 @@ jobs:
           python -m json.tool custom_components/intellicenter_manual/manifest.json >/dev/null
           python -m json.tool hacs.json >/dev/null
           python -m compileall -q custom_components/intellicenter_manual
+
+      - name: Test manual-only boundary
+        run: python -m unittest discover -s tests -v
