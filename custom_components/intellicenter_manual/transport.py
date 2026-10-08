@@ -6,10 +6,13 @@ This module must only be called by an explicit HA service/entity action.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
+from collections.abc import Callable
 from typing import Any
 from pyintellicenter import (
     ICConnectionHandler, ICModelController, PoolModel,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
+    BODY_TYPE, LOTMP_ATTR,
 )
 
 BODY_IDS = frozenset({"B1101", "B1202"})
@@ -19,6 +22,27 @@ HEATER_IDS = frozenset({"00000", "H0001", "H0002"})
 
 class ManualCommandError(RuntimeError):
     """Explicit command could not be dispatched."""
+
+
+class _ObservedConnectionHandler(ICConnectionHandler):
+    def __init__(self, owner, controller):
+        super().__init__(controller, time_between_reconnects=30)
+        self.owner = owner
+
+    def on_started(self, controller):
+        self.owner._connection_changed(True)
+
+    def on_reconnected(self, controller):
+        self.owner._connection_changed(True)
+
+    def on_disconnected(self, controller, exc):
+        self.owner._connection_changed(False)
+
+    def on_retrying(self, delay):
+        self.owner._connection_changed(False)
+
+    def on_updated(self, controller, updates):
+        self.owner._model_updated()
 
 
 class IntelliCenterManualTransport:
@@ -31,15 +55,63 @@ class IntelliCenterManualTransport:
         self.controller = ICModelController(
             host.strip(), self.model, keepalive_interval=90.0, transport="tcp"
         )
-        self.handler = ICConnectionHandler(self.controller, time_between_reconnects=30)
+        self.handler = _ObservedConnectionHandler(self, self.controller)
+        self._connected = False
+        self._observed_at = None
+        self._on_observation: Callable[[], None] | None = None
         self._lock = asyncio.Lock()
         self._started = False
+
+    @property
+    def connected(self) -> bool:
+        return self._connected and self._started
+
+    def set_observation_callback(self, callback: Callable[[], None] | None) -> None:
+        self._on_observation = callback
+
+    def _connection_changed(self, connected: bool) -> None:
+        self._connected = connected
+        self._observed_at = datetime.now(timezone.utc) if connected else None
+        self._publish()
+
+    def _model_updated(self) -> None:
+        if not self._connected:
+            return
+        self._observed_at = datetime.now(timezone.utc)
+        self._publish()
+
+    def _publish(self) -> None:
+        if self._on_observation is not None:
+            self._on_observation()
+
+    def read_observation(self):
+        from .observation import adapt_snapshot
+        from types import SimpleNamespace
+        bodies = []
+        if self.connected and self._observed_at is not None:
+            for obj in self.model.get_by_type(BODY_TYPE):
+                if str(obj.objnam) not in BODY_IDS:
+                    continue
+                properties = obj.properties
+                status = properties.get(STATUS_ATTR)
+                active = True if status == STATUS_ON else False if status == STATUS_OFF else None
+                bodies.append(SimpleNamespace(
+                    id=str(obj.objnam), is_on=active,
+                    heating_active=None,
+                    current_temperature=None,
+                    target_temperature=properties.get(LOTMP_ATTR),
+                    active_heat_source=properties.get(HEATER_ATTR),
+                ))
+        return adapt_snapshot(SimpleNamespace(
+            connected=self.connected, observed_at=self._observed_at, bodies=bodies,
+        ))
 
     async def start(self) -> None:
         if self._started:
             return
         await self.handler.start()
         self._started = True
+        self._publish()
 
     async def stop(self) -> None:
         self.handler.stop()
@@ -47,9 +119,12 @@ class IntelliCenterManualTransport:
             await self.controller.stop()
         finally:
             self._started = False
+            self._connected = False
+            self._observed_at = None
+            self._publish()
 
     async def _send(self, method: str, *args: Any) -> Any:
-        if not self._started:
+        if not self.connected:
             raise ManualCommandError("IntelliCenter connection not started")
         async with self._lock:
             try:
