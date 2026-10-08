@@ -22,12 +22,26 @@ class ManualBodyThermostat(ClimateEntity):
         self._transport = transport
         self._body_id = body_id
         self._observation: ReadObservation | None = None
+        self._unsubscribe = None
         self._attr_name = name
         self._attr_unique_id = f"{entry.entry_id}_native_intellicenter_{key}_thermostat"
 
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        fanout = getattr(self._transport, 'observation_fanout', None)
+        if fanout is not None:
+            self._unsubscribe = fanout.subscribe(self.set_observation)
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._unsubscribe is not None:
+            self._unsubscribe()
+            self._unsubscribe = None
+        await super().async_will_remove_from_hass()
+
     def set_observation(self, observation: ReadObservation | None) -> None:
         self._observation = observation
-        self.async_write_ha_state()
+        if self.hass is not None:
+            self.async_write_ha_state()
 
     def _body(self):
         if self._observation is None or not self._observation.connected:
