@@ -12,7 +12,7 @@ from typing import Any
 from pyintellicenter import (
     ICConnectionHandler, ICModelController, PoolModel,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
-    BODY_TYPE, LOTMP_ATTR,
+    BODY_TYPE, LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR,
 )
 
 BODY_IDS = frozenset({"B1101", "B1202"})
@@ -94,11 +94,15 @@ class IntelliCenterManualTransport:
                     continue
                 properties = obj.properties
                 status = properties.get(STATUS_ATTR)
-                active = True if status == STATUS_ON else False if status == STATUS_OFF else None
+                heat_mode = properties.get(HTMODE_ATTR)
+                # Incomplete discovery must not be interpreted as a live body.
+                if status is None or heat_mode is None:
+                    continue
+                active = str(status).upper() != str(STATUS_OFF).upper()
                 bodies.append(SimpleNamespace(
                     id=str(obj.objnam), is_on=active,
-                    heating_active=None,
-                    current_temperature=None,
+                    heating_active=self.controller.is_body_heating(obj.objnam),
+                    current_temperature=properties.get(LSTTMP_ATTR),
                     target_temperature=properties.get(LOTMP_ATTR),
                     active_heat_source=properties.get(HEATER_ATTR),
                 ))
