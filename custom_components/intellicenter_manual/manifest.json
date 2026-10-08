@@ -1,0 +1,12 @@
+{
+  "domain": "intellicenter_manual",
+  "name": "IntelliCenter Manual Bridge",
+  "version": "0.1.0",
+  "documentation": "https://github.com/davidabuch/Home-assistant-intellicenter",
+  "issue_tracker": "https://github.com/davidabuch/Home-assistant-intellicenter/issues",
+  "config_flow": true,
+  "requirements": [
+    "pyintellicenter==0.1.20"
+  ],
+  "iot_class": "local_polling"
+}
