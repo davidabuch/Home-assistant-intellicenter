@@ -24,8 +24,8 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("observation = self.read_observation()", dispatch)
         self.assertIn("not observation.connected", dispatch)
         self.assertIn("not self.controller.manual_writes_enabled", dispatch)
-        self.assertIn("self._observed_at = None", dispatch)
-        self.assertIn("self._publish()", dispatch)
+        self.assertNotIn("self._observed_at = None", dispatch)
+        self.assertIn("observed_at > dispatched_at", dispatch)
 
     def test_thermostat_requires_new_native_confirmation(self):
         source = SOURCE.read_text()
