@@ -9,13 +9,16 @@ from dataclasses import dataclass
 import asyncio
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 
 from .transport import IntelliCenterManualTransport
 from .observation_coordinator import ObservationFanout
+
+DIAGNOSTIC_SERVICE = "commission_abort_own_tcp"
+DOMAIN = "intellicenter_manual"
 
 PLATFORMS = ["climate", "binary_sensor", "sensor", "switch", "light", "number", "select"]
 
@@ -48,6 +51,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         fanout.close()
         await transport.stop()
         raise
+
+    # Commissioning-only service. Never sends physical commands. The exact
+    # config entry ID is required so a different integration cannot be targeted.
+    async def _abort_own_tcp(call: ServiceCall) -> None:
+        if call.data.get("entry_id") != entry.entry_id:
+            raise ValueError("Replacement config entry ID mismatch")
+        if call.data.get("confirm") != "ABORT_REPLACEMENT_TCP_ONLY":
+            raise ValueError("Explicit diagnostic confirmation required")
+        runtime.transport.commission_abort_own_tcp()
+
+    hass.services.async_register(DOMAIN, DIAGNOSTIC_SERVICE, _abort_own_tcp)
+    entry.async_on_unload(
+        lambda: hass.services.async_remove(DOMAIN, DIAGNOSTIC_SERVICE)
+    )
 
     # Re-publish periodically so a quiet/disconnected controller cannot leave
     # an indefinitely valid last observation in HA.
