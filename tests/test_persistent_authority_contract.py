@@ -12,7 +12,8 @@ def test_native_authority_contract_compiles():
 def test_persistent_authority_and_legacy_gate():
     source = SOURCE.read_text()
     assert 'hass.config_entries.async_entries("poolos")' in source
-    assert 'if not legacy_entries:' in source
+    assert 'if not legacy_entries or all(' in source
+    assert 'legacy_entry.disabled_by is not None' in source
     assert 'native_command_authority' in source
     assert '_exclusive_manual_authority()' in source
     assert 'observation.observed_at is not None' in source

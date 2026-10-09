@@ -47,7 +47,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # legacy PoolOS writer can be loaded. Never infer this from missing
         # entities while a PoolOS config entry still exists.
         legacy_entries = hass.config_entries.async_entries("poolos")
-        if not legacy_entries:
+        if not legacy_entries or all(
+            legacy_entry.disabled_by is not None for legacy_entry in legacy_entries
+        ):
+            # A disabled PoolOS config entry cannot load its command writer.
+            # This supports reversible cutover before deleting the entry.
             return True
         # Do not treat disabled autonomy as proof that PoolOS manual writes
         # have been disabled. Both legacy thermostats must explicitly attest
