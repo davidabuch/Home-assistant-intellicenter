@@ -1,0 +1,60 @@
+"""Read-only native IntelliCenter circuit and body status entities."""
+from __future__ import annotations
+
+from homeassistant.components.binary_sensor import BinarySensorEntity
+
+DESCRIPTIONS = (
+    ("pool_active", "Pool Active", "body", "B1101"),
+    ("spa_active", "Spa Active", "body", "B1202"),
+    ("pool_light_active", "Pool Light Active", "circuit", "C0002"),
+    ("jets_active", "Jets Active", "circuit", "C0003"),
+    ("slide_active", "Slide Active", "circuit", "C0004"),
+    ("waterfall_active", "Waterfall Active", "circuit", "FTR01"),
+)
+
+class NativeStatus(BinarySensorEntity):
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+
+    def __init__(self, entry, runtime, key, name, kind, native_id):
+        self._runtime = runtime
+        self._kind = kind
+        self._native_id = native_id
+        self._observation = None
+        self._unsubscribe = None
+        self._attr_name = name
+        self._attr_unique_id = f"{entry.entry_id}_native_intellicenter_{key}"
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._unsubscribe = self._runtime.observation_fanout.subscribe(self._updated)
+
+    async def async_will_remove_from_hass(self):
+        if self._unsubscribe:
+            self._unsubscribe()
+            self._unsubscribe = None
+        await super().async_will_remove_from_hass()
+
+    def _updated(self, observation):
+        self._observation = observation
+        if self.hass is not None:
+            self.async_write_ha_state()
+
+    def _value(self):
+        if self._observation is None or not self._observation.connected:
+            return None
+        item = (self._observation.body(self._native_id)
+                if self._kind == "body" else self._observation.circuit(self._native_id))
+        return None if item is None else item.active
+
+    @property
+    def available(self):
+        return self._value() is not None
+
+    @property
+    def is_on(self):
+        return self._value()
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    async_add_entities(NativeStatus(entry, entry.runtime_data, *description)
+                       for description in DESCRIPTIONS)
