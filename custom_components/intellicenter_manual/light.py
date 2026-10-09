@@ -1,10 +1,13 @@
 """Manual IntelliBrite Pool Light; commissioning commands remain blocked."""
-from homeassistant.components.light import LightEntity, ColorMode
+from homeassistant.components.light import LightEntity, ColorMode, LightEntityFeature, ATTR_EFFECT
+from pyintellicenter import LIGHT_EFFECTS
 
 class ManualPoolLight(LightEntity):
     _attr_should_poll = False
     _attr_supported_color_modes = {ColorMode.ONOFF}
     _attr_name = "Pool Light"
+    _attr_supported_features = LightEntityFeature.EFFECT
+    _attr_effect_list = list(LIGHT_EFFECTS.values())
     def __init__(self, entry, runtime):
         self._runtime = runtime
         self._attr_unique_id = f"{entry.entry_id}_manual_pool_light"
@@ -39,6 +42,13 @@ class ManualPoolLight(LightEntity):
         return self._state()
 
     async def async_turn_on(self, **kwargs):
+        effect = kwargs.get(ATTR_EFFECT)
+        if effect is not None:
+            reverse = {label: code for code, label in LIGHT_EFFECTS.items()}
+            code = reverse.get(str(effect))
+            if code is None:
+                raise ValueError("Unsupported IntelliBrite effect")
+            await self._runtime.transport.set_light_effect(code)
         await self._runtime.transport.set_circuit("C0002", True)
 
     async def async_turn_off(self, **kwargs):

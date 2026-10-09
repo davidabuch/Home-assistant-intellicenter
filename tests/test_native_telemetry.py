@@ -73,6 +73,15 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertIn("Both chlorine outputs must be freshly observed", (ROOT / "number.py").read_text())
         self.assertIn("allow_commands=False", (ROOT / "__init__.py").read_text())
 
+    def test_intellibrite_effect_control_is_explicit_and_guarded(self):
+        light = (ROOT / "light.py").read_text()
+        transport = (ROOT / "transport.py").read_text()
+        self.assertIn("LightEntityFeature.EFFECT", light)
+        self.assertIn("LIGHT_EFFECTS.values()", light)
+        self.assertIn("await self._runtime.transport.set_light_effect(code)", light)
+        self.assertIn("await self._send(\"set_light_effect\"", transport)
+        self.assertIn("allow_commands=False", (ROOT / "__init__.py").read_text())
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
