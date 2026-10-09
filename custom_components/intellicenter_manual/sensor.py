@@ -6,8 +6,10 @@ Registry migration is a separate, explicit commissioning operation.
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity
+from datetime import datetime, timezone
 
 MEASUREMENTS = (
+    ("native_observation_age", "Native Observation Age", "s"),
     ("air_temperature", "Air Temperature", "°F"),
     ("solar_temperature", "Solar Temperature", "°F"),
     ("water_temperature", "Water Temperature", "°F"),
@@ -60,6 +62,10 @@ class NativeTelemetry(SensorEntity):
     @property
     def native_value(self):
         obs = self._observation
+        if self._key == "native_observation_age":
+            if obs is None or not obs.connected:
+                return None
+            return max(0, round((datetime.now(timezone.utc) - obs.observed_at).total_seconds(), 1))
         if obs is None or not obs.connected:
             return None
         if self._key.startswith(("pool_", "spa_")):
