@@ -17,6 +17,32 @@ sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
 class NativeTelemetryTests(unittest.TestCase):
+    def test_heater_source_activity_is_fail_closed(self):
+        now = datetime.now(timezone.utc)
+        pool = types.SimpleNamespace(id="B1101", is_on=True, heating_active=True,
+            current_temperature=85, target_temperature=90, active_heat_source="H0002")
+        spa = types.SimpleNamespace(id="B1202", is_on=False, heating_active=False,
+            current_temperature=98, target_temperature=98, active_heat_source="00000")
+        snapshot = types.SimpleNamespace(connected=True, observed_at=now,
+            bodies=[pool, spa], circuits=[], telemetry={})
+        observed = module.adapt_snapshot(snapshot, now=now)
+        self.assertTrue(observed.heating_source_active("H0002"))
+        self.assertFalse(observed.heating_source_active("H0001"))
+        pool.heating_active = False
+        observed = module.adapt_snapshot(snapshot, now=now)
+        self.assertFalse(observed.heating_source_active("H0002"))
+        pool.heating_active = True
+        pool.active_heat_source = None
+        observed = module.adapt_snapshot(snapshot, now=now)
+        self.assertIsNone(observed.heating_source_active("H0002"))
+        pool.active_heat_source = "H0001"
+        observed = module.adapt_snapshot(snapshot, now=now)
+        self.assertTrue(observed.heating_source_active("H0001"))
+        snapshot.bodies = [pool]
+        self.assertIsNone(module.adapt_snapshot(snapshot, now=now).heating_source_active("H0001"))
+        snapshot.connected = False
+        self.assertIsNone(module.adapt_snapshot(snapshot, now=now).heating_source_active("H0001"))
+
     def test_valid_telemetry(self):
         now = datetime.now(timezone.utc)
         snapshot = types.SimpleNamespace(connected=True, observed_at=now,
