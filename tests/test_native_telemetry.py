@@ -185,6 +185,13 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertTrue(observed.body("B1202").heating)
         self.assertEqual(observed.body("B1202").heat_source, "H0001")
 
+    def test_pump_telemetry_requires_unique_commissioned_identity(self):
+        source = (ROOT / "transport.py").read_text()
+        self.assertIn('str(obj.objnam) == "PMP01"', source)
+        self.assertIn("if len(pumps) == 1:", source)
+        self.assertNotIn("if 'pump_rpm' in telemetry:", source)
+        self.assertIn("pump_rpm=props.get(RPM_ATTR)", source)
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
