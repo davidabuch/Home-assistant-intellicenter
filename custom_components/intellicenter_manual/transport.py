@@ -124,10 +124,25 @@ class IntelliCenterManualTransport:
         self._allow_commands = allow_commands
         self._lock = asyncio.Lock()
         self._started = False
+        self._manual_authority_check = None
 
     @property
     def connected(self) -> bool:
         return self._connected and self._started
+
+    def set_manual_authority_check(self, callback) -> None:
+        """Install an external ownership preflight; never infer ownership."""
+        self._manual_authority_check = callback
+
+    def arm_manual_thermostats(self) -> None:
+        if self._manual_authority_check is None or not self._manual_authority_check():
+            raise ManualCommandError("Exclusive manual authority not verified")
+        self._allow_commands = True
+        self.controller.manual_writes_enabled = True
+
+    def disarm_manual_thermostats(self) -> None:
+        self.controller.manual_writes_enabled = False
+        self._allow_commands = False
 
     def set_observation_callback(self, callback: Callable[[], None] | None) -> None:
         self._on_observation = callback
@@ -136,6 +151,8 @@ class IntelliCenterManualTransport:
         self._connected = connected
         # Connection establishment is not proof that a complete model was read.
         self._observed_at = None
+        if not connected:
+            self.disarm_manual_thermostats()
         self._publish()
 
     def _model_updated(self) -> None:
@@ -273,6 +290,7 @@ class IntelliCenterManualTransport:
         self._publish()
 
     async def stop(self) -> None:
+        self.disarm_manual_thermostats()
         self.handler.stop()
         try:
             await self.controller.stop()
@@ -285,6 +303,18 @@ class IntelliCenterManualTransport:
     async def _send(self, method: str, *args: Any) -> Any:
         if not self._allow_commands:
             raise ManualCommandError("Read-only commissioning: all physical commands are disabled")
+        # Thermostats only during cutover; all other actuator paths stay closed.
+        if not (
+            (method == "request_changes" and len(args) == 2
+             and args[0] in BODY_IDS
+             and isinstance(args[1], dict)
+             and set(args[1]) == {STATUS_ATTR}
+             and args[1][STATUS_ATTR] in {STATUS_ON, STATUS_OFF})
+            or (method == "set_heating_setpoint" and len(args) == 2
+                and args[0] in BODY_IDS and type(args[1]) is int
+                and 40 <= args[1] <= 104)
+        ):
+            raise ManualCommandError("Only Pool/Spa thermostat commands commissioned")
         async with self._lock:
             # Recheck freshness after lock acquisition: waiting commands must
             # not inherit authority from an earlier observation.
@@ -293,6 +323,9 @@ class IntelliCenterManualTransport:
                 raise ManualCommandError("No fresh native IntelliCenter observation")
             if not self.controller.manual_writes_enabled:
                 raise ManualCommandError("Native controller write gate is disarmed")
+            if self._manual_authority_check is None or not self._manual_authority_check():
+                self.disarm_manual_thermostats()
+                raise ManualCommandError("Exclusive manual authority lost")
             try:
                 result = await getattr(self.controller, method)(*args)
             except Exception as exc:
@@ -301,9 +334,9 @@ class IntelliCenterManualTransport:
             # consumers must wait for a new native model update.
             self._observed_at = None
             self._publish()
-            return result
+            return datetime.now(timezone.utc)
 
-    async def _confirm_body(self, body_id: str, field: str, expected: Any) -> None:
+    async def _confirm_body(self, body_id: str, field: str, expected: Any, dispatched_at: datetime) -> None:
         """Require a NEW native observation showing the commanded result.
 
         A successful TCP response alone is never accepted as physical proof.
@@ -312,7 +345,8 @@ class IntelliCenterManualTransport:
         while asyncio.get_running_loop().time() < deadline:
             observation = self.read_observation()
             body = observation.body(body_id) if observation.connected else None
-            if body is not None and getattr(body, field) == expected:
+            if (body is not None and observation.observed_at > dispatched_at
+                    and getattr(body, field) == expected):
                 return
             await asyncio.sleep(0.5)
         raise ManualCommandError(
@@ -322,11 +356,11 @@ class IntelliCenterManualTransport:
     async def set_body_active(self, body_id: str, active: bool) -> None:
         if body_id not in BODY_IDS or type(active) is not bool:
             raise ValueError("invalid body or active state")
-        await self._send(
+        dispatched_at = await self._send(
             "request_changes", body_id,
             {STATUS_ATTR: STATUS_ON if active else STATUS_OFF},
         )
-        await self._confirm_body(body_id, "active", active)
+        await self._confirm_body(body_id, "active", active, dispatched_at)
 
     async def set_pump_rpm(self, rpm: float) -> None:
         if isinstance(rpm, bool) or not 600 <= float(rpm) <= 3450:
@@ -339,8 +373,8 @@ class IntelliCenterManualTransport:
         target = round(float(fahrenheit))
         if not 40 <= target <= 104:
             raise ValueError("temperature outside safe range")
-        await self._send("set_heating_setpoint", body_id, target)
-        await self._confirm_body(body_id, "target_temperature", target)
+        dispatched_at = await self._send("set_heating_setpoint", body_id, target)
+        await self._confirm_body(body_id, "target_temperature", target, dispatched_at)
 
     async def set_heat_source(self, body_id: str, heater_id: str) -> None:
         if body_id not in BODY_IDS or heater_id not in HEATER_IDS:

@@ -19,3 +19,30 @@ commission_abort_own_tcp:
       example: "ABORT_REPLACEMENT_TCP_ONLY"
       selector:
         text:
+
+arm_manual_thermostats:
+  name: Arm native Pool and Hot Tub thermostats
+  description: >-
+    Enables only native Pool/Spa manual thermostat commands for this runtime.
+    Fails unless both PoolOS legacy thermostats explicitly report manual
+    command delivery disabled and both PoolOS autonomous controls are off.
+    Disarms on native connection loss, HA restart, or explicit disarm.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+    confirm:
+      required: true
+      description: Enter ARM_NATIVE_THERMOSTATS.
+      selector:
+        text:
+
+disarm_manual_thermostats:
+  name: Disarm native Pool and Hot Tub thermostats
+  description: Immediately disables the native thermostat command gateway.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:

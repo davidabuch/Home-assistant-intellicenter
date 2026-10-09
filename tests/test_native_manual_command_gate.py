@@ -32,8 +32,19 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn('async def _confirm_body(', source)
         self.assertIn('observation.body(body_id) if observation.connected else None', source)
         self.assertIn('Native confirmation timeout', source)
-        self.assertIn('await self._confirm_body(body_id, "active", active)', source)
-        self.assertIn('await self._confirm_body(body_id, "target_temperature", target)', source)
+        self.assertIn('await self._confirm_body(body_id, "active", active, dispatched_at)', source)
+        self.assertIn('await self._confirm_body(body_id, "target_temperature", target, dispatched_at)', source)
+
+    def test_post_command_chronology_and_exclusive_authority(self):
+        source = SOURCE.read_text()
+        self.assertIn("observation.observed_at > dispatched_at", source)
+        self.assertIn("self._manual_authority_check()", source)
+        self.assertIn("self.disarm_manual_thermostats()", source)
+        self.assertIn('Only Pool/Spa thermostat commands commissioned', source)
+        setup = (SOURCE.parent / "__init__.py").read_text()
+        self.assertIn('manual_command_delivery_enabled") is not False', setup)
+        self.assertIn('arm_manual_thermostats', setup)
+        self.assertIn('disarm_manual_thermostats', setup)
 
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()

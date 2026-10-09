@@ -40,6 +40,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady("IntelliCenter host is not configured")
 
     transport = IntelliCenterManualTransport(host, allow_commands=False)
+    def _exclusive_manual_authority() -> bool:
+        # Do not treat disabled autonomy as proof that PoolOS manual writes
+        # have been disabled. Both legacy thermostats must explicitly attest
+        # that manual delivery is OFF; unknown/unavailable fails closed.
+        for entity_id in (
+            "climate.poolos_native_intellicenter_pool_thermostat",
+            "climate.poolos_native_intellicenter_hot_tub_thermostat",
+        ):
+            state = hass.states.get(entity_id)
+            if (state is None or state.state in {"unknown", "unavailable"}
+                    or state.attributes.get("manual_command_delivery_enabled") is not False):
+                return False
+        for entity_id in (
+            "switch.poolos_autonomous_pool_control",
+            "switch.poolos_autonomous_hot_tub_control",
+        ):
+            state = hass.states.get(entity_id)
+            if state is None or state.state != "off":
+                return False
+        return True
+
+    transport.set_manual_authority_check(_exclusive_manual_authority)
     fanout = ObservationFanout(transport, asyncio.get_running_loop())
     runtime = Runtime(transport=transport, observation_fanout=fanout)
     entry.runtime_data = runtime
@@ -61,6 +83,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             raise ValueError("Explicit diagnostic confirmation required")
         runtime.transport.commission_abort_own_tcp()
 
+    async def _arm_manual_thermostats(call: ServiceCall) -> None:
+        if call.data.get("entry_id") != entry.entry_id:
+            raise ValueError("Replacement config entry ID mismatch")
+        if call.data.get("confirm") != "ARM_NATIVE_THERMOSTATS":
+            raise ValueError("Explicit manual commissioning confirmation required")
+        transport.arm_manual_thermostats()
+
+    async def _disarm_manual_thermostats(call: ServiceCall) -> None:
+        if call.data.get("entry_id") != entry.entry_id:
+            raise ValueError("Replacement config entry ID mismatch")
+        transport.disarm_manual_thermostats()
+
+    hass.services.async_register(DOMAIN, "arm_manual_thermostats", _arm_manual_thermostats)
+    hass.services.async_register(DOMAIN, "disarm_manual_thermostats", _disarm_manual_thermostats)
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, "arm_manual_thermostats"))
+    entry.async_on_unload(lambda: hass.services.async_remove(DOMAIN, "disarm_manual_thermostats"))
     hass.services.async_register(DOMAIN, DIAGNOSTIC_SERVICE, _abort_own_tcp)
     entry.async_on_unload(
         lambda: hass.services.async_remove(DOMAIN, DIAGNOSTIC_SERVICE)
