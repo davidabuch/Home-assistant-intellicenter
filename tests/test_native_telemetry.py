@@ -58,6 +58,9 @@ class NativeTelemetryTests(unittest.TestCase):
         fanout = (ROOT / "observation_coordinator.py").read_text()
         setup = (ROOT / "__init__.py").read_text()
         self.assertIn("_attr_supported_color_modes = {ColorMode.ONOFF}", light)
+        self.assertIn("_attr_color_mode = ColorMode.ONOFF", light)
+        self.assertIn("except Exception:", fanout)
+        self.assertIn("continuing other entities", fanout)
         self.assertIn("call_soon_threadsafe(self.refresh)", fanout)
         self.assertIn("asyncio.get_running_loop()", setup)
 
