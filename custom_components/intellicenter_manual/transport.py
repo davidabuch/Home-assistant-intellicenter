@@ -269,7 +269,7 @@ class IntelliCenterManualTransport:
         callback, exercising the real ICConnectionHandler reconnect path.
         Never touches a host firewall, shared network, or PoolOS connection.
         """
-        if not self._started or not self._connected or not self.handler.connected:
+        if not self._started or not self._connected:
             raise RuntimeError("Replacement native TCP transport is not connected")
         connection = self.controller._connection
         if connection is None or not connection.connected:
