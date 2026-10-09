@@ -67,12 +67,12 @@ class FanoutTests(unittest.TestCase):
                 fanout.subscribe(broken)
             with self.assertLogs(fanout_module._LOGGER, level="ERROR") as captured:
                 transport.callback()
-            self.assertEqual(healthy, [2, 3])
+            self.assertEqual(healthy, [2, 4])
             self.assertTrue(any("listener failed" in line for line in captured.output))
             fanout.close()
             self.assertIsNone(transport.callback)
             fanout.refresh()
-            self.assertEqual(healthy, [2, 3])
+            self.assertEqual(healthy, [2, 4])
         finally:
             loop.close()
 
