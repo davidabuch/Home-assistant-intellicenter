@@ -12,6 +12,10 @@ server = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(server)
 
 class BoundaryTests(unittest.TestCase):
+    def test_pin_accepts_four_digits(self):
+        script = (ROOT / "server.py").read_text()
+        self.assertIn("len(PIN) < 4", script)
+        self.assertNotIn("len(PIN) < 6", script)
     def test_exact_allowlist(self):
         self.assertEqual(set(server.CONTROLS), {"pool", "spa", "jets", "spillway", "slide"})
         self.assertNotIn("input_boolean.grid_outage_protection", [v[0] for v in server.CONTROLS.values()])
