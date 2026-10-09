@@ -25,6 +25,18 @@ BODY_IDS = frozenset({"B1101", "B1202"})
 CIRCUIT_IDS = frozenset({"C0002", "C0003", "C0004", "FTR01"})
 HEATER_IDS = frozenset({"00000", "H0001", "H0002"})
 
+def _native_status(value):
+    """Only exact commissioned ON/OFF codes are trusted as boolean truth."""
+    if value is None:
+        return None
+    normalized = str(value).upper()
+    if normalized == str(STATUS_ON).upper():
+        return True
+    if normalized == str(STATUS_OFF).upper():
+        return False
+    return None
+
+
 
 class ManualCommandError(RuntimeError):
     """Explicit command could not be dispatched."""
@@ -143,7 +155,7 @@ class IntelliCenterManualTransport:
                 # Incomplete discovery must not be interpreted as a live body.
                 if status is None or heat_mode is None:
                     continue
-                active = str(status).upper() != str(STATUS_OFF).upper()
+                active = _native_status(status)
                 try:
                     heating = self.controller.is_body_heating(obj.objnam)
                 except (LookupError, AttributeError, ValueError):
@@ -159,7 +171,7 @@ class IntelliCenterManualTransport:
                 if str(obj.objnam) not in CIRCUIT_IDS:
                     continue
                 status = obj.properties.get(STATUS_ATTR)
-                active = None if status is None else str(status).upper() != str(STATUS_OFF).upper()
+                active = _native_status(status)
                 raw_use = obj.properties.get('USE') if str(obj.objnam) == 'C0002' else None
                 effect_code = str(raw_use) if raw_use is not None and str(raw_use) in LIGHT_EFFECTS else None
                 circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active, effect_code=effect_code))
