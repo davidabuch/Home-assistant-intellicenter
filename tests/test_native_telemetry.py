@@ -37,6 +37,10 @@ class NativeTelemetryTests(unittest.TestCase):
         snapshot.connected = False
         self.assertFalse(module.adapt_snapshot(snapshot, now=now).connected)
 
+    def test_attribute_import_uses_library_submodule(self):
+        source = (ROOT / "transport.py").read_text()
+        self.assertIn("from pyintellicenter.attributes import ALL_ATTRIBUTES_BY_TYPE", source)
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
