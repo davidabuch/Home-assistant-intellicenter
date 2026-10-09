@@ -53,5 +53,28 @@ class FanoutTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             fanout.subscribe(seen.append)
 
+    def test_listener_failure_isolated_and_close_stops_delivery(self):
+        transport = FakeTransport()
+        loop = asyncio.new_event_loop()
+        try:
+            fanout = fanout_module.ObservationFanout(transport, loop)
+            healthy = []
+            fanout.start()
+            fanout.subscribe(healthy.append)
+            def broken(_):
+                raise ValueError("synthetic listener fault")
+            with self.assertRaises(ValueError):
+                fanout.subscribe(broken)
+            with self.assertLogs(fanout_module._LOGGER, level="ERROR") as captured:
+                transport.callback()
+            self.assertEqual(healthy, [2, 4])
+            self.assertTrue(any("listener failed" in line for line in captured.output))
+            fanout.close()
+            self.assertIsNone(transport.callback)
+            fanout.refresh()
+            self.assertEqual(healthy, [2, 4])
+        finally:
+            loop.close()
+
 if __name__ == "__main__":
     unittest.main()
