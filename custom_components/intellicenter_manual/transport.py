@@ -64,14 +64,23 @@ class _DiscoveryPoolModel(PoolModel):
 
 
 class _CommissioningController(ICModelController):
-    """Hard protocol boundary: no mutation can cross during commissioning."""
+    """Fail-closed write boundary, independently enforced at protocol layer."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.manual_writes_enabled = False
+
     async def send_cmd(self, cmd, extra=None):
-        if cmd not in {"GetParamList", "RequestParamList"}:
+        if not self.manual_writes_enabled and cmd not in {"GetParamList", "RequestParamList"}:
             raise ManualCommandError(f"Unsafe protocol operation blocked: {cmd}")
         return await super().send_cmd(cmd, extra)
 
     async def request_changes(self, objnam, changes):
-        raise ManualCommandError("Physical writes disabled in commissioning controller")
+        if not self.manual_writes_enabled:
+            if not self.manual_writes_enabled:
+            raise ManualCommandError("Physical writes disabled in commissioning controller")
+        return await super()._queue_property_change(objnam, changes)
+        return await super().request_changes(objnam, changes)
 
     async def _queue_property_change(self, objnam, changes):
         raise ManualCommandError("Physical writes disabled in commissioning controller")
