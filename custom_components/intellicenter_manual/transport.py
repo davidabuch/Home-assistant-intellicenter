@@ -303,6 +303,18 @@ class IntelliCenterManualTransport:
     async def _send(self, method: str, *args: Any) -> Any:
         if not self._allow_commands:
             raise ManualCommandError("Read-only commissioning: all physical commands are disabled")
+        # Thermostats only during cutover; all other actuator paths stay closed.
+        if not (
+            (method == "request_changes" and len(args) == 2
+             and args[0] in BODY_IDS
+             and isinstance(args[1], dict)
+             and set(args[1]) == {STATUS_ATTR}
+             and args[1][STATUS_ATTR] in {STATUS_ON, STATUS_OFF})
+            or (method == "set_heating_setpoint" and len(args) == 2
+                and args[0] in BODY_IDS and type(args[1]) is int
+                and 40 <= args[1] <= 104)
+        ):
+            raise ManualCommandError("Only Pool/Spa thermostat commands commissioned")
         async with self._lock:
             # Recheck freshness after lock acquisition: waiting commands must
             # not inherit authority from an earlier observation.
