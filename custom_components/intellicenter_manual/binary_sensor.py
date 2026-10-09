@@ -53,8 +53,6 @@ class NativeStatus(BinarySensorEntity):
             return self._observation.connected
         if not self._observation.connected:
             return None
-        if self._kind == "health":
-            return self._observation.connected
         if self._kind == "freeze":
             return self._observation.freeze_active
         if self._kind == "heat_source":
