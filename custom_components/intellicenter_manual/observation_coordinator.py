@@ -7,6 +7,9 @@ from __future__ import annotations
 from collections.abc import Callable
 import asyncio
 import threading
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 from .observation import ReadObservation
 
 class ObservationFanout:
@@ -38,7 +41,10 @@ class ObservationFanout:
             return
         observation = self.transport.read_observation()
         for listener in tuple(self._listeners):
-            listener(observation)
+            try:
+                listener(observation)
+            except Exception:
+                _LOGGER.exception("Native observation listener failed; continuing other entities")
 
     def close(self) -> None:
         self._closed = True
