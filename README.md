@@ -26,5 +26,5 @@ A minimal, non-autonomous Home Assistant integration for Pentair IntelliCenter.
 5. Physical commissioning of Pool, Spa, heat source, light effects, sanitation, accessories, interlocks and outage/recovery; stop on unexpected actuation.
 6. Only then uninstall PoolOS. Never enable its autonomy to facilitate migration.
 
-## Current state
-Engineering scaffold only. No replacement integration is deployed. PoolOS remains the live provider of the old entity IDs until verified cutover.
+## Current state — October 8, 2026
+The new `intellicenter_manual` integration is installed in Home Assistant and supplies **read-only live observations**, with command delivery disabled. PoolOS remains the sole operational writer and owner of the legacy entity IDs. This is **not** a completed replacement or cutover. See [deployment status](docs/DEPLOYMENT_STATUS.md) and [physical commissioning evidence](docs/PHYSICAL_COMMISSIONING_2026-10-08.md). The commissioning controls were exercised through PoolOS-native entities, not the replacement bridge.
