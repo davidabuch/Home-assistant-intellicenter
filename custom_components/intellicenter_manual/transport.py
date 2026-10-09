@@ -184,20 +184,27 @@ class IntelliCenterManualTransport:
                 telemetry.update(pump_rpm=props.get(RPM_ATTR),
                     pump_flow_rate=props.get(GPM_ATTR), pump_power=props.get(PWR_ATTR),
                     pump_minimum_rpm=props.get(MIN_ATTR), pump_maximum_rpm=props.get(MAX_ATTR))
-            for obj in self.model.get_by_type(CHEM_TYPE):
-                if str(obj.objnam) != 'CHR01' or str(obj.subtype or '').upper() != 'ICHLOR':
-                    continue
-                body_ids = str(obj.properties.get(BODY_ATTR) or '').split()
-                for body_id, attribute in zip(body_ids, (PRIM_ATTR, SEC_ATTR)):
-                    key = {'B1101': 'intellichlor_pool_output', 'B1202': 'intellichlor_spa_output'}.get(body_id)
-                    if key is not None:
-                        telemetry[key] = obj.properties.get(attribute)
-                telemetry['intellichlor_salt'] = obj.properties.get(SALT_ATTR)
-            for obj in self.model.get_by_type(SYSTEM_TYPE):
-                if 'firmware_version' in telemetry:
-                    break
-                telemetry.update(firmware_version=obj.properties.get(VER_ATTR),
-                                 system_mode=obj.properties.get(SERVICE_ATTR))
+            # A single commissioned IntelliChlor object and an unambiguous
+            # two-body mapping are required before publishing chemistry.
+            chlorinators = [obj for obj in self.model.get_by_type(CHEM_TYPE)
+                            if str(obj.objnam) == 'CHR01'
+                            and str(obj.subtype or '').upper() == 'ICHLOR']
+            if len(chlorinators) == 1:
+                props = chlorinators[0].properties
+                body_ids = str(props.get(BODY_ATTR) or '').split()
+                if len(body_ids) == 2 and set(body_ids) == {'B1101', 'B1202'}:
+                    for body_id, attribute in zip(body_ids, (PRIM_ATTR, SEC_ATTR)):
+                        key = {'B1101': 'intellichlor_pool_output',
+                               'B1202': 'intellichlor_spa_output'}[body_id]
+                        telemetry[key] = props.get(attribute)
+                    telemetry['intellichlor_salt'] = props.get(SALT_ATTR)
+            # Do not select arbitrary first system object when discovery is
+            # ambiguous; no firmware or service-mode assertion is safe then.
+            systems = list(self.model.get_by_type(SYSTEM_TYPE))
+            if len(systems) == 1:
+                props = systems[0].properties
+                telemetry.update(firmware_version=props.get(VER_ATTR),
+                                 system_mode=props.get(SERVICE_ATTR))
         return adapt_snapshot(SimpleNamespace(
             connected=self.connected, observed_at=self._observed_at,
             bodies=bodies, circuits=circuits, telemetry=telemetry,
