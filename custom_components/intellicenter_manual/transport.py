@@ -163,11 +163,17 @@ class IntelliCenterManualTransport:
                 raw_use = obj.properties.get('USE') if str(obj.objnam) == 'C0002' else None
                 effect_code = str(raw_use) if raw_use is not None and str(raw_use) in LIGHT_EFFECTS else None
                 circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active, effect_code=effect_code))
+            # Probe subtype alone is not authoritative when multiple native
+            # sensors advertise the same role. Fail closed on duplicates.
             probe_keys = {'AIR': 'air_temperature', 'SOLAR': 'solar_temperature', 'POOL': 'water_temperature'}
+            probes_by_key = {key: [] for key in probe_keys.values()}
             for obj in self.model.get_by_type(SENSE_TYPE):
                 key = probe_keys.get(str(obj.subtype or '').upper())
-                if key is not None and key not in telemetry:
-                    telemetry[key] = obj.properties.get(SOURCE_ATTR)
+                if key is not None:
+                    probes_by_key[key].append(obj)
+            for key, probes in probes_by_key.items():
+                if len(probes) == 1:
+                    telemetry[key] = probes[0].properties.get(SOURCE_ATTR)
             # Never bind arbitrary pump discovery order to the commissioned PMP01.
             # Missing or duplicate identities remain unknown rather than reporting
             # a potentially different pump as authoritative.
