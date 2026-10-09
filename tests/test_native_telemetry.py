@@ -206,6 +206,14 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertIn("if len(systems) == 1:", source)
         self.assertNotIn("if 'firmware_version' in telemetry:", source)
 
+    def test_unknown_native_status_never_implies_on(self):
+        source = (ROOT / "transport.py").read_text()
+        self.assertIn("def _native_status(value):", source)
+        self.assertIn("if normalized == str(STATUS_ON).upper():", source)
+        self.assertIn("if normalized == str(STATUS_OFF).upper():", source)
+        self.assertIn("active = _native_status(status)", source)
+        self.assertNotIn("!= str(STATUS_OFF).upper()", source)
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
