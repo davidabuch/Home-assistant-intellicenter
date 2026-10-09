@@ -339,8 +339,8 @@ class IntelliCenterManualTransport:
                 and args[0] == self._pool_speed_assignment() and type(args[1]) is dict
                 and set(args[1]) == {SPEED_ATTR}
                 and type(args[1][SPEED_ATTR]) is str
-                and args[1][RPM_ATTR].isdigit()
-                and 600 <= int(args[1][RPM_ATTR]) <= 3450)
+                and args[1][SPEED_ATTR].isdigit()
+                and 600 <= int(args[1][SPEED_ATTR]) <= 3450)
             or (method == "set_circuit_state" and len(args) == 2
                 and args[0] in CIRCUIT_IDS and type(args[1]) is bool)
             or (method == "set_light_effect" and len(args) == 2
