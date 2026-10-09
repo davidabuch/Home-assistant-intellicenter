@@ -97,7 +97,8 @@ def adapt_snapshot(snapshot: Any, *, now: datetime | None = None) -> ReadObserva
     for key, raw in getattr(snapshot, 'telemetry', {}).items():
         if key in {'air_temperature', 'solar_temperature', 'water_temperature',
                    'pump_rpm', 'pump_flow_rate', 'pump_power',
-                   'pump_minimum_rpm', 'pump_maximum_rpm'}:
+                   'pump_minimum_rpm', 'pump_maximum_rpm',
+                   'intellichlor_pool_output', 'intellichlor_spa_output', 'intellichlor_salt'}:
             telemetry.append(TelemetryObservation(key, _number(raw)))
         elif key in {'firmware_version', 'system_mode'}:
             telemetry.append(TelemetryObservation(key, str(raw) if raw is not None else None))

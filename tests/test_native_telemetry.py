@@ -61,6 +61,18 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertIn("call_soon_threadsafe(self.refresh)", fanout)
         self.assertIn("asyncio.get_running_loop()", setup)
 
+    def test_intellichlor_telemetry_and_manual_guard(self):
+        now = datetime.now(timezone.utc)
+        snapshot = types.SimpleNamespace(connected=True, observed_at=now,
+            bodies=[], circuits=[], telemetry={"intellichlor_pool_output": 40,
+                "intellichlor_spa_output": 5, "intellichlor_salt": 3300})
+        obs = module.adapt_snapshot(snapshot, now=now)
+        self.assertEqual(obs.measurement("intellichlor_pool_output"), 40)
+        self.assertEqual(obs.measurement("intellichlor_spa_output"), 5)
+        self.assertEqual(obs.measurement("intellichlor_salt"), 3300)
+        self.assertIn("Both chlorine outputs must be freshly observed", (ROOT / "number.py").read_text())
+        self.assertIn("allow_commands=False", (ROOT / "__init__.py").read_text())
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
