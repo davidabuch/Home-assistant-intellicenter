@@ -178,7 +178,7 @@ class IntelliCenterManualTransport:
                 circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active, effect_code=effect_code))
             # Freeze is a native FRZ feature, not a temperature threshold or
             # a PoolOS entity. Reject missing/duplicate/unknown observations.
-            freeze_candidates = [obj for obj in self.model.get_by_type("FEATR")
+            freeze_candidates = [obj for obj in self.model.get_by_type(CIRCUIT_TYPE)
                                  if str(obj.subtype or "").strip().upper() == "FRZ"]
             if len(freeze_candidates) == 1:
                 freeze_active = _native_status(
