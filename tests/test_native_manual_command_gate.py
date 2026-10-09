@@ -57,6 +57,19 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("600 <= int(args[1][RPM_ATTR]) <= 3450", dispatch)
         self.assertIn("0 <= v <= 100", dispatch)
 
+    def test_outage_safety_is_enforced_at_final_dispatch(self):
+        transport = SOURCE.read_text()
+        setup = (SOURCE.parent / "__init__.py").read_text()
+        self.assertIn("self._outage_command_check(method, args)", transport)
+        self.assertIn("Grid outage safety lockout", transport)
+        self.assertIn("transport.set_outage_command_check(_outage_command_allowed)", setup)
+        self.assertIn('input_boolean.grid_outage_active', setup)
+        self.assertIn('input_boolean.grid_outage_protection', setup)
+        self.assertIn('9 <= dt_util.as_local(dt_util.utcnow()).hour < 17', setup)
+        self.assertIn('changes[RPM_ATTR] == "1500"', setup)
+        self.assertIn('return args[1] is False', setup)
+        self.assertIn('return False', setup)
+
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()
         self.assertNotIn("from poolos", source)
