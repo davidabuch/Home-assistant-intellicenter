@@ -231,6 +231,24 @@ class IntelliCenterManualTransport:
             freeze_active=freeze_active,
         ))
 
+    def commission_abort_own_tcp(self) -> None:
+        """One-shot diagnostic: abort ONLY this integration's TCP transport.
+
+        Unlike ICConnection.disconnect(), abort preserves the unexpected-loss
+        callback, exercising the real ICConnectionHandler reconnect path.
+        Never touches a host firewall, shared network, or PoolOS connection.
+        """
+        if not self._started or not self._connected or not self.handler.connected:
+            raise RuntimeError("Replacement native TCP transport is not connected")
+        connection = self.controller._connection
+        if connection is None or not connection.connected:
+            raise RuntimeError("Replacement TCP connection is unavailable")
+        protocol = connection._protocol
+        if protocol is None or protocol._transport is None:
+            raise RuntimeError("Replacement TCP protocol transport is unavailable")
+        self._connection_changed(False)
+        protocol._transport.abort()
+
     async def start(self) -> None:
         if self._started:
             return
