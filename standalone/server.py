@@ -87,7 +87,7 @@ class Handler(BaseHTTPRequestHandler):
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError) as exc:
                 return self.send_json({"error": "Home Assistant unavailable"}, 503)
         assets = {"/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
-                  "/style.css": ("web/style.css", "text/css"), "/manifest.webmanifest": ("web/manifest.webmanifest", "application/manifest+json")}
+                  "/style.css": ("web/style.css", "text/css"), "/manifest.webmanifest": ("web/manifest.webmanifest", "application/manifest+json"), "/icon.svg": ("web/icon.svg", "image/svg+xml"), "/sw.js": ("web/sw.js", "text/javascript")}
         if path not in assets:
             return self.send_json({"error": "Not found"}, 404)
         filename, content_type = assets[path]
