@@ -155,8 +155,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": "Unknown control"}, 400)
         entity, domain = CONTROLS[key]
         if operation in ("on", "off"):
-            service = "turn_on" if operation == "on" else "turn_off"
-            payload = {"entity_id": entity}
+            if domain == "climate":
+                service = "set_hvac_mode"
+                payload = {"entity_id": entity, "hvac_mode": "heat" if operation == "on" else "off"}
+            else:
+                service = "turn_on" if operation == "on" else "turn_off"
+                payload = {"entity_id": entity}
         elif operation == "temperature" and domain == "climate":
             value = body.get("value")
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not 70 <= value <= 104:
