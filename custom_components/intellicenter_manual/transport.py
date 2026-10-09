@@ -13,6 +13,7 @@ from pyintellicenter import (
     ICConnectionHandler, ICModelController, PoolModel,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
     BODY_TYPE, CIRCUIT_TYPE, SENSE_TYPE, PUMP_TYPE, SYSTEM_TYPE,
+    CHEM_TYPE, BODY_ATTR, PRIM_ATTR, SEC_ATTR, SALT_ATTR,
     LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR, SOURCE_ATTR,
     RPM_ATTR, GPM_ATTR, PWR_ATTR, MIN_ATTR, MAX_ATTR, VER_ATTR, SERVICE_ATTR,
     OBJTYP_ATTR, SNAME_ATTR, HITMP_ATTR, MODE_ATTR,
@@ -172,6 +173,15 @@ class IntelliCenterManualTransport:
                 telemetry.update(pump_rpm=props.get(RPM_ATTR),
                     pump_flow_rate=props.get(GPM_ATTR), pump_power=props.get(PWR_ATTR),
                     pump_minimum_rpm=props.get(MIN_ATTR), pump_maximum_rpm=props.get(MAX_ATTR))
+            for obj in self.model.get_by_type(CHEM_TYPE):
+                if str(obj.objnam) != 'CHR01' or str(obj.subtype or '').upper() != 'ICHLOR':
+                    continue
+                body_ids = str(obj.properties.get(BODY_ATTR) or '').split()
+                for body_id, attribute in zip(body_ids, (PRIM_ATTR, SEC_ATTR)):
+                    key = {'B1101': 'intellichlor_pool_output', 'B1202': 'intellichlor_spa_output'}.get(body_id)
+                    if key is not None:
+                        telemetry[key] = obj.properties.get(attribute)
+                telemetry['intellichlor_salt'] = obj.properties.get(SALT_ATTR)
             for obj in self.model.get_by_type(SYSTEM_TYPE):
                 if 'firmware_version' in telemetry:
                     break
