@@ -99,6 +99,23 @@ class TransportLifecycleFaultTests(unittest.TestCase):
         self.transport._model_updated()
         self.assertTrue(self.transport.read_observation().connected)
 
+    def test_abort_only_own_socket_and_fail_closed_before_callback(self):
+        calls = []
+        fake_socket = SimpleNamespace(abort=lambda: calls.append("abort"))
+        fake_protocol = SimpleNamespace(_transport=fake_socket)
+        fake_connection = SimpleNamespace(connected=True, _protocol=fake_protocol)
+        self.transport.controller._connection = fake_connection
+        self.transport.handler.connected = True
+        self.transport._connection_changed(True)
+        self.transport._model_updated()
+        self.assertTrue(self.transport.read_observation().connected)
+        self.transport.commission_abort_own_tcp()
+        self.assertEqual(calls, ["abort"])
+        self.assertFalse(self.transport.read_observation().connected)
+        self.assertIsNone(self.transport._observed_at)
+        with self.assertRaises(RuntimeError):
+            self.transport.commission_abort_own_tcp()
+
     def test_retry_drops_previous_observation(self):
         self.transport._connection_changed(True)
         self.transport._model_updated()
