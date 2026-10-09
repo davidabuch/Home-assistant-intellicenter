@@ -60,6 +60,40 @@ class ObservationTests(unittest.TestCase):
         self.assertIsNone(observe([spa, spa]).heating_source_active("H0001"))
         self.assertIsNone(observe([pool]).heating_source_active("H0002"))
 
+    def test_selected_heater_is_not_proof_of_active_heat(self):
+        # HEATER is selected even while both bodies are idle.
+        pool = SimpleNamespace(id="B1101", is_on=True, heating_active=False,
+                               active_heat_source="H0002")
+        spa = SimpleNamespace(id="B1202", is_on=False, heating_active=False,
+                              active_heat_source="H0001")
+        observed = module.adapt_snapshot(
+            SimpleNamespace(connected=True, observed_at=NOW,
+                            bodies=[pool, spa]), now=NOW)
+        self.assertFalse(observed.heating_source_active("H0002"))
+        self.assertFalse(observed.heating_source_active("H0001"))
+
+    def test_active_heating_with_ambiguous_source_fails_closed(self):
+        pool = SimpleNamespace(id="B1101", is_on=True, heating_active=True,
+                               active_heat_source="unknown")
+        spa = SimpleNamespace(id="B1202", is_on=False, heating_active=False,
+                              active_heat_source="H0001")
+        observed = module.adapt_snapshot(
+            SimpleNamespace(connected=True, observed_at=NOW,
+                            bodies=[pool, spa]), now=NOW)
+        self.assertIsNone(observed.heating_source_active("H0001"))
+        self.assertIsNone(observed.heating_source_active("H0002"))
+
+    def test_unknown_heating_state_cannot_assert_heater_off(self):
+        pool = SimpleNamespace(id="B1101", is_on=True, heating_active=None,
+                               active_heat_source="H0002")
+        spa = SimpleNamespace(id="B1202", is_on=False, heating_active=False,
+                              active_heat_source="H0001")
+        observed = module.adapt_snapshot(
+            SimpleNamespace(connected=True, observed_at=NOW,
+                            bodies=[pool, spa]), now=NOW)
+        self.assertIsNone(observed.heating_source_active("H0001"))
+        self.assertIsNone(observed.heating_source_active("H0002"))
+
     def test_malformed_telemetry_is_unknown_not_exception(self):
         for malformed in (None, [], "bad", 42):
             observation = module.adapt_snapshot(
