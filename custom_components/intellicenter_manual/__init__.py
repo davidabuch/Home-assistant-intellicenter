@@ -72,8 +72,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """
         active = hass.states.get("input_boolean.grid_outage_active")
         protection = hass.states.get("input_boolean.grid_outage_protection")
+        bypass = hass.states.get("input_boolean.grid_outage_operator_bypass_latch")
         if not (active and active.state == "on"
-                and protection and protection.state == "on"):
+                and protection and protection.state == "on"
+                and bypass and bypass.state == "off"):
             return True
         within_window = 9 <= dt_util.as_local(dt_util.utcnow()).hour < 17
         if method == "request_changes" and len(args) == 2:
