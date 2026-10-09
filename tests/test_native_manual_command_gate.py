@@ -83,6 +83,11 @@ class NativeManualCommandGateTests(unittest.TestCase):
         setup = (SOURCE.parent / "__init__.py").read_text()
         self.assertIn("changes[STATUS_ATTR] == STATUS_OFF or", setup)
 
+    def test_persistent_operator_bypass_latch_gates_native_safety(self):
+        setup = (SOURCE.parent / "__init__.py").read_text()
+        self.assertIn("input_boolean.grid_outage_operator_bypass_latch", setup)
+        self.assertIn('bypass.state == "off"', setup)
+
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()
         self.assertNotIn("from poolos", source)
