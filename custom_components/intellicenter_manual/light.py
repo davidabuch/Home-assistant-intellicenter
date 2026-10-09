@@ -35,6 +35,13 @@ class ManualPoolLight(LightEntity):
         return circuit.active if circuit else None
 
     @property
+    def effect(self):
+        if self._observation is None or not self._observation.connected:
+            return None
+        circuit = self._observation.circuit('C0002')
+        return LIGHT_EFFECTS.get(circuit.effect_code) if circuit is not None else None
+
+    @property
     def available(self):
         return self._state() is not None
 
