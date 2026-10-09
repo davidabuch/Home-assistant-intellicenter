@@ -15,6 +15,8 @@ from pyintellicenter import (
     BODY_TYPE, CIRCUIT_TYPE, SENSE_TYPE, PUMP_TYPE, SYSTEM_TYPE,
     LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR, SOURCE_ATTR,
     RPM_ATTR, GPM_ATTR, PWR_ATTR, MIN_ATTR, MAX_ATTR, VER_ATTR, SERVICE_ATTR,
+    ALL_ATTRIBUTES_BY_TYPE, OBJTYP_ATTR, SNAME_ATTR, HITMP_ATTR, MODE_ATTR,
+    VOL_ATTR, PARENT_ATTR, SUBTYP_ATTR,
 )
 
 BODY_IDS = frozenset({"B1101", "B1202"})
@@ -26,6 +28,27 @@ class ManualCommandError(RuntimeError):
     """Explicit command could not be dispatched."""
 
 
+class _DiscoveryPoolModel(PoolModel):
+    """Use PoolOS-commissioned narrow BODY and SENSE subscriptions."""
+
+    def __init__(self):
+        self._attribute_map = {key: set(value) for key, value in ALL_ATTRIBUTES_BY_TYPE.items()}
+        self._attribute_map[BODY_TYPE] = {
+            SNAME_ATTR, HEATER_ATTR, HITMP_ATTR, HTMODE_ATTR, LOTMP_ATTR,
+            LSTTMP_ATTR, MODE_ATTR, STATUS_ATTR, VOL_ATTR,
+        }
+        self._attribute_map[SENSE_TYPE] = {SNAME_ATTR, SOURCE_ATTR}
+        super().__init__(self._attribute_map)
+
+    def add_object(self, objnam, params):
+        objtype = params.get(OBJTYP_ATTR)
+        if isinstance(objtype, str) and objtype:
+            self._attribute_map.setdefault(
+                objtype, {SNAME_ATTR, PARENT_ATTR, STATUS_ATTR, SUBTYP_ATTR}
+            )
+        return super().add_object(objnam, params)
+
+
 class _CommissioningController(ICModelController):
     """Hard protocol boundary: no mutation can cross during commissioning."""
     async def send_cmd(self, cmd, extra=None):
@@ -34,6 +57,9 @@ class _CommissioningController(ICModelController):
         return await super().send_cmd(cmd, extra)
 
     async def request_changes(self, objnam, changes):
+        raise ManualCommandError("Physical writes disabled in commissioning controller")
+
+    async def _queue_property_change(self, objnam, changes):
         raise ManualCommandError("Physical writes disabled in commissioning controller")
 
 
@@ -64,7 +90,7 @@ class IntelliCenterManualTransport:
     def __init__(self, host: str, *, allow_commands: bool = False) -> None:
         if not host or not host.strip():
             raise ValueError("IntelliCenter host is required")
-        self.model = PoolModel()
+        self.model = _DiscoveryPoolModel()
         self.controller = _CommissioningController(
             host.strip(), self.model, keepalive_interval=90.0, transport="tcp"
         )
@@ -158,8 +184,15 @@ class IntelliCenterManualTransport:
     async def start(self) -> None:
         if self._started:
             return
-        await self.handler.start()
         self._started = True
+        try:
+            await self.handler.start()
+        except Exception:
+            self._started = False
+            self._connected = False
+            self._observed_at = None
+            self._publish()
+            raise
         self._publish()
 
     async def stop(self) -> None:

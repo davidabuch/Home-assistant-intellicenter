@@ -37,6 +37,12 @@ class NativeTelemetryTests(unittest.TestCase):
         snapshot.connected = False
         self.assertFalse(module.adapt_snapshot(snapshot, now=now).connected)
 
+    def test_discovery_contract(self):
+        source = (ROOT / "transport.py").read_text()
+        self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
+        self.assertIn("self.model = _DiscoveryPoolModel()", source)
+        self.assertIn("self._attribute_map[SENSE_TYPE] = {SNAME_ATTR, SOURCE_ATTR}", source)
+
     def test_protocol_guard_and_sensor_platform(self):
         tree = ast.parse((ROOT / "transport.py").read_text())
         self.assertTrue(any(isinstance(n, ast.ClassDef) and n.name == "_CommissioningController"
