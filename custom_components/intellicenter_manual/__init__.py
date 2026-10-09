@@ -13,6 +13,8 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
+from homeassistant.util import dt as dt_util
+from pyintellicenter import STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR, RPM_ATTR
 
 from .transport import IntelliCenterManualTransport
 from .observation_coordinator import ObservationFanout
@@ -62,6 +64,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
 
     transport.set_manual_authority_check(_exclusive_manual_authority)
+    def _outage_command_allowed(method: str, args: tuple) -> bool:
+        """Safety wins while both the physical outage latch and policy are active.
+
+        This checks at the final command gateway, not only in automations.
+        Operator bypass releases the lockout for this outage.
+        """
+        active = hass.states.get("input_boolean.grid_outage_active")
+        protection = hass.states.get("input_boolean.grid_outage_protection")
+        if not (active and active.state == "on"
+                and protection and protection.state == "on"):
+            return True
+        within_window = 9 <= dt_util.as_local(dt_util.utcnow()).hour < 17
+        if method == "request_changes" and len(args) == 2:
+            obj, changes = args
+            if obj in {"B1101", "B1202"} and set(changes) == {HEATER_ATTR}:
+                return changes[HEATER_ATTR] == "00000"
+            if obj == "B1202" and set(changes) == {STATUS_ATTR}:
+                return changes[STATUS_ATTR] == STATUS_OFF
+            if obj == "B1101" and set(changes) == {STATUS_ATTR}:
+                return changes[STATUS_ATTR] == (STATUS_ON if within_window else STATUS_OFF)
+            if obj == "PMP01" and set(changes) == {RPM_ATTR}:
+                return within_window and changes[RPM_ATTR] == "1500"
+        if method == "set_circuit_state" and len(args) == 2:
+            return args[1] is False
+        return False
+
+    transport.set_outage_command_check(_outage_command_allowed)
+
     fanout = ObservationFanout(transport, asyncio.get_running_loop())
     runtime = Runtime(transport=transport, observation_fanout=fanout)
     entry.runtime_data = runtime
