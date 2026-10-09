@@ -11,3 +11,7 @@ Add this repository to Home Assistant App store, install Pool & Spa Family, set 
 ## Safety
 
 Grid outage protection, physical interlocks, and automation ownership remain in Home Assistant and the native IntelliCenter bridge. The backend only allows five predefined controls and bounded climate setpoints. Read-only polling reconciles externally initiated changes. No command on load/reconnect.
+
+## Remembered family devices
+
+Enter the family PIN once per browser installation. A random, HttpOnly session cookie lasts 180 days and persists across app restarts in `/data/trusted_devices.json`. Safari privacy settings, clearing website data, switching browser profiles, or reinstalling the Home Screen app may require signing in again. Do not expose port 8101 to the public internet; prefer HTTPS/VPN for remote access. To revoke all devices, stop the app and delete its trusted-devices data file, then restart it (future UI revocation remains to be implemented).

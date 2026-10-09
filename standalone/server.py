@@ -19,8 +19,29 @@ try:
     PIN = str(json.loads(Path("/data/options.json").read_text()).get("family_pin", ""))
 except (OSError, ValueError, TypeError):
     PIN = os.environ.get("FAMILY_PIN", "")
-SESSIONS = {}
+SESSION_FILE = Path(os.environ.get("SESSION_FILE", "/data/trusted_devices.json"))
+SESSION_DAYS = 180
+
+def load_sessions():
+    try:
+        saved = json.loads(SESSION_FILE.read_text())
+        if isinstance(saved, dict):
+            return {key: value for key, value in saved.items()
+                    if isinstance(key, str) and isinstance(value, (int, float))
+                    and value > time.time()}
+    except (OSError, ValueError, TypeError):
+        pass
+    return {}
+
+SESSIONS = load_sessions()
 LOGIN_ATTEMPTS = {}
+
+def save_sessions():
+    SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temporary = SESSION_FILE.with_suffix(".tmp")
+    temporary.write_text(json.dumps(SESSIONS))
+    os.chmod(temporary, 0o600)
+    temporary.replace(SESSION_FILE)
 CONTROLS = {
     "pool": ("climate.pool_thermostat", "climate"),
     "spa": ("climate.hot_tub_thermostat", "climate"),
@@ -72,7 +93,7 @@ class Handler(BaseHTTPRequestHandler):
         token = next((v.strip() for p in cookie.split(";") if (v := p.strip()).startswith("session=")), "")
         sid = token.removeprefix("session=")
         expiry = SESSIONS.get(sid, 0)
-        return bool(PIN and expiry > time.monotonic())
+        return bool(PIN and expiry > time.time())
 
     def do_GET(self):
         path = urlparse(self.path).path
@@ -122,8 +143,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": "Incorrect PIN"}, 401)
             LOGIN_ATTEMPTS.pop(client, None)
             sid = secrets.token_urlsafe(32)
-            SESSIONS[sid] = time.monotonic() + 86400
-            return self.send_json({"ok": True}, cookie=f"session={sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400" + ("; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""))
+            SESSIONS[sid] = time.time() + SESSION_DAYS * 86400
+            save_sessions()
+            return self.send_json({"ok": True}, cookie=f"session={sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_DAYS * 86400}" + ("; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""))
         if not self.authorized():
             return self.send_json({"error": "Sign in required"}, 401)
         if path != "/api/control":
