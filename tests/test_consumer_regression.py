@@ -90,10 +90,11 @@ class ConsumerRegressionTests(unittest.TestCase):
         self.assertTrue(observed.circuit("C0002").active)
         self.assertEqual(observed.circuit("C0002").effect_code, "BLUER")
         circuit.is_on = False
-        self.assertIsNone(
-            observation.adapt_snapshot(snapshot(self.now, circuit=circuit), now=self.now)
-            .circuit("C0002").effect_code
-        )
+        # The read model retains the last native effect code while the
+        # circuit is OFF; this is historical selection, not active light.
+        off = observation.adapt_snapshot(snapshot(self.now, circuit=circuit), now=self.now).circuit("C0002")
+        self.assertFalse(off.active)
+        self.assertEqual(off.effect_code, "BLUER")
 
     def test_compatibility_boundaries_remain_explicit(self):
         select = (ROOT / "select.py").read_text()
