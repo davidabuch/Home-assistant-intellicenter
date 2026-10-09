@@ -40,11 +40,22 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("observation.observed_at > dispatched_at", source)
         self.assertIn("self._manual_authority_check()", source)
         self.assertIn("self.disarm_manual_thermostats()", source)
-        self.assertIn('Only Pool/Spa thermostat commands commissioned', source)
+        self.assertIn('Command outside commissioned native manual allowlist', source)
         setup = (SOURCE.parent / "__init__.py").read_text()
         self.assertIn('manual_command_delivery_enabled") is not False', setup)
         self.assertIn('arm_manual_thermostats', setup)
         self.assertIn('disarm_manual_thermostats', setup)
+
+    def test_all_manual_accessory_paths_are_allowlisted(self):
+        source = SOURCE.read_text()
+        dispatch = source.split("    async def _send(", 1)[1].split("    async def _confirm_body(", 1)[0]
+        for method in ("set_circuit_state", "set_light_effect", "set_chlorinator_output",
+                       "set_heating_setpoint"):
+            self.assertIn('method == "' + method + '"', dispatch)
+        for object_id in ('"PMP01"', '"CHR01"', '"C0002"'):
+            self.assertIn(object_id, dispatch)
+        self.assertIn("600 <= int(args[1][RPM_ATTR]) <= 3450", dispatch)
+        self.assertIn("0 <= v <= 100", dispatch)
 
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()
