@@ -199,6 +199,13 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertIn("if len(probes) == 1:", source)
         self.assertNotIn("key not in telemetry", source)
 
+    def test_chemistry_and_system_require_unambiguous_discovery(self):
+        source = (ROOT / "transport.py").read_text()
+        self.assertIn("if len(chlorinators) == 1:", source)
+        self.assertIn("len(body_ids) == 2 and set(body_ids) == {'B1101', 'B1202'}", source)
+        self.assertIn("if len(systems) == 1:", source)
+        self.assertNotIn("if 'firmware_version' in telemetry:", source)
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
