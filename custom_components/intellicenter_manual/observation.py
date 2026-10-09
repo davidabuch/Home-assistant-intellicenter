@@ -36,6 +36,20 @@ class ReadObservation:
     circuits: tuple[CircuitObservation, ...] = ()
     telemetry: tuple[TelemetryObservation, ...] = ()
 
+    def heating_source_active(self, heater_id: str) -> bool | None:
+        """Report actual native heating source; never equate selection with firing."""
+        if not self.connected or heater_id not in {"H0001", "H0002"}:
+            return None
+        bodies = tuple(body for body in self.bodies if body.native_id in {"B1101", "B1202"})
+        if len(bodies) != 2 or any(body.heating is None for body in bodies):
+            return None
+        heating = tuple(body for body in bodies if body.heating)
+        if not heating:
+            return False
+        if any(body.heat_source is None or body.heat_source not in {"H0001", "H0002"} for body in heating):
+            return None
+        return any(body.heat_source == heater_id for body in heating)
+
     def measurement(self, key: str) -> float | str | None:
         matches = [item.value for item in self.telemetry if item.key == key]
         return matches[0] if len(matches) == 1 else None
