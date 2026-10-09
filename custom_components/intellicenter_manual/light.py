@@ -5,6 +5,7 @@ from pyintellicenter import LIGHT_EFFECTS
 class ManualPoolLight(LightEntity):
     _attr_should_poll = False
     _attr_supported_color_modes = {ColorMode.ONOFF}
+    _attr_color_mode = ColorMode.ONOFF
     _attr_name = "Pool Light"
     _attr_supported_features = LightEntityFeature.EFFECT
     _attr_effect_list = list(LIGHT_EFFECTS.values())
