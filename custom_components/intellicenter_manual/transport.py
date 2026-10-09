@@ -176,7 +176,7 @@ class IntelliCenterManualTransport:
                 raw_use = obj.properties.get('USE') if str(obj.objnam) == 'C0002' else None
                 effect_code = str(raw_use) if raw_use is not None and str(raw_use) in LIGHT_EFFECTS else None
                 circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active, effect_code=effect_code))
-            # Freeze is a native FRZ feature, not a temperature threshold or
+            # Freeze is a native CIRCUIT with subtype FRZ, not a temperature threshold or
             # a PoolOS entity. Reject missing/duplicate/unknown observations.
             freeze_candidates = [obj for obj in self.model.get_by_type(CIRCUIT_TYPE)
                                  if str(obj.subtype or "").strip().upper() == "FRZ"]
