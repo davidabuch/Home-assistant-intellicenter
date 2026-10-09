@@ -26,6 +26,17 @@ class ManualCommandError(RuntimeError):
     """Explicit command could not be dispatched."""
 
 
+class _CommissioningController(ICModelController):
+    """Hard protocol boundary: no mutation can cross during commissioning."""
+    async def send_cmd(self, cmd, extra=None):
+        if cmd not in {"GetParamList", "RequestParamList"}:
+            raise ManualCommandError(f"Unsafe protocol operation blocked: {cmd}")
+        return await super().send_cmd(cmd, extra)
+
+    async def request_changes(self, objnam, changes):
+        raise ManualCommandError("Physical writes disabled in commissioning controller")
+
+
 class _ObservedConnectionHandler(ICConnectionHandler):
     def __init__(self, owner, controller):
         super().__init__(controller, time_between_reconnects=30)
@@ -54,7 +65,7 @@ class IntelliCenterManualTransport:
         if not host or not host.strip():
             raise ValueError("IntelliCenter host is required")
         self.model = PoolModel()
-        self.controller = ICModelController(
+        self.controller = _CommissioningController(
             host.strip(), self.model, keepalive_interval=90.0, transport="tcp"
         )
         self.handler = _ObservedConnectionHandler(self, self.controller)
