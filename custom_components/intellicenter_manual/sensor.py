@@ -25,6 +25,8 @@ MEASUREMENTS = (
     ("pool_target_temperature", "Pool Target Temperature", "°F"),
     ("spa_temperature", "Spa Temperature", "°F"),
     ("spa_target_temperature", "Spa Target Temperature", "°F"),
+    ("pool_heater_id", "Pool Heater ID", None),
+    ("spa_heater_id", "Spa Heater ID", None),
 )
 
 class NativeTelemetry(SensorEntity):
@@ -65,6 +67,8 @@ class NativeTelemetry(SensorEntity):
             body = obs.body(body_id)
             if body is None:
                 return None
+            if self._key.endswith("_heater_id"):
+                return body.heat_source
             if self._key.endswith("_target_temperature"):
                 return body.target_temperature
             if self._key.endswith("_temperature"):
