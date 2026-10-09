@@ -21,6 +21,7 @@ class BodyObservation:
 class CircuitObservation:
     native_id: str
     active: bool | None
+    effect_code: str | None = None
 
 @dataclass(frozen=True)
 class TelemetryObservation:
@@ -92,7 +93,9 @@ def adapt_snapshot(snapshot: Any, *, now: datetime | None = None) -> ReadObserva
         native_id = str(getattr(item, 'id', ''))
         if native_id not in {'C0002', 'C0003', 'C0004', 'FTR01'}:
             continue
-        circuits.append(CircuitObservation(native_id, _boolean(getattr(item, 'is_on', None))))
+        raw_effect = getattr(item, 'effect_code', None)
+        effect_code = raw_effect if isinstance(raw_effect, str) and raw_effect else None
+        circuits.append(CircuitObservation(native_id, _boolean(getattr(item, 'is_on', None)), effect_code if native_id == 'C0002' else None))
     telemetry = []
     for key, raw in getattr(snapshot, 'telemetry', {}).items():
         if key in {'air_temperature', 'solar_temperature', 'water_temperature',
