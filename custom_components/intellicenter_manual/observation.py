@@ -111,12 +111,15 @@ def adapt_snapshot(snapshot: Any, *, now: datetime | None = None) -> ReadObserva
         effect_code = raw_effect if isinstance(raw_effect, str) and raw_effect else None
         circuits.append(CircuitObservation(native_id, _boolean(getattr(item, 'is_on', None)), effect_code if native_id == 'C0002' else None))
     telemetry = []
-    for key, raw in getattr(snapshot, 'telemetry', {}).items():
+    raw_telemetry = getattr(snapshot, 'telemetry', None)
+    if not isinstance(raw_telemetry, dict):
+        raw_telemetry = {}
+    for key, raw in raw_telemetry.items():
         if key in {'air_temperature', 'solar_temperature', 'water_temperature',
                    'pump_rpm', 'pump_flow_rate', 'pump_power',
                    'pump_minimum_rpm', 'pump_maximum_rpm',
                    'intellichlor_pool_output', 'intellichlor_spa_output', 'intellichlor_salt'}:
             telemetry.append(TelemetryObservation(key, _number(raw)))
         elif key in {'firmware_version', 'system_mode'}:
-            telemetry.append(TelemetryObservation(key, str(raw) if raw is not None else None))
+            telemetry.append(TelemetryObservation(key, str(raw) if isinstance(raw, (str, int)) and not isinstance(raw, bool) else None))
     return ReadObservation(True, observed_at, tuple(bodies), tuple(circuits), tuple(telemetry))
