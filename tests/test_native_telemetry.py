@@ -41,6 +41,18 @@ class NativeTelemetryTests(unittest.TestCase):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("from pyintellicenter.attributes import ALL_ATTRIBUTES_BY_TYPE", source)
 
+    def test_manual_platforms_registered_and_guarded(self):
+        setup = (ROOT / "__init__.py").read_text()
+        for platform in ("switch", "light", "number", "select"):
+            self.assertIn(f'"{platform}"', setup)
+            source = (ROOT / f"{platform}.py").read_text()
+            self.assertIn("async_setup_entry", source)
+            self.assertIn("observation_fanout.subscribe", source)
+        transport = (ROOT / "transport.py").read_text()
+        self.assertIn("allow_commands=False", setup)
+        self.assertIn("Read-only commissioning: all physical commands are disabled", transport)
+        self.assertIn("async def set_pump_rpm", transport)
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)

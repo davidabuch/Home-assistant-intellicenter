@@ -16,7 +16,7 @@ from datetime import timedelta
 from .transport import IntelliCenterManualTransport
 from .observation_coordinator import ObservationFanout
 
-PLATFORMS = ["climate", "binary_sensor", "sensor"]
+PLATFORMS = ["climate", "binary_sensor", "sensor", "switch", "light", "number", "select"]
 
 
 @dataclass

@@ -225,6 +225,11 @@ class IntelliCenterManualTransport:
             {STATUS_ATTR: STATUS_ON if active else STATUS_OFF},
         )
 
+    async def set_pump_rpm(self, rpm: float) -> None:
+        if isinstance(rpm, bool) or not 600 <= float(rpm) <= 3450:
+            raise ValueError("Pump RPM outside commissioned range")
+        await self._send("request_changes", "PMP01", {RPM_ATTR: str(round(float(rpm)))})
+
     async def set_target(self, body_id: str, fahrenheit: float) -> None:
         if body_id not in BODY_IDS or isinstance(fahrenheit, bool):
             raise ValueError("invalid body or target")
