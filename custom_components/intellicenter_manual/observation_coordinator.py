@@ -36,10 +36,12 @@ class ObservationFanout:
         self.refresh()
 
     def refresh(self) -> None:
+        # A late transport callback after unload must not schedule work on a
+        # stopped HA event loop (or read stale native observations).
+        if self._closed:
+            return
         if threading.get_ident() != self._loop_thread:
             self._loop.call_soon_threadsafe(self.refresh)
-            return
-        if self._closed:
             return
         observation = self.transport.read_observation()
         for listener in tuple(self._listeners):
