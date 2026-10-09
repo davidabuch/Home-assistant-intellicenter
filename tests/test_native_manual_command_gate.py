@@ -17,6 +17,16 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("allow_commands=False", source)
         self.assertNotIn("manual_writes_enabled = True", source)
 
+    def test_dispatch_checks_freshness_under_lock(self):
+        source = SOURCE.read_text()
+        dispatch = source.split("    async def _send(", 1)[1].split("    async def set_body_active(", 1)[0]
+        self.assertIn("async with self._lock:", dispatch)
+        self.assertIn("observation = self.read_observation()", dispatch)
+        self.assertIn("not observation.connected", dispatch)
+        self.assertIn("not self.controller.manual_writes_enabled", dispatch)
+        self.assertIn("self._observed_at = None", dispatch)
+        self.assertIn("self._publish()", dispatch)
+
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()
         self.assertNotIn("from poolos", source)
