@@ -108,6 +108,20 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertIn('return body.heat_source', sensor)
         self.assertIn("allow_commands=False", (ROOT / "__init__.py").read_text())
 
+    def test_native_light_effect_readback(self):
+        now = datetime.now(timezone.utc)
+        snapshot = types.SimpleNamespace(connected=True, observed_at=now,
+            bodies=[], circuits=[
+                types.SimpleNamespace(id="C0002", is_on=True, effect_code="CARIB"),
+                types.SimpleNamespace(id="C0003", is_on=False, effect_code="CARIB")], telemetry={})
+        observed = module.adapt_snapshot(snapshot, now=now)
+        self.assertEqual(observed.circuit("C0002").effect_code, "CARIB")
+        self.assertIsNone(observed.circuit("C0003").effect_code)
+        snapshot.circuits[0].effect_code = None
+        self.assertIsNone(module.adapt_snapshot(snapshot, now=now).circuit("C0002").effect_code)
+        self.assertIn("obj.properties.get('USE')", (ROOT / "transport.py").read_text())
+        self.assertIn("LIGHT_EFFECTS.get(circuit.effect_code)", (ROOT / "light.py").read_text())
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
