@@ -30,6 +30,15 @@ class ObservationTests(unittest.TestCase):
         self.assertEqual(result.body("B1101").target_temperature, 90)
         self.assertIsNone(result.body("B1202"))
 
+    def test_circuit_state_and_ambiguous_id(self):
+        a = SimpleNamespace(id='C0002', is_on=True)
+        snapshot = SimpleNamespace(connected=True, observed_at=NOW, bodies=[], circuits=[a])
+        result = module.adapt_snapshot(snapshot, now=NOW)
+        self.assertTrue(result.circuit('C0002').active)
+        self.assertIsNone(result.circuit('C0003'))
+        snapshot.circuits = [a, a]
+        self.assertIsNone(module.adapt_snapshot(snapshot, now=NOW).circuit('C0002'))
+
     def test_ambiguous_body_not_authoritative(self):
         body = SimpleNamespace(id="B1101", is_on=True)
         result = module.adapt_snapshot(SimpleNamespace(connected=True, observed_at=NOW, bodies=[body,body]), now=NOW)
