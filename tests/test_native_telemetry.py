@@ -82,6 +82,29 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertIn("await self._send(\"set_light_effect\"", transport)
         self.assertIn("allow_commands=False", (ROOT / "__init__.py").read_text())
 
+    def test_native_heating_and_heater_id_observations(self):
+        now = datetime.now(timezone.utc)
+        snapshot = types.SimpleNamespace(connected=True, observed_at=now,
+            bodies=[types.SimpleNamespace(id="B1101", is_on=True, heating_active=True,
+                current_temperature=82, target_temperature=90, active_heat_source="H0002"),
+                types.SimpleNamespace(id="B1202", is_on=False, heating_active=None,
+                current_temperature=98, target_temperature=100, active_heat_source=None)],
+            circuits=[], telemetry={})
+        obs = module.adapt_snapshot(snapshot, now=now)
+        self.assertTrue(obs.body("B1101").heating)
+        self.assertEqual(obs.body("B1101").heat_source, "H0002")
+        self.assertIsNone(obs.body("B1202").heating)
+        self.assertIsNone(obs.body("B1202").heat_source)
+        status = (ROOT / "binary_sensor.py").read_text()
+        sensor = (ROOT / "sensor.py").read_text()
+        self.assertIn('"pool_heating_active"', status)
+        self.assertIn('"spa_heating_active"', status)
+        self.assertIn('item.heating if self._kind == "body_heating"', status)
+        self.assertIn('"pool_heater_id"', sensor)
+        self.assertIn('"spa_heater_id"', sensor)
+        self.assertIn('return body.heat_source', sensor)
+        self.assertIn("allow_commands=False", (ROOT / "__init__.py").read_text())
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
