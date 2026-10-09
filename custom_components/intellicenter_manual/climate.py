@@ -6,7 +6,7 @@ from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import ClimateEntityFeature, HVACAction, HVACMode
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 
-BODIES = (("pool", "Pool Thermostat", "B1101"), ("hot_tub", "Hot Tub Thermostat", "B1202"))
+BODIES = (("pool", "Pool Thermostat", "B1101"), ("spa", "Hot Tub Thermostat", "B1202"))
 
 class ManualBodyThermostat(ClimateEntity):
     _attr_has_entity_name = True
@@ -84,9 +84,13 @@ class ManualBodyThermostat(ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode):
         if hvac_mode not in self.hvac_modes:
             raise ValueError("unsupported HVAC mode")
+        if not self.available:
+            raise RuntimeError("Cannot actuate without trustworthy live observation")
         await self._transport.set_body_active(self._body_id, hvac_mode == HVACMode.HEAT)
 
     async def async_set_temperature(self, **kwargs: Any):
+        if not self.available:
+            raise RuntimeError("Cannot actuate without trustworthy live observation")
         await self._transport.set_target(self._body_id, kwargs[ATTR_TEMPERATURE])
 
 async def async_setup_entry(hass, entry, async_add_entities):
