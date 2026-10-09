@@ -1,6 +1,7 @@
 """Exercise subscription lifecycle and callback fanout without HA installation."""
 from datetime import datetime, timezone
 import importlib.util
+import asyncio
 from pathlib import Path
 import sys
 import types
@@ -36,7 +37,7 @@ class FakeTransport:
 class FanoutTests(unittest.TestCase):
     def test_subscribe_refresh_unsubscribe_close(self):
         transport = FakeTransport()
-        fanout = fanout_module.ObservationFanout(transport)
+        fanout = fanout_module.ObservationFanout(transport, asyncio.new_event_loop())
         seen = []
         remove = fanout.subscribe(seen.append)
         self.assertEqual(seen, [1])

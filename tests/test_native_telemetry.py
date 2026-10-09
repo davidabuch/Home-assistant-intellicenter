@@ -53,6 +53,14 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertIn("Read-only commissioning: all physical commands are disabled", transport)
         self.assertIn("async def set_pump_rpm", transport)
 
+    def test_ha_runtime_safety_contract(self):
+        light = (ROOT / "light.py").read_text()
+        fanout = (ROOT / "observation_coordinator.py").read_text()
+        setup = (ROOT / "__init__.py").read_text()
+        self.assertIn("_attr_supported_color_modes = {ColorMode.ONOFF}", light)
+        self.assertIn("call_soon_threadsafe(self.refresh)", fanout)
+        self.assertIn("asyncio.get_running_loop()", setup)
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
