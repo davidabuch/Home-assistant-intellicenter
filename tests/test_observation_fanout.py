@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 import importlib.util
 import asyncio
+import threading
 from pathlib import Path
 import sys
 import types
@@ -52,6 +53,28 @@ class FanoutTests(unittest.TestCase):
         self.assertIsNone(transport.callback)
         with self.assertRaises(RuntimeError):
             fanout.subscribe(seen.append)
+
+    def test_late_cross_thread_callback_after_close_does_not_touch_closed_loop(self):
+        transport = FakeTransport()
+        loop = asyncio.new_event_loop()
+        fanout = fanout_module.ObservationFanout(transport, loop)
+        fanout.start()
+        callback = transport.callback
+        fanout.close()
+        loop.close()
+        errors = []
+        worker = threading.Thread(target=lambda: self._capture_callback_error(callback, errors))
+        worker.start()
+        worker.join()
+        self.assertEqual(errors, [])
+        self.assertEqual(transport.count, 1)
+
+    @staticmethod
+    def _capture_callback_error(callback, errors):
+        try:
+            callback()
+        except Exception as exc:
+            errors.append(exc)
 
     def test_listener_failure_isolated_and_close_stops_delivery(self):
         transport = FakeTransport()
