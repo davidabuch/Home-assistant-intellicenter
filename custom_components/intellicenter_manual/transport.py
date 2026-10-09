@@ -125,6 +125,7 @@ class IntelliCenterManualTransport:
         self._lock = asyncio.Lock()
         self._started = False
         self._manual_authority_check = None
+        self._outage_command_check = None
 
     @property
     def connected(self) -> bool:
@@ -133,6 +134,10 @@ class IntelliCenterManualTransport:
     def set_manual_authority_check(self, callback) -> None:
         """Install an external ownership preflight; never infer ownership."""
         self._manual_authority_check = callback
+
+    def set_outage_command_check(self, callback) -> None:
+        """HA safety preflight for every physical command, under the dispatch lock."""
+        self._outage_command_check = callback
 
     def arm_manual_thermostats(self) -> None:
         if self._manual_authority_check is None or not self._manual_authority_check():
@@ -343,6 +348,8 @@ class IntelliCenterManualTransport:
             if self._manual_authority_check is None or not self._manual_authority_check():
                 self.disarm_manual_thermostats()
                 raise ManualCommandError("Exclusive manual authority lost")
+            if self._outage_command_check is not None and not self._outage_command_check(method, args):
+                raise ManualCommandError("Grid outage safety lockout: command prohibited")
             try:
                 result = await getattr(self.controller, method)(*args)
             except Exception as exc:
