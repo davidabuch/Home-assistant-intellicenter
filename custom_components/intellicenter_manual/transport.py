@@ -303,6 +303,22 @@ class IntelliCenterManualTransport:
             self._publish()
             return result
 
+    async def _confirm_body(self, body_id: str, field: str, expected: Any) -> None:
+        """Require a NEW native observation showing the commanded result.
+
+        A successful TCP response alone is never accepted as physical proof.
+        """
+        deadline = asyncio.get_running_loop().time() + 25.0
+        while asyncio.get_running_loop().time() < deadline:
+            observation = self.read_observation()
+            body = observation.body(body_id) if observation.connected else None
+            if body is not None and getattr(body, field) == expected:
+                return
+            await asyncio.sleep(0.5)
+        raise ManualCommandError(
+            f"Native confirmation timeout for {body_id} {field}; physical state unverified"
+        )
+
     async def set_body_active(self, body_id: str, active: bool) -> None:
         if body_id not in BODY_IDS or type(active) is not bool:
             raise ValueError("invalid body or active state")
@@ -310,6 +326,7 @@ class IntelliCenterManualTransport:
             "request_changes", body_id,
             {STATUS_ATTR: STATUS_ON if active else STATUS_OFF},
         )
+        await self._confirm_body(body_id, "active", active)
 
     async def set_pump_rpm(self, rpm: float) -> None:
         if isinstance(rpm, bool) or not 600 <= float(rpm) <= 3450:
@@ -323,6 +340,7 @@ class IntelliCenterManualTransport:
         if not 40 <= target <= 104:
             raise ValueError("temperature outside safe range")
         await self._send("set_heating_setpoint", body_id, target)
+        await self._confirm_body(body_id, "target_temperature", target)
 
     async def set_heat_source(self, body_id: str, heater_id: str) -> None:
         if body_id not in BODY_IDS or heater_id not in HEATER_IDS:

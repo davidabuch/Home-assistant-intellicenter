@@ -27,6 +27,14 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("self._observed_at = None", dispatch)
         self.assertIn("self._publish()", dispatch)
 
+    def test_thermostat_requires_new_native_confirmation(self):
+        source = SOURCE.read_text()
+        self.assertIn('async def _confirm_body(', source)
+        self.assertIn('observation.body(body_id) if observation.connected else None', source)
+        self.assertIn('Native confirmation timeout', source)
+        self.assertIn('await self._confirm_body(body_id, "active", active)', source)
+        self.assertIn('await self._confirm_body(body_id, "target_temperature", target)', source)
+
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()
         self.assertNotIn("from poolos", source)
