@@ -164,6 +164,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         lambda: hass.services.async_remove(DOMAIN, DIAGNOSTIC_SERVICE)
     )
 
+    # Reacquire on the first fresh native model update after reconnection, not
+    # merely on a timer. Fanout invokes subscribers on the HA event loop.
+    unsubscribe_reacquire = fanout.subscribe(lambda _observation: _reacquire_native_authority())
+    entry.async_on_unload(unsubscribe_reacquire)
+
     # Re-publish periodically so a quiet/disconnected controller cannot leave
     # an indefinitely valid last observation in HA.
     unsubscribe = async_track_time_interval(
