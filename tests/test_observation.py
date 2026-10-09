@@ -111,6 +111,75 @@ class ObservationTests(unittest.TestCase):
             connected=True, observed_at=NOW, bodies=[]), now=NOW)
         self.assertIsNone(observation.freeze_active)
 
+    def test_stale_disconnect_and_future_snapshots_clear_all_telemetry(self):
+        body = SimpleNamespace(id="B1101", is_on=True, heating_active=True,
+                               current_temperature=85, target_temperature=90,
+                               active_heat_source="H0002")
+        circuit = SimpleNamespace(id="C0002", is_on=True)
+        for connected, observed_at in (
+            (False, NOW),
+            (True, NOW - timedelta(seconds=121)),
+            (True, NOW + timedelta(seconds=1)),
+        ):
+            observation = module.adapt_snapshot(SimpleNamespace(
+                connected=connected, observed_at=observed_at,
+                bodies=[body], circuits=[circuit],
+                telemetry={"pump_rpm": 2900, "intellichlor_salt": 4000},
+                freeze_active=True,
+            ), now=NOW)
+            self.assertFalse(observation.connected)
+            self.assertIsNone(observation.body("B1101"))
+            self.assertIsNone(observation.circuit("C0002"))
+            self.assertIsNone(observation.measurement("pump_rpm"))
+            self.assertIsNone(observation.measurement("intellichlor_salt"))
+            self.assertIsNone(observation.freeze_active)
+            self.assertIsNone(observation.heating_source_active("H0002"))
+
+    def test_freshness_boundary_exactly_120_seconds(self):
+        observation = module.adapt_snapshot(SimpleNamespace(
+            connected=True, observed_at=NOW - timedelta(seconds=120),
+            bodies=[], telemetry={"pump_rpm": 2600}, freeze_active=False,
+        ), now=NOW)
+        self.assertTrue(observation.connected)
+        self.assertEqual(observation.measurement("pump_rpm"), 2600)
+        self.assertIs(observation.freeze_active, False)
+
+    def test_reconnect_requires_new_native_snapshot(self):
+        disconnected = module.adapt_snapshot(SimpleNamespace(
+            connected=False, observed_at=NOW, bodies=[],
+            telemetry={"pump_rpm": 2900}, freeze_active=True,
+        ), now=NOW)
+        reconnect_pending = module.adapt_snapshot(SimpleNamespace(
+            connected=True, observed_at=None, bodies=[],
+            telemetry={"pump_rpm": 2900}, freeze_active=True,
+        ), now=NOW)
+        reobserved = module.adapt_snapshot(SimpleNamespace(
+            connected=True, observed_at=NOW, bodies=[],
+            telemetry={"pump_rpm": 0}, freeze_active=False,
+        ), now=NOW)
+        self.assertFalse(disconnected.connected)
+        self.assertFalse(reconnect_pending.connected)
+        self.assertIsNone(reconnect_pending.measurement("pump_rpm"))
+        self.assertIsNone(reconnect_pending.freeze_active)
+        self.assertTrue(reobserved.connected)
+        self.assertEqual(reobserved.measurement("pump_rpm"), 0)
+        self.assertIs(reobserved.freeze_active, False)
+
+    def test_unknown_native_boolean_is_not_off(self):
+        for raw in ("OFF", "ON", 0, 1, None):
+            body = SimpleNamespace(id="B1101", is_on=raw,
+                                   heating_active=raw)
+            circuit = SimpleNamespace(id="C0002", is_on=raw)
+            observed = module.adapt_snapshot(SimpleNamespace(
+                connected=True, observed_at=NOW,
+                bodies=[body], circuits=[circuit],
+                freeze_active=raw,
+            ), now=NOW)
+            self.assertIsNone(observed.body("B1101").active)
+            self.assertIsNone(observed.body("B1101").heating)
+            self.assertIsNone(observed.circuit("C0002").active)
+            self.assertIsNone(observed.freeze_active)
+
     def test_malformed_telemetry_is_unknown_not_exception(self):
         for malformed in (None, [], "bad", 42):
             observation = module.adapt_snapshot(
