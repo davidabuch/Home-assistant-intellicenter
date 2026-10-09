@@ -285,13 +285,23 @@ class IntelliCenterManualTransport:
     async def _send(self, method: str, *args: Any) -> Any:
         if not self._allow_commands:
             raise ManualCommandError("Read-only commissioning: all physical commands are disabled")
-        if not self.connected:
-            raise ManualCommandError("IntelliCenter connection not started")
         async with self._lock:
+            # Recheck freshness after lock acquisition: waiting commands must
+            # not inherit authority from an earlier observation.
+            observation = self.read_observation()
+            if not self.connected or not observation.connected:
+                raise ManualCommandError("No fresh native IntelliCenter observation")
+            if not self.controller.manual_writes_enabled:
+                raise ManualCommandError("Native controller write gate is disarmed")
             try:
-                return await getattr(self.controller, method)(*args)
+                result = await getattr(self.controller, method)(*args)
             except Exception as exc:
                 raise ManualCommandError(f"{method} dispatch failed") from exc
+            # An ACK is not proof of physical state. Invalidate prior snapshot;
+            # consumers must wait for a new native model update.
+            self._observed_at = None
+            self._publish()
+            return result
 
     async def set_body_active(self, body_id: str, active: bool) -> None:
         if body_id not in BODY_IDS or type(active) is not bool:
