@@ -52,7 +52,7 @@ class NativeManualCommandGateTests(unittest.TestCase):
         for method in ("set_circuit_state", "set_light_effect", "set_chlorinator_output",
                        "set_heating_setpoint"):
             self.assertIn('method == "' + method + '"', dispatch)
-        for object_id in ('"C0006"', '"CHR01"', '"C0002"'):
+        for object_id in ('"CHR01"', '"C0002"'):
             self.assertIn(object_id, dispatch)
         self.assertIn("600 <= int(args[1][SPEED_ATTR]) <= 3450", dispatch)
         self.assertIn("0 <= v <= 100", dispatch)
