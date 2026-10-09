@@ -13,7 +13,7 @@ from pyintellicenter import (
     ICConnectionHandler, ICModelController, PoolModel, LIGHT_EFFECTS,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
     BODY_TYPE, CIRCUIT_TYPE, SENSE_TYPE, PUMP_TYPE, SYSTEM_TYPE,
-    CHEM_TYPE, BODY_ATTR, PRIM_ATTR, SEC_ATTR, SALT_ATTR,
+    CHEM_TYPE, PMPCIRC_TYPE, CIRCUIT_ATTR, SELECT_ATTR, SPEED_ATTR, BODY_ATTR, PRIM_ATTR, SEC_ATTR, SALT_ATTR,
     LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR, SOURCE_ATTR,
     RPM_ATTR, GPM_ATTR, PWR_ATTR, MIN_ATTR, MAX_ATTR, VER_ATTR, SERVICE_ATTR,
     OBJTYP_ATTR, SNAME_ATTR, HITMP_ATTR, MODE_ATTR,
@@ -305,6 +305,22 @@ class IntelliCenterManualTransport:
             self._observed_at = None
             self._publish()
 
+    def _pool_speed_assignment(self) -> str:
+        """Resolve the unique live Pool PMPCIRC speed assignment, never PMP01."""
+        matches = []
+        for candidate in self.model.get_by_type(PMPCIRC_TYPE):
+            if (str(candidate[CIRCUIT_ATTR] or "") != "C0006"
+                    or str(candidate[SELECT_ATTR] or "").upper() != "RPM"):
+                continue
+            parent_id = str(candidate[PARENT_ATTR] or "").strip()
+            parent = self.model[parent_id] if parent_id else None
+            if parent is None or str(parent.objtype).upper() != str(PUMP_TYPE).upper():
+                continue
+            matches.append(str(candidate.objnam))
+        if len(matches) != 1:
+            raise ManualCommandError("Unique Pool RPM PMPCIRC assignment unavailable")
+        return matches[0]
+
     async def _send(self, method: str, *args: Any) -> Any:
         if not self._allow_commands:
             raise ManualCommandError("Read-only commissioning: all physical commands are disabled")
@@ -320,9 +336,9 @@ class IntelliCenterManualTransport:
                 and set(args[1]) == {HEATER_ATTR}
                 and args[1][HEATER_ATTR] in HEATER_IDS)
             or (method == "request_changes" and len(args) == 2
-                and args[0] == "PMP01" and type(args[1]) is dict
-                and set(args[1]) == {RPM_ATTR}
-                and type(args[1][RPM_ATTR]) is str
+                and args[0] == self._pool_speed_assignment() and type(args[1]) is dict
+                and set(args[1]) == {SPEED_ATTR}
+                and type(args[1][SPEED_ATTR]) is str
                 and args[1][RPM_ATTR].isdigit()
                 and 600 <= int(args[1][RPM_ATTR]) <= 3450)
             or (method == "set_circuit_state" and len(args) == 2
@@ -390,7 +406,7 @@ class IntelliCenterManualTransport:
     async def set_pump_rpm(self, rpm: float) -> None:
         if isinstance(rpm, bool) or not 600 <= float(rpm) <= 3450:
             raise ValueError("Pump RPM outside commissioned range")
-        await self._send("request_changes", "PMP01", {RPM_ATTR: str(round(float(rpm)))})
+        await self._send("request_changes", self._pool_speed_assignment(), {SPEED_ATTR: str(round(float(rpm)))})
 
     async def set_target(self, body_id: str, fahrenheit: float) -> None:
         if body_id not in BODY_IDS or isinstance(fahrenheit, bool):
