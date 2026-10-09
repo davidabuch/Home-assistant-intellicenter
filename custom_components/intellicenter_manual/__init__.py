@@ -43,6 +43,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     transport = IntelliCenterManualTransport(host, allow_commands=False)
     def _exclusive_manual_authority() -> bool:
+        # After cutover, absence of the PoolOS config entry proves that no
+        # legacy PoolOS writer can be loaded. Never infer this from missing
+        # entities while a PoolOS config entry still exists.
+        legacy_entries = hass.config_entries.async_entries("poolos")
+        if not legacy_entries:
+            return True
         # Do not treat disabled autonomy as proof that PoolOS manual writes
         # have been disabled. Both legacy thermostats must explicitly attest
         # that manual delivery is OFF; unknown/unavailable fails closed.
@@ -64,6 +70,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
 
     transport.set_manual_authority_check(_exclusive_manual_authority)
+
+    def _reacquire_native_authority() -> None:
+        """Rearm only after fresh native telemetry and exclusive ownership."""
+        if not entry.options.get("native_command_authority", False):
+            return
+        observation = transport.read_observation()
+        if (transport.connected and observation.connected
+                and observation.observed_at is not None
+                and _exclusive_manual_authority()):
+            transport.arm_manual_thermostats()
+
     def _outage_command_allowed(method: str, args: tuple) -> bool:
         """Safety wins while both the physical outage latch and policy are active.
 
@@ -101,6 +118,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await transport.start()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        _reacquire_native_authority()
     except Exception:
         fanout.close()
         await transport.stop()
@@ -121,10 +139,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if call.data.get("confirm") != "ARM_NATIVE_THERMOSTATS":
             raise ValueError("Explicit manual commissioning confirmation required")
         transport.arm_manual_thermostats()
+        hass.config_entries.async_update_entry(
+            entry, options={**entry.options, "native_command_authority": True}
+        )
 
     async def _disarm_manual_thermostats(call: ServiceCall) -> None:
         if call.data.get("entry_id") != entry.entry_id:
             raise ValueError("Replacement config entry ID mismatch")
+        hass.config_entries.async_update_entry(
+            entry, options={**entry.options, "native_command_authority": False}
+        )
         transport.disarm_manual_thermostats()
 
     hass.services.async_register(DOMAIN, "arm_manual_thermostats", _arm_manual_thermostats)
@@ -139,7 +163,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Re-publish periodically so a quiet/disconnected controller cannot leave
     # an indefinitely valid last observation in HA.
     unsubscribe = async_track_time_interval(
-        hass, lambda _now: fanout.refresh(), timedelta(seconds=30)
+        hass, lambda _now: (fanout.refresh(), _reacquire_native_authority()),
+        timedelta(seconds=30)
     )
     entry.async_on_unload(unsubscribe)
     return True
