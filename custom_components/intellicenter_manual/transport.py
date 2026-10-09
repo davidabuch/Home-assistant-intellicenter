@@ -184,8 +184,15 @@ class IntelliCenterManualTransport:
     async def start(self) -> None:
         if self._started:
             return
-        await self.handler.start()
         self._started = True
+        try:
+            await self.handler.start()
+        except Exception:
+            self._started = False
+            self._connected = False
+            self._observed_at = None
+            self._publish()
+            raise
         self._publish()
 
     async def stop(self) -> None:
