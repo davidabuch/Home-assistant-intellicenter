@@ -105,8 +105,7 @@ class TransportLifecycleFaultTests(unittest.TestCase):
         fake_protocol = SimpleNamespace(_transport=fake_socket)
         fake_connection = SimpleNamespace(connected=True, _protocol=fake_protocol)
         self.transport.controller._connection = fake_connection
-        self.transport.handler._stopped = False
-        self.transport.handler._is_connected = True
+        self.transport.handler.connected = True
         self.transport._connection_changed(True)
         self.transport._model_updated()
         self.assertTrue(self.transport.read_observation().connected)
