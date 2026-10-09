@@ -83,7 +83,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if obj == "B1202" and set(changes) == {STATUS_ATTR}:
                 return changes[STATUS_ATTR] == STATUS_OFF
             if obj == "B1101" and set(changes) == {STATUS_ATTR}:
-                return changes[STATUS_ATTR] == (STATUS_ON if within_window else STATUS_OFF)
+                return changes[STATUS_ATTR] == STATUS_OFF or (within_window and changes[STATUS_ATTR] == STATUS_ON)
             if obj == transport._pool_speed_assignment() and set(changes) == {SPEED_ATTR}:
                 return within_window and changes[SPEED_ATTR] == "1500"
         if method == "set_circuit_state" and len(args) == 2:
