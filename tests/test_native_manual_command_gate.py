@@ -79,6 +79,10 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("len(matches) != 1", source)
         self.assertIn("SPEED_ATTR: str(round(float(rpm)))", source)
 
+    def test_emergency_pool_off_always_permitted(self):
+        setup = (SOURCE.parent / "__init__.py").read_text()
+        self.assertIn("changes[STATUS_ATTR] == STATUS_OFF or", setup)
+
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()
         self.assertNotIn("from poolos", source)
