@@ -14,7 +14,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.event import async_track_time_interval
 from datetime import timedelta
 from homeassistant.util import dt as dt_util
-from pyintellicenter import STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR, RPM_ATTR
+from pyintellicenter import STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR, SPEED_ATTR
 
 from .transport import IntelliCenterManualTransport
 from .observation_coordinator import ObservationFanout
@@ -84,8 +84,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 return changes[STATUS_ATTR] == STATUS_OFF
             if obj == "B1101" and set(changes) == {STATUS_ATTR}:
                 return changes[STATUS_ATTR] == (STATUS_ON if within_window else STATUS_OFF)
-            if obj == "PMP01" and set(changes) == {RPM_ATTR}:
-                return within_window and changes[RPM_ATTR] == "1500"
+            if obj == transport._pool_speed_assignment() and set(changes) == {SPEED_ATTR}:
+                return within_window and changes[SPEED_ATTR] == "1500"
         if method == "set_circuit_state" and len(args) == 2:
             return args[1] is False
         return False
