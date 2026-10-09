@@ -65,10 +65,10 @@ class FanoutTests(unittest.TestCase):
                 raise ValueError("synthetic listener fault")
             with self.assertRaises(ValueError):
                 fanout.subscribe(broken)
-            with self.assertLogs(fanout_module._LOGGER, level="ERROR") as captured:
-                transport.callback()
+            # Failed initial delivery must roll back the subscription.
+            self.assertNotIn(broken, fanout._listeners)
+            transport.callback()
             self.assertEqual(healthy, [2, 4])
-            self.assertTrue(any("listener failed" in line for line in captured.output))
             fanout.close()
             self.assertIsNone(transport.callback)
             fanout.refresh()
