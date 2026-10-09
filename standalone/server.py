@@ -1,5 +1,4 @@
 """Family-only Pool & Spa web interface. Home Assistant remains the controller."""
-import hashlib
 import hmac
 import json
 import os
@@ -9,7 +8,6 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from http import HTTPStatus
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent
@@ -22,6 +20,7 @@ try:
 except (OSError, ValueError, TypeError):
     PIN = os.environ.get("FAMILY_PIN", "")
 SESSIONS = {}
+LOGIN_ATTEMPTS = {}
 CONTROLS = {
     "pool": ("climate.pool_thermostat", "climate"),
     "spa": ("climate.hot_tub_thermostat", "climate"),
@@ -112,11 +111,19 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": "Invalid JSON"}, 400)
         if path == "/api/login":
             supplied = str(body.get("pin", ""))
-            if not PIN or not hmac.compare_digest(supplied, PIN):
+            client = self.client_address[0]
+            now = time.monotonic()
+            attempts = [t for t in LOGIN_ATTEMPTS.get(client, []) if now - t < 300]
+            if len(attempts) >= 5:
+                return self.send_json({"error": "Too many attempts; try again later"}, 429)
+            if len(PIN) < 6 or not hmac.compare_digest(supplied, PIN):
+                attempts.append(now)
+                LOGIN_ATTEMPTS[client] = attempts
                 return self.send_json({"error": "Incorrect PIN"}, 401)
+            LOGIN_ATTEMPTS.pop(client, None)
             sid = secrets.token_urlsafe(32)
             SESSIONS[sid] = time.monotonic() + 86400
-            return self.send_json({"ok": True}, cookie=f"session={sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400")
+            return self.send_json({"ok": True}, cookie=f"session={sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400" + ("; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""))
         if not self.authorized():
             return self.send_json({"error": "Sign in required"}, 401)
         if path != "/api/control":
