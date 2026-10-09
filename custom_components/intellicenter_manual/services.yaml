@@ -1,0 +1,21 @@
+commission_abort_own_tcp:
+  name: Commission replacement TCP interruption
+  description: >-
+    Commissioning-only test. Immediately invalidates native observations and
+    aborts only this integration's TCP socket to exercise automatic recovery.
+    Does not send equipment commands or disconnect PoolOS.
+  fields:
+    entry_id:
+      name: Replacement config entry ID
+      description: Exact config entry ID of the replacement IntelliCenter integration.
+      required: true
+      example: "01M4F1DFGA4AH4F9E9M7MJCR5Q"
+      selector:
+        text:
+    confirm:
+      name: Explicit confirmation
+      description: Enter ABORT_REPLACEMENT_TCP_ONLY.
+      required: true
+      example: "ABORT_REPLACEMENT_TCP_ONLY"
+      selector:
+        text:
