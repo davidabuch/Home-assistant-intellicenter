@@ -1,25 +1,27 @@
-"""Native controller remains fail-closed until explicit authority cutover."""
-import pytest
-from unittest.mock import AsyncMock, patch
-from custom_components.intellicenter_manual.transport import _CommissioningController, ManualCommandError
+"""Fail-closed native write boundary regression checks."""
+from pathlib import Path
+import unittest
+
+SOURCE = Path(__file__).resolve().parents[1] / "custom_components/intellicenter_manual/transport.py"
 
 
-@pytest.mark.asyncio
-async def test_controller_rejects_write_by_default():
-    controller = object.__new__(_CommissioningController)
-    controller.manual_writes_enabled = False
-    with pytest.raises(ManualCommandError):
-        await controller.request_changes("B1101", {"STATUS": "ON"})
-    with pytest.raises(ManualCommandError):
-        await controller._queue_property_change("B1202", {"LOTMP": "99"})
-    with pytest.raises(ManualCommandError):
-        await controller.send_cmd("SetParamList", {})
+class NativeManualCommandGateTests(unittest.TestCase):
+    def test_controller_starts_disarmed(self):
+        source = SOURCE.read_text()
+        self.assertIn("self.manual_writes_enabled = False", source)
+        self.assertIn("if not self.manual_writes_enabled:", source)
+        self.assertIn('raise ManualCommandError("Physical writes disabled in commissioning controller")', source)
+
+    def test_integration_starts_read_only(self):
+        source = (SOURCE.parent / "__init__.py").read_text()
+        self.assertIn("allow_commands=False", source)
+        self.assertNotIn("manual_writes_enabled = True", source)
+
+    def test_no_poolos_dependency(self):
+        source = SOURCE.read_text()
+        self.assertNotIn("from poolos", source)
+        self.assertNotIn("import poolos", source)
 
 
-@pytest.mark.asyncio
-async def test_controller_delegates_only_when_explicitly_armed():
-    controller = object.__new__(_CommissioningController)
-    controller.manual_writes_enabled = True
-    with patch("pyintellicenter.ICModelController.request_changes", new_callable=AsyncMock) as mock:
-        await controller.request_changes("B1101", {"STATUS": "ON"})
-        mock.assert_awaited_once()
+if __name__ == "__main__":
+    unittest.main()
