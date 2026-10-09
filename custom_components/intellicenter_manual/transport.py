@@ -347,10 +347,11 @@ class IntelliCenterManualTransport:
                 result = await getattr(self.controller, method)(*args)
             except Exception as exc:
                 raise ManualCommandError(f"{method} dispatch failed") from exc
-            # An ACK is not proof of physical state. Invalidate prior snapshot;
-            # consumers must wait for a new native model update.
-            self._observed_at = None
-            self._publish()
+            # An ACK is not proof of physical state. Keep the last observed
+            # read model available while waiting for a NEW native update:
+            # clearing _observed_at here briefly marks EVERY HA entity
+            # unavailable on every command, including unrelated controls.
+            # _confirm_body still requires observed_at > dispatched_at.
             return datetime.now(timezone.utc)
 
     async def _confirm_body(self, body_id: str, field: str, expected: Any, dispatched_at: datetime) -> None:
