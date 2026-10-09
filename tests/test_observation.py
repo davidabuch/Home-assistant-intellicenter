@@ -44,6 +44,22 @@ class ObservationTests(unittest.TestCase):
         result = module.adapt_snapshot(SimpleNamespace(connected=True, observed_at=NOW, bodies=[body,body]), now=NOW)
         self.assertIsNone(result.body("B1101"))
 
+    def test_heating_source_requires_distinct_pool_and_spa(self):
+        pool = SimpleNamespace(id="B1101", is_on=True, heating_active=True,
+                               active_heat_source="H0002")
+        spa = SimpleNamespace(id="B1202", is_on=False, heating_active=False,
+                              active_heat_source="H0001")
+        def observe(bodies):
+            return module.adapt_snapshot(
+                SimpleNamespace(connected=True, observed_at=NOW, bodies=bodies),
+                now=NOW,
+            )
+        self.assertTrue(observe([pool, spa]).heating_source_active("H0002"))
+        self.assertFalse(observe([pool, spa]).heating_source_active("H0001"))
+        self.assertIsNone(observe([pool, pool]).heating_source_active("H0002"))
+        self.assertIsNone(observe([spa, spa]).heating_source_active("H0001"))
+        self.assertIsNone(observe([pool]).heating_source_active("H0002"))
+
     def test_missing_and_invalid_observation_not_inferred(self):
         body = SimpleNamespace(id="B1202", is_on="ON", current_temperature=float("nan"))
         result = module.adapt_snapshot(SimpleNamespace(connected=True, observed_at=NOW, bodies=[body]), now=NOW)

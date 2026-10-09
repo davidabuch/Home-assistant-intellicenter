@@ -41,7 +41,7 @@ class ReadObservation:
         if not self.connected or heater_id not in {"H0001", "H0002"}:
             return None
         bodies = tuple(body for body in self.bodies if body.native_id in {"B1101", "B1202"})
-        if len(bodies) != 2 or any(body.heating is None for body in bodies):
+        if {body.native_id for body in bodies} != {"B1101", "B1202"} or len(bodies) != 2 or any(body.heating is None for body in bodies):
             return None
         heating = tuple(body for body in bodies if body.heating)
         if not heating:
