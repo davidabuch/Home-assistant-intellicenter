@@ -303,18 +303,35 @@ class IntelliCenterManualTransport:
     async def _send(self, method: str, *args: Any) -> Any:
         if not self._allow_commands:
             raise ManualCommandError("Read-only commissioning: all physical commands are disabled")
-        # Thermostats only during cutover; all other actuator paths stay closed.
+        # Explicit manual actuator allowlist; no arbitrary protocol commands.
         if not (
             (method == "request_changes" and len(args) == 2
              and args[0] in BODY_IDS
              and isinstance(args[1], dict)
              and set(args[1]) == {STATUS_ATTR}
              and args[1][STATUS_ATTR] in {STATUS_ON, STATUS_OFF})
+            or (method == "request_changes" and len(args) == 2
+                and args[0] in BODY_IDS and type(args[1]) is dict
+                and set(args[1]) == {HEATER_ATTR}
+                and args[1][HEATER_ATTR] in HEATER_IDS)
+            or (method == "request_changes" and len(args) == 2
+                and args[0] == "PMP01" and type(args[1]) is dict
+                and set(args[1]) == {RPM_ATTR}
+                and type(args[1][RPM_ATTR]) is str
+                and args[1][RPM_ATTR].isdigit()
+                and 600 <= int(args[1][RPM_ATTR]) <= 3450)
+            or (method == "set_circuit_state" and len(args) == 2
+                and args[0] in CIRCUIT_IDS and type(args[1]) is bool)
+            or (method == "set_light_effect" and len(args) == 2
+                and args[0] == "C0002" and args[1] in LIGHT_EFFECTS)
+            or (method == "set_chlorinator_output" and len(args) in (2, 3)
+                and args[0] == "CHR01"
+                and all(type(v) is int and 0 <= v <= 100 for v in args[1:]))
             or (method == "set_heating_setpoint" and len(args) == 2
                 and args[0] in BODY_IDS and type(args[1]) is int
                 and 40 <= args[1] <= 104)
         ):
-            raise ManualCommandError("Only Pool/Spa thermostat commands commissioned")
+            raise ManualCommandError("Command outside commissioned native manual allowlist")
         async with self._lock:
             # Recheck freshness after lock acquisition: waiting commands must
             # not inherit authority from an earlier observation.
