@@ -6,6 +6,8 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 DESCRIPTIONS = (
     ("pool_active", "Pool Active", "body", "B1101"),
     ("spa_active", "Spa Active", "body", "B1202"),
+    ("pool_heating_active", "Pool Heating Active", "body_heating", "B1101"),
+    ("spa_heating_active", "Spa Heating Active", "body_heating", "B1202"),
     ("pool_light_active", "Pool Light Active", "circuit", "C0002"),
     ("jets_active", "Jets Active", "circuit", "C0003"),
     ("slide_active", "Slide Active", "circuit", "C0004"),
@@ -44,8 +46,11 @@ class NativeStatus(BinarySensorEntity):
         if self._observation is None or not self._observation.connected:
             return None
         item = (self._observation.body(self._native_id)
-                if self._kind == "body" else self._observation.circuit(self._native_id))
-        return None if item is None else item.active
+                if self._kind in {"body", "body_heating"}
+                else self._observation.circuit(self._native_id))
+        if item is None:
+            return None
+        return item.heating if self._kind == "body_heating" else item.active
 
     @property
     def available(self):
