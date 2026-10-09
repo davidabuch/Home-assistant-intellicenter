@@ -94,6 +94,23 @@ class ObservationTests(unittest.TestCase):
         self.assertIsNone(observed.heating_source_active("H0001"))
         self.assertIsNone(observed.heating_source_active("H0002"))
 
+    def test_freeze_observation_is_explicit_and_fail_closed(self):
+        def observe(value, *, connected=True, observed_at=NOW):
+            return module.adapt_snapshot(SimpleNamespace(
+                connected=connected, observed_at=observed_at, bodies=[],
+                freeze_active=value), now=NOW)
+        self.assertTrue(observe(True).freeze_active)
+        self.assertIs(observe(False).freeze_active, False)
+        for value in (None, "OFF", 0, 1, [], {}):
+            self.assertIsNone(observe(value).freeze_active)
+        self.assertIsNone(observe(True, connected=False).freeze_active)
+        self.assertIsNone(observe(True, observed_at=NOW-timedelta(seconds=121)).freeze_active)
+
+    def test_freeze_absent_from_snapshot_is_unknown(self):
+        observation = module.adapt_snapshot(SimpleNamespace(
+            connected=True, observed_at=NOW, bodies=[]), now=NOW)
+        self.assertIsNone(observation.freeze_active)
+
     def test_malformed_telemetry_is_unknown_not_exception(self):
         for malformed in (None, [], "bad", 42):
             observation = module.adapt_snapshot(

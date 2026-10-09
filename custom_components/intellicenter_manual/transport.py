@@ -145,6 +145,7 @@ class IntelliCenterManualTransport:
         bodies = []
         circuits = []
         telemetry = {}
+        freeze_active = None
         if self.connected and self._observed_at is not None:
             for obj in self.model.get_by_type(BODY_TYPE):
                 if str(obj.objnam) not in BODY_IDS:
@@ -175,6 +176,13 @@ class IntelliCenterManualTransport:
                 raw_use = obj.properties.get('USE') if str(obj.objnam) == 'C0002' else None
                 effect_code = str(raw_use) if raw_use is not None and str(raw_use) in LIGHT_EFFECTS else None
                 circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active, effect_code=effect_code))
+            # Freeze is a native FRZ feature, not a temperature threshold or
+            # a PoolOS entity. Reject missing/duplicate/unknown observations.
+            freeze_candidates = [obj for obj in self.model.get_by_type("FEATR")
+                                 if str(obj.subtype or "").strip().upper() == "FRZ"]
+            if len(freeze_candidates) == 1:
+                freeze_active = _native_status(
+                    freeze_candidates[0].properties.get(STATUS_ATTR))
             # Probe subtype alone is not authoritative when multiple native
             # sensors advertise the same role. Fail closed on duplicates.
             probe_keys = {'AIR': 'air_temperature', 'SOLAR': 'solar_temperature', 'POOL': 'water_temperature'}
@@ -220,6 +228,7 @@ class IntelliCenterManualTransport:
         return adapt_snapshot(SimpleNamespace(
             connected=self.connected, observed_at=self._observed_at,
             bodies=bodies, circuits=circuits, telemetry=telemetry,
+            freeze_active=freeze_active,
         ))
 
     async def start(self) -> None:
