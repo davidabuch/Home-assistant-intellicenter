@@ -1,0 +1,19 @@
+# IntelliCenter replacement — transport recovery commissioning gate
+
+## Verified on October 8, 2026 (Pacific)
+
+- Replacement integration remained read-only; PoolOS retained sole physical command authority.
+- A controlled disable of only the replacement HA config entry made its entities unavailable. PoolOS's independent observer remained available.
+- On re-enable, the replacement's native observation freshness was initially OFF and its telemetry unavailable. After a new native update, freshness became ON, observation age 14.9 seconds, freeze protection OFF, and pump RPM 0.
+- PR #45 added isolated fault-injection regressions against real transport callback logic (using a stub protocol module), covering disconnect, retry, stale snapshot and reconnect requiring a new native update. GitHub CI passed.
+
+## Not yet verified
+
+- An actual TCP socket interruption affecting only the replacement client, without disrupting PoolOS or the controller.
+- Live reconnect timing, stale transition and subsequent reacquisition after such a socket interruption.
+
+## Safety and acceptance criteria
+
+Do not block the IntelliCenter host, restart the controller, disable its network interface, or disrupt PoolOS to simulate a replacement-only disconnect. Keep physical command delivery disabled and do not change HomeKit identity or entity IDs.
+
+For a future isolated socket test, require evidence that (1) only the replacement client disconnected, (2) its health went OFF and telemetry became unavailable within the freshness boundary, (3) it did not report old values as valid on reconnect, (4) a new native update restored freshness and telemetry, and (5) PoolOS's independent observer stayed healthy throughout. Record timestamps and errors. This document does not claim that this test has occurred.
