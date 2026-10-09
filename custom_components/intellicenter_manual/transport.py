@@ -168,10 +168,13 @@ class IntelliCenterManualTransport:
                 key = probe_keys.get(str(obj.subtype or '').upper())
                 if key is not None and key not in telemetry:
                     telemetry[key] = obj.properties.get(SOURCE_ATTR)
-            for obj in self.model.get_by_type(PUMP_TYPE):
-                if 'pump_rpm' in telemetry:
-                    break
-                props = obj.properties
+            # Never bind arbitrary pump discovery order to the commissioned PMP01.
+            # Missing or duplicate identities remain unknown rather than reporting
+            # a potentially different pump as authoritative.
+            pumps = [obj for obj in self.model.get_by_type(PUMP_TYPE)
+                     if str(obj.objnam) == "PMP01"]
+            if len(pumps) == 1:
+                props = pumps[0].properties
                 telemetry.update(pump_rpm=props.get(RPM_ATTR),
                     pump_flow_rate=props.get(GPM_ATTR), pump_power=props.get(PWR_ATTR),
                     pump_minimum_rpm=props.get(MIN_ATTR), pump_maximum_rpm=props.get(MAX_ATTR))
