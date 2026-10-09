@@ -23,8 +23,10 @@ class ObservationFanout:
     def subscribe(self, listener: Callable[[ReadObservation], None]) -> Callable[[], None]:
         if self._closed:
             raise RuntimeError("observation fanout closed")
+        # A failed initial snapshot must not leave a ghost subscriber behind.
+        observation = self.transport.read_observation()
+        listener(observation)
         self._listeners.add(listener)
-        listener(self.transport.read_observation())
         return lambda: self._listeners.discard(listener)
 
     def start(self) -> None:
