@@ -122,6 +122,43 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertIn("obj.properties.get('USE')", (ROOT / "transport.py").read_text())
         self.assertIn("LIGHT_EFFECTS.get(circuit.effect_code)", (ROOT / "light.py").read_text())
 
+    def test_pool_heating_transition_states_preserve_native_truth(self):
+        now = datetime.now(timezone.utc)
+        body = types.SimpleNamespace(id="B1101", is_on=True, heating_active=True,
+            current_temperature=85, target_temperature=90, active_heat_source="H0002")
+        snapshot = types.SimpleNamespace(connected=True, observed_at=now,
+            bodies=[body], circuits=[], telemetry={})
+        heating = module.adapt_snapshot(snapshot, now=now).body("B1101")
+        self.assertTrue(heating.active)
+        self.assertTrue(heating.heating)
+        self.assertEqual(heating.heat_source, "H0002")
+        body.heating_active = False
+        idle = module.adapt_snapshot(snapshot, now=now).body("B1101")
+        self.assertTrue(idle.active)
+        self.assertFalse(idle.heating)
+        body.is_on = False
+        off = module.adapt_snapshot(snapshot, now=now).body("B1101")
+        self.assertFalse(off.active)
+        self.assertFalse(off.heating)
+        body.heating_active = None
+        self.assertIsNone(module.adapt_snapshot(snapshot, now=now).body("B1101").heating)
+        snapshot.connected = False
+        self.assertFalse(module.adapt_snapshot(snapshot, now=now).connected)
+
+    def test_spa_heating_is_independent_of_pool_heating(self):
+        now = datetime.now(timezone.utc)
+        snapshot = types.SimpleNamespace(connected=True, observed_at=now,
+            bodies=[
+                types.SimpleNamespace(id="B1101", is_on=True, heating_active=False,
+                    current_temperature=85, target_temperature=90, active_heat_source="H0002"),
+                types.SimpleNamespace(id="B1202", is_on=True, heating_active=True,
+                    current_temperature=98, target_temperature=100, active_heat_source="H0001")],
+            circuits=[], telemetry={})
+        observed = module.adapt_snapshot(snapshot, now=now)
+        self.assertFalse(observed.body("B1101").heating)
+        self.assertTrue(observed.body("B1202").heating)
+        self.assertEqual(observed.body("B1202").heat_source, "H0001")
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
