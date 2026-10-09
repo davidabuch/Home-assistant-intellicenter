@@ -1,5 +1,5 @@
 name: Pool & Spa Family
-version: "0.1.1"
+version: "0.1.2"
 slug: pool_spa_family
 description: Simple family pool and spa controls through Home Assistant
 url: https://github.com/davidabuch/Home-assistant-intellicenter

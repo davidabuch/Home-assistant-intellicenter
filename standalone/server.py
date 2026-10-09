@@ -137,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
             attempts = [t for t in LOGIN_ATTEMPTS.get(client, []) if now - t < 300]
             if len(attempts) >= 5:
                 return self.send_json({"error": "Too many attempts; try again later"}, 429)
-            if len(PIN) < 6 or not hmac.compare_digest(supplied, PIN):
+            if len(PIN) < 4 or not hmac.compare_digest(supplied, PIN):
                 attempts.append(now)
                 LOGIN_ATTEMPTS[client] = attempts
                 return self.send_json({"error": "Incorrect PIN"}, 401)
