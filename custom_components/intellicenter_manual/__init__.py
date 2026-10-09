@@ -6,6 +6,7 @@ Do not migrate entity IDs until a separately verified cutover.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import asyncio
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -36,7 +37,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady("IntelliCenter host is not configured")
 
     transport = IntelliCenterManualTransport(host, allow_commands=False)
-    fanout = ObservationFanout(transport)
+    fanout = ObservationFanout(transport, asyncio.get_running_loop())
     runtime = Runtime(transport=transport, observation_fanout=fanout)
     entry.runtime_data = runtime
     fanout.start()
