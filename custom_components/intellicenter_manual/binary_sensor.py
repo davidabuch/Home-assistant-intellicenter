@@ -8,6 +8,8 @@ DESCRIPTIONS = (
     ("spa_active", "Spa Active", "body", "B1202"),
     ("pool_heating_active", "Pool Heating Active", "body_heating", "B1101"),
     ("spa_heating_active", "Spa Heating Active", "body_heating", "B1202"),
+    ("gas_heater_active", "Gas Heater Active", "heat_source", "H0001"),
+    ("solar_heating_active", "Solar Heating Active", "heat_source", "H0002"),
     ("pool_light_active", "Pool Light Active", "circuit", "C0002"),
     ("jets_active", "Jets Active", "circuit", "C0003"),
     ("slide_active", "Slide Active", "circuit", "C0004"),
@@ -45,6 +47,8 @@ class NativeStatus(BinarySensorEntity):
     def _value(self):
         if self._observation is None or not self._observation.connected:
             return None
+        if self._kind == "heat_source":
+            return self._observation.heating_source_active(self._native_id)
         item = (self._observation.body(self._native_id)
                 if self._kind in {"body", "body_heating"}
                 else self._observation.circuit(self._native_id))
