@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from collections.abc import Callable
 from typing import Any
 from pyintellicenter import (
-    ICConnectionHandler, ICModelController, PoolModel,
+    ICConnectionHandler, ICModelController, PoolModel, LIGHT_EFFECTS,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
     BODY_TYPE, CIRCUIT_TYPE, SENSE_TYPE, PUMP_TYPE, SYSTEM_TYPE,
     CHEM_TYPE, BODY_ATTR, PRIM_ATTR, SEC_ATTR, SALT_ATTR,
@@ -160,7 +160,9 @@ class IntelliCenterManualTransport:
                     continue
                 status = obj.properties.get(STATUS_ATTR)
                 active = None if status is None else str(status).upper() != str(STATUS_OFF).upper()
-                circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active))
+                raw_use = obj.properties.get('USE') if str(obj.objnam) == 'C0002' else None
+                effect_code = str(raw_use) if raw_use is not None and str(raw_use) in LIGHT_EFFECTS else None
+                circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active, effect_code=effect_code))
             probe_keys = {'AIR': 'air_temperature', 'SOLAR': 'solar_temperature', 'POOL': 'water_temperature'}
             for obj in self.model.get_by_type(SENSE_TYPE):
                 key = probe_keys.get(str(obj.subtype or '').upper())
