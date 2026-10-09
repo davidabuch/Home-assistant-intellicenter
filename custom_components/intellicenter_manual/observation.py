@@ -23,11 +23,21 @@ class CircuitObservation:
     active: bool | None
 
 @dataclass(frozen=True)
+class TelemetryObservation:
+    key: str
+    value: float | str | None
+
+@dataclass(frozen=True)
 class ReadObservation:
     connected: bool
     observed_at: datetime
     bodies: tuple[BodyObservation, ...]
     circuits: tuple[CircuitObservation, ...] = ()
+    telemetry: tuple[TelemetryObservation, ...] = ()
+
+    def measurement(self, key: str) -> float | str | None:
+        matches = [item.value for item in self.telemetry if item.key == key]
+        return matches[0] if len(matches) == 1 else None
 
     def circuit(self, native_id: str) -> CircuitObservation | None:
         matches = [item for item in self.circuits if item.native_id == native_id]
@@ -83,4 +93,12 @@ def adapt_snapshot(snapshot: Any, *, now: datetime | None = None) -> ReadObserva
         if native_id not in {'C0002', 'C0003', 'C0004', 'FTR01'}:
             continue
         circuits.append(CircuitObservation(native_id, _boolean(getattr(item, 'is_on', None))))
-    return ReadObservation(True, observed_at, tuple(bodies), tuple(circuits))
+    telemetry = []
+    for key, raw in getattr(snapshot, 'telemetry', {}).items():
+        if key in {'air_temperature', 'solar_temperature', 'water_temperature',
+                   'pump_rpm', 'pump_flow_rate', 'pump_power',
+                   'pump_minimum_rpm', 'pump_maximum_rpm'}:
+            telemetry.append(TelemetryObservation(key, _number(raw)))
+        elif key in {'firmware_version', 'system_mode'}:
+            telemetry.append(TelemetryObservation(key, str(raw) if raw is not None else None))
+    return ReadObservation(True, observed_at, tuple(bodies), tuple(circuits), tuple(telemetry))

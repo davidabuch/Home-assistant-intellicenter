@@ -12,7 +12,9 @@ from typing import Any
 from pyintellicenter import (
     ICConnectionHandler, ICModelController, PoolModel,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
-    BODY_TYPE, CIRCUIT_TYPE, LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR,
+    BODY_TYPE, CIRCUIT_TYPE, SENSE_TYPE, PUMP_TYPE, SYSTEM_TYPE,
+    LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR, SOURCE_ATTR,
+    RPM_ATTR, GPM_ATTR, PWR_ATTR, MIN_ATTR, MAX_ATTR, VER_ATTR, SERVICE_ATTR,
 )
 
 BODY_IDS = frozenset({"B1101", "B1202"})
@@ -22,6 +24,17 @@ HEATER_IDS = frozenset({"00000", "H0001", "H0002"})
 
 class ManualCommandError(RuntimeError):
     """Explicit command could not be dispatched."""
+
+
+class _CommissioningController(ICModelController):
+    """Hard protocol boundary: no mutation can cross during commissioning."""
+    async def send_cmd(self, cmd, extra=None):
+        if cmd not in {"GetParamList", "RequestParamList"}:
+            raise ManualCommandError(f"Unsafe protocol operation blocked: {cmd}")
+        return await super().send_cmd(cmd, extra)
+
+    async def request_changes(self, objnam, changes):
+        raise ManualCommandError("Physical writes disabled in commissioning controller")
 
 
 class _ObservedConnectionHandler(ICConnectionHandler):
@@ -52,7 +65,7 @@ class IntelliCenterManualTransport:
         if not host or not host.strip():
             raise ValueError("IntelliCenter host is required")
         self.model = PoolModel()
-        self.controller = ICModelController(
+        self.controller = _CommissioningController(
             host.strip(), self.model, keepalive_interval=90.0, transport="tcp"
         )
         self.handler = _ObservedConnectionHandler(self, self.controller)
@@ -91,6 +104,7 @@ class IntelliCenterManualTransport:
         from types import SimpleNamespace
         bodies = []
         circuits = []
+        telemetry = {}
         if self.connected and self._observed_at is not None:
             for obj in self.model.get_by_type(BODY_TYPE):
                 if str(obj.objnam) not in BODY_IDS:
@@ -119,9 +133,26 @@ class IntelliCenterManualTransport:
                 status = obj.properties.get(STATUS_ATTR)
                 active = None if status is None else str(status).upper() != str(STATUS_OFF).upper()
                 circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active))
+            probe_keys = {'AIR': 'air_temperature', 'SOLAR': 'solar_temperature', 'POOL': 'water_temperature'}
+            for obj in self.model.get_by_type(SENSE_TYPE):
+                key = probe_keys.get(str(obj.subtype or '').upper())
+                if key is not None and key not in telemetry:
+                    telemetry[key] = obj.properties.get(SOURCE_ATTR)
+            for obj in self.model.get_by_type(PUMP_TYPE):
+                if 'pump_rpm' in telemetry:
+                    break
+                props = obj.properties
+                telemetry.update(pump_rpm=props.get(RPM_ATTR),
+                    pump_flow_rate=props.get(GPM_ATTR), pump_power=props.get(PWR_ATTR),
+                    pump_minimum_rpm=props.get(MIN_ATTR), pump_maximum_rpm=props.get(MAX_ATTR))
+            for obj in self.model.get_by_type(SYSTEM_TYPE):
+                if 'firmware_version' in telemetry:
+                    break
+                telemetry.update(firmware_version=obj.properties.get(VER_ATTR),
+                                 system_mode=obj.properties.get(SERVICE_ATTR))
         return adapt_snapshot(SimpleNamespace(
             connected=self.connected, observed_at=self._observed_at,
-            bodies=bodies, circuits=circuits,
+            bodies=bodies, circuits=circuits, telemetry=telemetry,
         ))
 
     async def start(self) -> None:
