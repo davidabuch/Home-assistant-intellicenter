@@ -60,6 +60,27 @@ class ObservationTests(unittest.TestCase):
         self.assertIsNone(observe([spa, spa]).heating_source_active("H0001"))
         self.assertIsNone(observe([pool]).heating_source_active("H0002"))
 
+    def test_malformed_telemetry_is_unknown_not_exception(self):
+        for malformed in (None, [], "bad", 42):
+            observation = module.adapt_snapshot(
+                SimpleNamespace(connected=True, observed_at=NOW, bodies=[],
+                                telemetry=malformed), now=NOW)
+            self.assertTrue(observation.connected)
+            self.assertIsNone(observation.measurement("pump_rpm"))
+
+    def test_invalid_system_mode_and_firmware_not_promoted_to_truth(self):
+        observation = module.adapt_snapshot(
+            SimpleNamespace(connected=True, observed_at=NOW, bodies=[],
+                            telemetry={"system_mode": True,
+                                       "firmware_version": {"invalid": 1},
+                                       "pump_rpm": float("inf"),
+                                       "solar_temperature": "91.5"}),
+            now=NOW)
+        self.assertIsNone(observation.measurement("system_mode"))
+        self.assertIsNone(observation.measurement("firmware_version"))
+        self.assertIsNone(observation.measurement("pump_rpm"))
+        self.assertEqual(observation.measurement("solar_temperature"), 91.5)
+
     def test_missing_and_invalid_observation_not_inferred(self):
         body = SimpleNamespace(id="B1202", is_on="ON", current_temperature=float("nan"))
         result = module.adapt_snapshot(SimpleNamespace(connected=True, observed_at=NOW, bodies=[body]), now=NOW)
