@@ -192,6 +192,13 @@ class NativeTelemetryTests(unittest.TestCase):
         self.assertNotIn("if 'pump_rpm' in telemetry:", source)
         self.assertIn("pump_rpm=props.get(RPM_ATTR)", source)
 
+    def test_probe_roles_fail_closed_on_duplicate_discovery(self):
+        source = (ROOT / "transport.py").read_text()
+        self.assertIn("probes_by_key = {key: [] for key in probe_keys.values()}", source)
+        self.assertIn("probes_by_key[key].append(obj)", source)
+        self.assertIn("if len(probes) == 1:", source)
+        self.assertNotIn("key not in telemetry", source)
+
     def test_discovery_contract(self):
         source = (ROOT / "transport.py").read_text()
         self.assertIn("class _DiscoveryPoolModel(PoolModel)", source)
