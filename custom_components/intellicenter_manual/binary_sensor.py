@@ -4,6 +4,7 @@ from __future__ import annotations
 from homeassistant.components.binary_sensor import BinarySensorEntity
 
 DESCRIPTIONS = (
+    ("native_observation_fresh", "Native Observation Fresh", "health", "native"),
     ("pool_active", "Pool Active", "body", "B1101"),
     ("freeze_protection_active", "Freeze Protection Active", "freeze", "_FEA2"),
     ("spa_active", "Spa Active", "body", "B1202"),
@@ -46,8 +47,14 @@ class NativeStatus(BinarySensorEntity):
             self.async_write_ha_state()
 
     def _value(self):
-        if self._observation is None or not self._observation.connected:
+        if self._observation is None:
             return None
+        if self._kind == "health":
+            return self._observation.connected
+        if not self._observation.connected:
+            return None
+        if self._kind == "health":
+            return self._observation.connected
         if self._kind == "freeze":
             return self._observation.freeze_active
         if self._kind == "heat_source":
