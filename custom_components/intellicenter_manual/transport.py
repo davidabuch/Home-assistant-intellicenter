@@ -12,7 +12,7 @@ from typing import Any
 from pyintellicenter import (
     ICConnectionHandler, ICModelController, PoolModel,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
-    BODY_TYPE, LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR,
+    BODY_TYPE, CIRCUIT_TYPE, LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR,
 )
 
 BODY_IDS = frozenset({"B1101", "B1202"})
@@ -90,6 +90,7 @@ class IntelliCenterManualTransport:
         from .observation import adapt_snapshot
         from types import SimpleNamespace
         bodies = []
+        circuits = []
         if self.connected and self._observed_at is not None:
             for obj in self.model.get_by_type(BODY_TYPE):
                 if str(obj.objnam) not in BODY_IDS:
@@ -112,8 +113,15 @@ class IntelliCenterManualTransport:
                     target_temperature=properties.get(LOTMP_ATTR),
                     active_heat_source=properties.get(HEATER_ATTR),
                 ))
+            for obj in self.model.get_by_type(CIRCUIT_TYPE):
+                if str(obj.objnam) not in CIRCUIT_IDS:
+                    continue
+                status = obj.properties.get(STATUS_ATTR)
+                active = None if status is None else str(status).upper() != str(STATUS_OFF).upper()
+                circuits.append(SimpleNamespace(id=str(obj.objnam), is_on=active))
         return adapt_snapshot(SimpleNamespace(
-            connected=self.connected, observed_at=self._observed_at, bodies=bodies,
+            connected=self.connected, observed_at=self._observed_at,
+            bodies=bodies, circuits=circuits,
         ))
 
     async def start(self) -> None:
