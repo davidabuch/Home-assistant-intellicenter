@@ -48,7 +48,7 @@ class _ObservedConnectionHandler(ICConnectionHandler):
 class IntelliCenterManualTransport:
     """Small allow-listed command interface; never makes autonomous decisions."""
 
-    def __init__(self, host: str) -> None:
+    def __init__(self, host: str, *, allow_commands: bool = False) -> None:
         if not host or not host.strip():
             raise ValueError("IntelliCenter host is required")
         self.model = PoolModel()
@@ -59,6 +59,7 @@ class IntelliCenterManualTransport:
         self._connected = False
         self._observed_at = None
         self._on_observation: Callable[[], None] | None = None
+        self._allow_commands = allow_commands
         self._lock = asyncio.Lock()
         self._started = False
 
@@ -71,7 +72,8 @@ class IntelliCenterManualTransport:
 
     def _connection_changed(self, connected: bool) -> None:
         self._connected = connected
-        self._observed_at = datetime.now(timezone.utc) if connected else None
+        # Connection establishment is not proof that a complete model was read.
+        self._observed_at = None
         self._publish()
 
     def _model_updated(self) -> None:
@@ -99,9 +101,13 @@ class IntelliCenterManualTransport:
                 if status is None or heat_mode is None:
                     continue
                 active = str(status).upper() != str(STATUS_OFF).upper()
+                try:
+                    heating = self.controller.is_body_heating(obj.objnam)
+                except (LookupError, AttributeError, ValueError):
+                    heating = None
                 bodies.append(SimpleNamespace(
                     id=str(obj.objnam), is_on=active,
-                    heating_active=self.controller.is_body_heating(obj.objnam),
+                    heating_active=heating if type(heating) is bool else None,
                     current_temperature=properties.get(LSTTMP_ATTR),
                     target_temperature=properties.get(LOTMP_ATTR),
                     active_heat_source=properties.get(HEATER_ATTR),
@@ -128,6 +134,8 @@ class IntelliCenterManualTransport:
             self._publish()
 
     async def _send(self, method: str, *args: Any) -> Any:
+        if not self._allow_commands:
+            raise ManualCommandError("Read-only commissioning: all physical commands are disabled")
         if not self.connected:
             raise ManualCommandError("IntelliCenter connection not started")
         async with self._lock:
