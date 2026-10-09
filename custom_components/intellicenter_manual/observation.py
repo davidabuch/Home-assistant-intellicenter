@@ -18,10 +18,20 @@ class BodyObservation:
     heat_source: str | None
 
 @dataclass(frozen=True)
+class CircuitObservation:
+    native_id: str
+    active: bool | None
+
+@dataclass(frozen=True)
 class ReadObservation:
     connected: bool
     observed_at: datetime
     bodies: tuple[BodyObservation, ...]
+    circuits: tuple[CircuitObservation, ...] = ()
+
+    def circuit(self, native_id: str) -> CircuitObservation | None:
+        matches = [item for item in self.circuits if item.native_id == native_id]
+        return matches[0] if len(matches) == 1 else None
 
     def body(self, native_id: str) -> BodyObservation | None:
         matches = [body for body in self.bodies if body.native_id == native_id]
@@ -67,4 +77,10 @@ def adapt_snapshot(snapshot: Any, *, now: datetime | None = None) -> ReadObserva
             target_temperature=_number(getattr(item, "target_temperature", None)),
             heat_source=None if source is None else str(getattr(source, "value", source)),
         ))
-    return ReadObservation(True, observed_at, tuple(bodies))
+    circuits = []
+    for item in getattr(snapshot, 'circuits', ()):
+        native_id = str(getattr(item, 'id', ''))
+        if native_id not in {'C0002', 'C0003', 'C0004', 'FTR01'}:
+            continue
+        circuits.append(CircuitObservation(native_id, _boolean(getattr(item, 'is_on', None))))
+    return ReadObservation(True, observed_at, tuple(bodies), tuple(circuits))
