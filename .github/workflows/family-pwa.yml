@@ -1,0 +1,26 @@
+name: Family Pool Spa PWA
+on:
+  push:
+    paths:
+      - 'standalone/**'
+      - '.github/workflows/family-pwa.yml'
+  pull_request:
+    paths:
+      - 'standalone/**'
+      - '.github/workflows/family-pwa.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compile backend
+        run: python -m compileall -q standalone
+      - name: Unit tests
+        run: python -m unittest discover -s standalone/tests -v
+      - name: Check frontend JavaScript
+        run: node --check standalone/web/app.js && node --check standalone/web/sw.js
+      - name: Check PWA manifest
+        run: python -c "import json; m=json.load(open('standalone/web/manifest.webmanifest')); assert m['display']=='standalone'; assert m['icons']"
