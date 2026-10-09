@@ -101,9 +101,13 @@ class IntelliCenterManualTransport:
                 if status is None or heat_mode is None:
                     continue
                 active = str(status).upper() != str(STATUS_OFF).upper()
+                try:
+                    heating = self.controller.is_body_heating(obj.objnam)
+                except (LookupError, AttributeError, ValueError):
+                    heating = None
                 bodies.append(SimpleNamespace(
                     id=str(obj.objnam), is_on=active,
-                    heating_active=self.controller.is_body_heating(obj.objnam),
+                    heating_active=heating if type(heating) is bool else None,
                     current_temperature=properties.get(LSTTMP_ATTR),
                     target_temperature=properties.get(LOTMP_ATTR),
                     active_heat_source=properties.get(HEATER_ATTR),
