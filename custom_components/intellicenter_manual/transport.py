@@ -77,13 +77,13 @@ class _CommissioningController(ICModelController):
 
     async def request_changes(self, objnam, changes):
         if not self.manual_writes_enabled:
-            if not self.manual_writes_enabled:
             raise ManualCommandError("Physical writes disabled in commissioning controller")
-        return await super()._queue_property_change(objnam, changes)
         return await super().request_changes(objnam, changes)
 
     async def _queue_property_change(self, objnam, changes):
-        raise ManualCommandError("Physical writes disabled in commissioning controller")
+        if not self.manual_writes_enabled:
+            raise ManualCommandError("Physical writes disabled in commissioning controller")
+        return await super()._queue_property_change(objnam, changes)
 
 
 class _ObservedConnectionHandler(ICConnectionHandler):
