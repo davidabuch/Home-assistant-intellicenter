@@ -1,8 +1,9 @@
 """Manual IntelliBrite Pool Light; commissioning commands remain blocked."""
-from homeassistant.components.light import LightEntity
+from homeassistant.components.light import LightEntity, ColorMode
 
 class ManualPoolLight(LightEntity):
     _attr_should_poll = False
+    _attr_supported_color_modes = {ColorMode.ONOFF}
     _attr_name = "Pool Light"
     def __init__(self, entry, runtime):
         self._runtime = runtime
