@@ -16,6 +16,10 @@ class BoundaryTests(unittest.TestCase):
         script = (ROOT / "server.py").read_text()
         self.assertIn("len(PIN) < 4", script)
         self.assertNotIn("len(PIN) < 6", script)
+    def test_climate_on_off_uses_explicit_hvac_mode(self):
+        script = (ROOT / "server.py").read_text()
+        self.assertIn('service = "set_hvac_mode"', script)
+        self.assertIn('"hvac_mode": "heat" if operation == "on" else "off"', script)
     def test_exact_allowlist(self):
         self.assertEqual(set(server.CONTROLS), {"pool", "spa", "jets", "spillway", "slide"})
         self.assertNotIn("input_boolean.grid_outage_protection", [v[0] for v in server.CONTROLS.values()])
