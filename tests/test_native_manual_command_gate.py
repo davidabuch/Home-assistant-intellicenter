@@ -52,9 +52,9 @@ class NativeManualCommandGateTests(unittest.TestCase):
         for method in ("set_circuit_state", "set_light_effect", "set_chlorinator_output",
                        "set_heating_setpoint"):
             self.assertIn('method == "' + method + '"', dispatch)
-        for object_id in ('"PMP01"', '"CHR01"', '"C0002"'):
+        for object_id in ('"CHR01"', '"C0002"'):
             self.assertIn(object_id, dispatch)
-        self.assertIn("600 <= int(args[1][RPM_ATTR]) <= 3450", dispatch)
+        self.assertIn("600 <= int(args[1][SPEED_ATTR]) <= 3450", dispatch)
         self.assertIn("0 <= v <= 100", dispatch)
 
     def test_outage_safety_is_enforced_at_final_dispatch(self):
@@ -66,9 +66,18 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn('input_boolean.grid_outage_active', setup)
         self.assertIn('input_boolean.grid_outage_protection', setup)
         self.assertIn('9 <= dt_util.as_local(dt_util.utcnow()).hour < 17', setup)
-        self.assertIn('changes[RPM_ATTR] == "1500"', setup)
+        self.assertIn('changes[SPEED_ATTR] == "1500"', setup)
         self.assertIn('return args[1] is False', setup)
         self.assertIn('return False', setup)
+
+    def test_dynamic_pump_speed_assignment(self):
+        source = SOURCE.read_text()
+        self.assertIn("def _pool_speed_assignment(self)", source)
+        self.assertIn("self.model.get_by_type(PMPCIRC_TYPE)", source)
+        self.assertIn("candidate[CIRCUIT_ATTR]", source)
+        self.assertIn("candidate[SELECT_ATTR]", source)
+        self.assertIn("len(matches) != 1", source)
+        self.assertIn("SPEED_ATTR: str(round(float(rpm)))", source)
 
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()

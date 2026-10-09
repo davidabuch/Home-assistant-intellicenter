@@ -42,7 +42,7 @@ for name, obj in {"ICConnectionHandler": FakeHandler, "ICModelController": FakeC
     setattr(fake, name, obj)
 for name in ("STATUS_ATTR", "STATUS_ON", "STATUS_OFF", "HEATER_ATTR",
              "BODY_TYPE", "CIRCUIT_TYPE", "SENSE_TYPE", "PUMP_TYPE", "SYSTEM_TYPE",
-             "CHEM_TYPE", "BODY_ATTR", "PRIM_ATTR", "SEC_ATTR", "SALT_ATTR",
+             "CHEM_TYPE", "PMPCIRC_TYPE", "CIRCUIT_ATTR", "SELECT_ATTR", "SPEED_ATTR", "BODY_ATTR", "PRIM_ATTR", "SEC_ATTR", "SALT_ATTR",
              "LOTMP_ATTR", "LSTTMP_ATTR", "HTMODE_ATTR", "SOURCE_ATTR",
              "RPM_ATTR", "GPM_ATTR", "PWR_ATTR", "MIN_ATTR", "MAX_ATTR",
              "VER_ATTR", "SERVICE_ATTR", "OBJTYP_ATTR", "SNAME_ATTR",
