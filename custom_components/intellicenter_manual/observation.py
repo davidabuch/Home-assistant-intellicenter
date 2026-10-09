@@ -35,6 +35,7 @@ class ReadObservation:
     bodies: tuple[BodyObservation, ...]
     circuits: tuple[CircuitObservation, ...] = ()
     telemetry: tuple[TelemetryObservation, ...] = ()
+    freeze_active: bool | None = None
 
     def heating_source_active(self, heater_id: str) -> bool | None:
         """Report actual native heating source; never equate selection with firing."""
@@ -122,4 +123,5 @@ def adapt_snapshot(snapshot: Any, *, now: datetime | None = None) -> ReadObserva
             telemetry.append(TelemetryObservation(key, _number(raw)))
         elif key in {'firmware_version', 'system_mode'}:
             telemetry.append(TelemetryObservation(key, str(raw) if isinstance(raw, (str, int)) and not isinstance(raw, bool) else None))
-    return ReadObservation(True, observed_at, tuple(bodies), tuple(circuits), tuple(telemetry))
+    return ReadObservation(True, observed_at, tuple(bodies), tuple(circuits), tuple(telemetry),
+                           _boolean(getattr(snapshot, "freeze_active", None)))
