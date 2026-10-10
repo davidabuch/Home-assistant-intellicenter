@@ -20,6 +20,11 @@ class BoundaryTests(unittest.TestCase):
         script = (ROOT / "server.py").read_text()
         self.assertIn('service = "set_hvac_mode"', script)
         self.assertIn('"hvac_mode": "heat" if operation == "on" else "off"', script)
+    def test_status_visuals_do_not_infer_heating_from_on(self):
+        script = (ROOT / "web" / "app.js").read_text()
+        self.assertIn('a.hvac_action==="heating"', script)
+        self.assertIn('root.classList.toggle("is-heating",heating)', script)
+        self.assertIn('heating?"Heating":on?"On · Ready":"Off"', script)
     def test_exact_allowlist(self):
         self.assertEqual(set(server.CONTROLS), {"pool", "spa", "jets", "spillway", "slide"})
         self.assertNotIn("input_boolean.grid_outage_protection", [v[0] for v in server.CONTROLS.values()])
