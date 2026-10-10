@@ -49,7 +49,7 @@ CONTROLS = {
     "spillway": ("switch.spillway", "switch"),
     "slide": ("switch.water_slide", "switch"),
 }
-READ_ONLY = ["sensor.pool_temperature", "sensor.spa_temperature",
+READ_ONLY = ["binary_sensor.solar_heating_active", "binary_sensor.gas_heater_active", "sensor.pool_temperature", "sensor.spa_temperature",
              "binary_sensor.1_powerwall_grid_status", "input_boolean.grid_outage_active"]
 MAX_BODY = 1024
 
