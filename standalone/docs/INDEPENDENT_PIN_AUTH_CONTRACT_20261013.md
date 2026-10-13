@@ -9,7 +9,7 @@ Pool & Spa Family remains a separate application. Family Home may link to it, bu
 ## Device roles
 
 - Family: enter the existing family PIN once, retain a server-side revocable, HttpOnly Secure SameSite session cookie for 180 days. May read all current pool/spa status and operate Spa, Jets/Bubbles, Spillway and Water Slide. Pool ON/OFF and Pool target temperature are displayed, visibly disabled, and rejected by the server with HTTP 403.
-- Administrator: enter a **different** administrator PIN once, retain an independently tracked revocable administrator session on that device. May use all currently available controls including Pool ON/OFF and target temperature. Admin PIN must be separately configured and must never be embedded in code, browser storage, URLs, logs or frontend bundles.
+- Administrator: enter a **different** administrator PIN (at least four digits) once, retain an independently tracked revocable administrator session on that device. May use all currently available controls including Pool ON/OFF and target temperature. Admin PIN must be separately configured and must never be embedded in code, browser storage, URLs, logs or frontend bundles.
 - Sessions must be bound to the role issued on authentication. Existing family sessions must never be silently upgraded to administrator. Rotating the administrator PIN must invalidate administrator sessions. Invalid or missing PIN configuration must fail closed for admin privileges.
 
 ## Trust boundaries

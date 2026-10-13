@@ -21,7 +21,7 @@ class AuthenticationAcceptance(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        self.sessions = server.DeviceSessions(Path(directory.name) / "sessions.json", "1234", "987654")
+        self.sessions = server.DeviceSessions(Path(directory.name) / "sessions.json", "1234", "9876")
         self.settings = patch.multiple(server, SESSIONS=self.sessions, PUBLIC_ORIGIN=ORIGIN,
                                        REMOTE_PUBLIC_ORIGIN=REMOTE, LOGIN_ATTEMPTS={})
         self.settings.start()
@@ -102,7 +102,7 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.ha.assert_not_called()
 
     def test_admin_controls_and_permissions(self):
-        headers = self.login("987654")
+        headers = self.login("9876")
         self.assertEqual(self.request("/api/permissions", headers=headers, method="GET")[1],
                          {"pool_control": True})
         for operation in ("on", "off", "temperature"):
@@ -129,7 +129,7 @@ class AuthenticationAcceptance(unittest.TestCase):
     def test_login_errors_and_rate_limit(self):
         for _ in range(5):
             self.assertEqual(self.request("/api/login", {"pin": "wrong"})[0], 401)
-        self.assertEqual(self.request("/api/login", {"pin": "987654"})[0], 429)
+        self.assertEqual(self.request("/api/login", {"pin": "9876"})[0], 429)
         self.ha.assert_not_called()
 
     def test_origin_and_host_enforcement(self):
@@ -143,18 +143,18 @@ class AuthenticationAcceptance(unittest.TestCase):
                                                 "Host": "pool.example.test"})[0], 200)
 
     def test_logout_and_expiry(self):
-        headers = self.login("987654")
+        headers = self.login("9876")
         self.assertEqual(self.request("/api/logout", {}, headers=headers)[0], 200)
         self.assertEqual(self.request("/api/permissions", headers=headers, method="GET")[0], 401)
-        headers = self.login("987654")
+        headers = self.login("9876")
         with patch.object(server.time, "time", return_value=10**12):
             self.assertEqual(self.request("/api/permissions", headers=headers, method="GET")[0], 401)
         self.ha.assert_not_called()
 
     def test_restart_and_pin_rotation(self):
-        headers = self.login("987654")
+        headers = self.login("9876")
         sid = headers["Cookie"].split("=", 1)[1]
-        restarted = server.DeviceSessions(self.sessions.path, "1234", "987654")
+        restarted = server.DeviceSessions(self.sessions.path, "1234", "9876")
         self.assertEqual(restarted.role(sid), "admin")
         self.assertIsNone(server.DeviceSessions(self.sessions.path, "1234", "new-admin").role(sid))
         self.ha.assert_not_called()

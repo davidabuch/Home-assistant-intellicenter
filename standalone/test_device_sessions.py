@@ -15,7 +15,7 @@ class SessionTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name) / "sessions.json"
-        self.store = DeviceSessions(self.path, "1234", "987654")
+        self.store = DeviceSessions(self.path, "1234", "9876")
 
     def test_family_never_admin(self):
         sid, role = self.store.login("1234")
@@ -24,13 +24,13 @@ class SessionTests(unittest.TestCase):
         self.assertIsNone(self.store.login("bad"))
 
     def test_admin_is_separate(self):
-        sid, role = self.store.login("987654")
+        sid, role = self.store.login("9876")
         self.assertEqual(role, "admin")
         self.assertEqual(self.store.role(sid), "admin")
 
     def test_persistence_and_rotation(self):
-        sid, _ = self.store.login("987654")
-        self.assertEqual(DeviceSessions(self.path, "1234", "987654").role(sid), "admin")
+        sid, _ = self.store.login("9876")
+        self.assertEqual(DeviceSessions(self.path, "1234", "9876").role(sid), "admin")
         self.assertIsNone(DeviceSessions(self.path, "1234", "changed-pin").role(sid))
 
     def test_admin_fails_closed(self):
@@ -38,6 +38,18 @@ class SessionTests(unittest.TestCase):
             store = DeviceSessions(self.path, "1234", pin)
             self.assertIsNone(store.login(pin) if pin != "1234" else store.login("bad"))
             self.assertEqual(store.login("1234")[1], "family")
+
+    def test_four_digit_admin_pin_and_rotation(self):
+        sid, role = self.store.login("9876")
+        self.assertEqual(role, "admin")
+        self.assertEqual(self.store.role(sid), "admin")
+        self.store.rotate("admin", "4567")
+        self.assertIsNone(self.store.role(sid))
+        self.assertEqual(self.store.login("4567")[1], "admin")
+        with self.assertRaises(ValueError):
+            self.store.rotate("admin", "1234")
+        with self.assertRaises(ValueError):
+            self.store.rotate("admin", "123")
 
     def test_logout(self):
         sid, _ = self.store.login("1234")
