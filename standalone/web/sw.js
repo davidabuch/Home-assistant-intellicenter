@@ -1,6 +1,6 @@
 // Cache only public, versioned app shell assets. Never cache API state or commands.
-const VERSION="pool-spa-family-independent-pin-v2";
-const ASSETS=["/","/style.css","/app.js","/icon.svg","/manifest.webmanifest"];
+const VERSION="pool-spa-family-approved-icons-v1";
+const ASSETS=["/","/style.css","/app.js","/icons/approved-v1/icon-16.png","/icons/approved-v1/icon-32.png","/icons/approved-v1/icon-180.png","/icons/approved-v1/icon-192.png","/icons/approved-v1/icon-512.png","/favicon.ico","/manifest.webmanifest"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",event=>{const req=event.request;if(req.method!=="GET"||new URL(req.url).pathname.startsWith("/api/"))return;event.respondWith(fetch(req).catch(()=>caches.match(req)))});
