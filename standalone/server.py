@@ -109,12 +109,10 @@ class Handler(BaseHTTPRequestHandler):
         host = single_header(self, "Host")
         if not host or not origin or self.headers.get("Sec-Fetch-Site") == "cross-site":
             return False
-        allowed = {f"https://{host}"}
-        if PUBLIC_ORIGIN:
-            allowed.add(PUBLIC_ORIGIN)
-        if REMOTE_PUBLIC_ORIGIN:
-            allowed.add(REMOTE_PUBLIC_ORIGIN)
-        return origin in allowed
+        # Never trust a client-supplied Host header to authorize cross-site writes.
+        allowed = {value for value in (PUBLIC_ORIGIN, REMOTE_PUBLIC_ORIGIN)
+                   if value.startswith("https://")}
+        return origin in allowed and origin == f"https://{host}"
 
     def do_GET(self):
         path = urlparse(self.path).path
@@ -162,7 +160,7 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError):
             return self.send_json({"error": "Invalid JSON"}, 400)
         if path == "/api/login":
-            supplied = str(body.get("pin", ""))
+            supplied = body.get("pin", "")
             client = self.client_address[0]
             now = time.monotonic()
             attempts = [t for t in LOGIN_ATTEMPTS.get(client, []) if now - t < 300]
@@ -178,6 +176,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": True, "role": role}, cookie=(
                 f"session={sid}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age={180 * 86400}"))
         if path == "/api/logout":
+            if not self.authorized():
+                return self.send_json({"error": "Sign in required"}, 401)
             SESSIONS.logout(self.session_id())
             return self.send_json({"ok": True}, cookie="session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0")
         if not self.authorized():
