@@ -35,3 +35,9 @@ Administrator sessions are process-local and invalidated when the backend proces
 ## Validation
 
 Install `standalone/requirements.txt` and run `python -m unittest discover -s standalone/tests -v`. Request tests instantiate handlers in memory, use locally generated signing keys, mock every Home Assistant call and prohibit external network requests. They never send equipment commands. The underlying IntelliCenter integration, entity allowlist, service payloads, 70–104°F setpoint bounds, and pending-verification response remain unchanged.
+
+## Integrated Family Home flow
+
+The PIN-free frontend retains the existing Pool/Spa and feature layout. Family Home's administrator Pool link opens a fixed handoff page, obtains a ticket with a CSRF-protected POST, and transfers it with source-window and exact-origin checks. The page exchanges it using the existing same-origin JSON `POST /api/admin/handoff`, then detaches its opener and navigates to the app. Tickets are never URL parameters or browser storage. Configure `family_home_origin`; optional future remote origins use `family_remote_public_origin` and `family_remote_home_origin` and never fall back to the local origins.
+
+See [exact NPM topology/configuration and manual prerequisites](docs/NPM_POOL_FAMILY_CONFIGURATION.md). No proxy, add-on or equipment changes were applied. For full cross-application tests set `FAMILY_HOME_SOURCE` to the Family Home checkout and run the Python suite plus `node --test standalone/tests/js/*.cjs`. Run Family Home tests with `POOL_SOURCE` pointing to this checkout and `PYTHON_BINARY` pointing to Python with the Pool dependencies installed.

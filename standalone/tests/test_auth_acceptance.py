@@ -47,7 +47,9 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.keys = Mock()
         self.keys.get_signing_key_from_jwt.return_value = SimpleNamespace(key=self.key.public_key())
         self.settings = patch.multiple(server, TRUSTED_PROXIES=frozenset({"127.0.0.1"}),
-                                      PROXY_SECRET=SECRET, PUBLIC_ORIGIN=ORIGIN,
+                                      PROXY_SECRET=SECRET, PUBLIC_ORIGIN=ORIGIN, REMOTE_PUBLIC_ORIGIN=ORIGIN,
+                                      FAMILY_HOME_ORIGIN="https://home-local.davidbuchmd.com",
+                                      REMOTE_FAMILY_HOME_ORIGIN="https://home.davidbuchmd.com",
                                       CF_ISSUER=ISSUER, CF_AUDIENCE="family-aud",
                                       CF_USERS=frozenset({"family@example.test"}),
                                       CF_KEYS=self.keys, ADMIN_HANDOFF=self.auth, PIN="")
@@ -122,7 +124,8 @@ class AuthenticationAcceptance(unittest.TestCase):
             with self.subTest(peer=peer, headers=headers):
                 for path, method in [("/api/control", "POST"), ("/api/login", "POST"),
                                      ("/api/admin/handoff", "POST"), ("/api/state", "GET"),
-                                     ("/api/permissions", "GET")]:
+                                     ("/api/permissions", "GET"), ("/api/handoff/config", "GET"),
+                                     ("/admin-handoff.html", "GET"), ("/admin-handoff.js", "GET")]:
                     self.assertEqual(self.request(path, headers=headers, peer=peer, method=method)[0], 401)
         self.ha.assert_not_called()
 
@@ -247,6 +250,64 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.assertFalse(handler.family_authorized())
         handler.headers["X-Family-Proxy-Secret"] = SECRET
         self.assertFalse(server.trusted_proxy(handler))
+        self.ha.assert_not_called()
+
+    def test_handoff_config_requires_family_boundary_and_separates_remote_origin(self):
+        self.assertEqual(self.request("/api/handoff/config", method="GET")[1], {"home_origin": "https://home-local.davidbuchmd.com"})
+        self.assertEqual(self.request("/api/handoff/config", method="GET", peer="192.168.1.20")[0], 401)
+        headers={"X-Family-Boundary": "remote", "Cf-Access-Jwt-Assertion": self.remote_token()}
+        self.assertEqual(self.request("/api/handoff/config", method="GET", headers=headers)[1], {"home_origin": "https://home.davidbuchmd.com"})
+        with patch.object(server, "REMOTE_FAMILY_HOME_ORIGIN", ""):
+            self.assertEqual(self.request("/api/handoff/config", method="GET", headers=headers)[0], 503)
+        self.ha.assert_not_called()
+
+    def test_remote_origin_never_falls_back_to_local_post_origin(self):
+        headers={"X-Family-Boundary": "remote", "Cf-Access-Jwt-Assertion": self.remote_token()}
+        with patch.object(server, "REMOTE_PUBLIC_ORIGIN", "https://pool.davidbuchmd.com"):
+            self.assertEqual(self.request(headers=headers)[0], 403)
+            self.assertEqual(self.request(headers={**headers, "Origin": "https://pool.davidbuchmd.com"})[0], 200)
+        self.ha.reset_mock()
+        with patch.object(server, "REMOTE_PUBLIC_ORIGIN", ""):
+            self.assertEqual(self.request(headers=headers)[0], 403)
+        self.ha.assert_not_called()
+
+    def test_frontend_has_no_pin_dependency_and_preserves_control_layout(self):
+        html=(ROOT / "web/index.html").read_text()
+        script=(ROOT / "web/app.js").read_text()
+        for value in ['id="pin"', 'id="signin"', 'Household PIN']:
+            self.assertNotIn(value, html)
+        for value in ['$("pin")', '$("signin")', 'api("login"']:
+            self.assertNotIn(value, script)
+        for name in ['pool', 'spa', 'features', 'controls']:
+            self.assertIn(f'id="{name}"', html)
+        self.assertIn('key==="pool"&&!permissions.pool_control', script)
+
+    def test_request_logs_never_include_ticket_query_strings(self):
+        handler=object.__new__(server.Handler)
+        handler.client_address=("127.0.0.1", 1234)
+        handler.command="GET"
+        handler.path="/api/admin-handoff?ticket=secret-mock-ticket"
+        with patch("builtins.print") as output:
+            handler.log_message('"%s"', "GET " + handler.path)
+        self.assertNotIn("secret-mock-ticket", str(output.call_args))
+
+    def test_family_home_real_signer_matches_pool_request_verifier(self):
+        import os, subprocess
+        source=os.environ.get("FAMILY_HOME_SOURCE")
+        if not source:
+            self.skipTest("Set FAMILY_HOME_SOURCE for cross-repository signing verification")
+        module=(Path(source)/"lib/pool-handoff.js").resolve().as_uri()
+        script="""const {issuePoolTicket}=await import(process.argv[1]);
+const session={id:'mock-session-hash',expires:Date.now()+300000,user:{id:'home-admin',role:'admin',enabled:true}};
+process.stdout.write(issuePoolTicket(session,process.argv[2]));"""
+        signed=subprocess.run([os.environ.get("NODE_BINARY", "node"), "--input-type=module", "-e", script, module, SECRET],
+                              check=True, capture_output=True, text=True).stdout
+        status, _, cookie=self.request("/api/admin/handoff", {"ticket":signed})
+        self.assertEqual(status,200)
+        self.assertEqual(self.request(body={"control":"pool","operation":"on"}, headers={"Cookie":cookie.split(";",1)[0]})[0],200)
+        self.ha.assert_called_once_with("/api/services/climate/set_hvac_mode", {"entity_id":"climate.pool_thermostat","hvac_mode":"heat"})
+        self.ha.reset_mock()
+        self.assertEqual(self.request("/api/admin/handoff", {"ticket":signed})[0],403)
         self.ha.assert_not_called()
 
     def test_allowlist_and_command_validation(self):

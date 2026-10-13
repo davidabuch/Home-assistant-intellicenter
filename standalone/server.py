@@ -41,6 +41,9 @@ def single_header(handler, name):
 # No private-subnet or forwarded-address heuristic establishes local trust.
 TRUSTED_PROXIES = frozenset((value.strip() for value in setting("FAMILY_TRUSTED_PROXIES").split(",") if value.strip()))
 PROXY_SECRET = setting("FAMILY_PROXY_SECRET")
+REMOTE_PUBLIC_ORIGIN = setting("FAMILY_REMOTE_PUBLIC_ORIGIN").rstrip("/")
+REMOTE_FAMILY_HOME_ORIGIN = setting("FAMILY_REMOTE_HOME_ORIGIN").rstrip("/")
+FAMILY_HOME_ORIGIN = setting("FAMILY_HOME_ORIGIN").rstrip("/")
 PUBLIC_ORIGIN = setting("FAMILY_PUBLIC_ORIGIN").rstrip("/")
 CF_ISSUER = setting("CF_ACCESS_ISSUER").rstrip("/")
 CF_AUDIENCE = setting("CF_ACCESS_AUDIENCE")
@@ -190,14 +193,22 @@ class Handler(BaseHTTPRequestHandler):
         return self.family_authorized()
 
     def valid_origin(self):
-        return bool(PUBLIC_ORIGIN.startswith("https://")
-                    and single_header(self, "Origin") == PUBLIC_ORIGIN
+        origin = REMOTE_PUBLIC_ORIGIN if single_header(self, "X-Family-Boundary") == "remote" else PUBLIC_ORIGIN
+        return bool(origin.startswith("https://")
+                    and single_header(self, "Origin") == origin
                     and self.headers.get("Sec-Fetch-Site") != "cross-site")
 
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/api/health":
             return self.send_json({"ok": True, "configured": bool(TOKEN and TRUSTED_PROXIES and len(PROXY_SECRET) >= 32 and PUBLIC_ORIGIN.startswith("https://"))})
+        if path == "/api/handoff/config":
+            if not self.family_authorized():
+                return self.send_json({"error": "Sign in required"}, 401)
+            home_origin = REMOTE_FAMILY_HOME_ORIGIN if single_header(self, "X-Family-Boundary") == "remote" else FAMILY_HOME_ORIGIN
+            if not home_origin.startswith("https://") or ADMIN_HANDOFF is None:
+                return self.send_json({"error": "Administrator handoff unavailable"}, 503)
+            return self.send_json({"home_origin": home_origin})
         if path == "/api/permissions":
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
@@ -209,14 +220,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(snapshot())
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError) as exc:
                 return self.send_json({"error": "Home Assistant unavailable"}, 503)
-        assets = {"/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
+        assets = {"/admin-handoff.html": ("web/admin-handoff.html", "text/html"), "/admin-handoff.js": ("web/admin-handoff.js", "text/javascript"), "/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
                   "/style.css": ("web/style.css", "text/css"), "/manifest.webmanifest": ("web/manifest.webmanifest", "application/manifest+json"), "/icon.svg": ("web/icon.svg", "image/svg+xml"), "/sw.js": ("web/sw.js", "text/javascript")}
         if path not in assets:
             return self.send_json({"error": "Not found"}, 404)
+        if path in ("/admin-handoff.html", "/admin-handoff.js") and not self.family_authorized():
+            return self.send_json({"error": "Sign in required"}, 401)
         filename, content_type = assets[path]
         content = (ROOT / filename).read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", content_type)
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
@@ -296,7 +311,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": "Command rejected or Home Assistant unavailable"}, 503)
 
     def log_message(self, fmt, *args):
-        print("%s %s" % (self.address_string(), fmt % args), flush=True)
+        # Never log query strings or body data, including legacy ticket URLs.
+        print("%s %s %s" % (self.address_string(), getattr(self, "command", ""),
+                              urlparse(getattr(self, "path", "")).path), flush=True)
 
 if __name__ == "__main__":
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
