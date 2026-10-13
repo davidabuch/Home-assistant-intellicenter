@@ -1,5 +1,6 @@
 """Role-scoped, revocable, persistent device sessions for Pool & Spa Family."""
 import hmac
+import hashlib
 import json
 import os
 import secrets
@@ -27,6 +28,7 @@ class DeviceSessions:
             for sid, entry in data.items():
                 if (isinstance(sid, str) and isinstance(entry, dict)
                     and entry.get("role") in ("family", "admin")
+                    and isinstance(entry.get("pin_digest"), str)
                     and type(entry.get("expires")) in (int, float)
                     and entry["expires"] > now):
                     self.sessions[sid] = entry
@@ -44,6 +46,10 @@ class DeviceSessions:
         finally:
             temp.unlink(missing_ok=True)
 
+    def _digest(self, role):
+        pin = self.admin_pin if role == "admin" else self.family_pin
+        return hashlib.sha256((role + ":" + pin).encode()).hexdigest()
+
     def login(self, supplied):
         if not isinstance(supplied, str):
             return None
@@ -56,7 +62,7 @@ class DeviceSessions:
             return None
         with self.lock:
             sid = secrets.token_urlsafe(32)
-            self.sessions[sid] = {"role": role, "expires": time.time() + self.ttl}
+            self.sessions[sid] = {"role": role, "expires": time.time() + self.ttl, "pin_digest": self._digest(role)}
             self._save()
             return sid, role
 
@@ -73,6 +79,10 @@ class DeviceSessions:
                 return None
             # Revoking or changing a PIN invalidates its role's old sessions.
             if entry["role"] == "admin" and (len(self.admin_pin) < 6 or self.admin_pin == self.family_pin):
+                return None
+            if not hmac.compare_digest(entry["pin_digest"], self._digest(entry["role"])):
+                self.sessions.pop(sid, None)
+                self._save()
                 return None
             return entry["role"]
 
