@@ -54,7 +54,7 @@ class DeviceSessions:
         if not isinstance(supplied, str):
             return None
         # An absent/identical administrator PIN can never grant elevated rights.
-        admin_valid = (len(self.admin_pin) >= 6 and self.admin_pin != self.family_pin
+        admin_valid = (len(self.admin_pin) >= 4 and self.admin_pin != self.family_pin
                        and hmac.compare_digest(supplied, self.admin_pin))
         family_valid = len(self.family_pin) >= 4 and hmac.compare_digest(supplied, self.family_pin)
         role = "admin" if admin_valid else "family" if family_valid else None
@@ -78,7 +78,7 @@ class DeviceSessions:
                 self._save()
                 return None
             # Revoking or changing a PIN invalidates its role's old sessions.
-            if entry["role"] == "admin" and (len(self.admin_pin) < 6 or self.admin_pin == self.family_pin):
+            if entry["role"] == "admin" and (len(self.admin_pin) < 4 or self.admin_pin == self.family_pin):
                 return None
             if not hmac.compare_digest(entry["pin_digest"], self._digest(entry["role"])):
                 self.sessions.pop(sid, None)
@@ -94,7 +94,7 @@ class DeviceSessions:
     def rotate(self, role, new_pin):
         if role not in ("family", "admin") or not isinstance(new_pin, str):
             raise ValueError("Invalid role or PIN")
-        if len(new_pin) < (6 if role == "admin" else 4):
+        if len(new_pin) < 4:
             raise ValueError("PIN too short")
         other = self.family_pin if role == "admin" else self.admin_pin
         if new_pin == other:
