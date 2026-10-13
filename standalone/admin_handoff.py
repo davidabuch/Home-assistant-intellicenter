@@ -9,6 +9,7 @@ import hmac
 import json
 import secrets
 import time
+import threading
 
 
 class HandoffError(ValueError):
@@ -23,6 +24,7 @@ class AdminHandoff:
         self.clock = clock
         self.used = {}
         self.sessions = {}
+        self._lock = threading.Lock()
 
     def exchange(self, ticket):
         if not isinstance(ticket, str) or len(ticket) > 2048 or ticket.count(".") != 1:
@@ -49,15 +51,17 @@ class AdminHandoff:
                 raise HandoffError("Invalid claims")
         except (ValueError, KeyError, TypeError, UnicodeError) as exc:
             raise HandoffError("Invalid claims") from exc
-        for used_nonce, deadline in list(self.used.items()):
-            if deadline <= now:
-                del self.used[used_nonce]
-        if nonce in self.used:
-            raise HandoffError("Ticket already used")
-        self.used[nonce] = expiry
-        sid = secrets.token_urlsafe(32)
-        self.sessions[sid] = now + 900
-        return sid
+        with self._lock:
+            for used_nonce, deadline in list(self.used.items()):
+                if deadline <= now:
+                    del self.used[used_nonce]
+            if nonce in self.used:
+                raise HandoffError("Ticket already used")
+            self.used[nonce] = expiry
+            sid = secrets.token_urlsafe(32)
+            self.sessions[sid] = now + 900
+            return sid
 
     def is_admin(self, sid):
-        return bool(sid and self.sessions.get(sid, 0) > self.clock())
+        with self._lock:
+            return bool(sid and self.sessions.get(sid, 0) > self.clock())
