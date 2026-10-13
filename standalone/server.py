@@ -9,12 +9,7 @@ import urllib.error
 import urllib.request
 from http.cookies import SimpleCookie, CookieError
 
-import jwt
-try:
-    from admin_handoff import AdminHandoff, HandoffError
-except ModuleNotFoundError:
-    from standalone.admin_handoff import AdminHandoff, HandoffError
-
+from device_sessions import DeviceSessions
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
@@ -37,97 +32,19 @@ def single_header(handler, name):
     return values[0] if len(values) == 1 else ""
 
 
-# Every access assertion requires both an exact proxy peer and a shared secret.
-# No private-subnet or forwarded-address heuristic establishes local trust.
-TRUSTED_PROXIES = frozenset((value.strip() for value in setting("FAMILY_TRUSTED_PROXIES").split(",") if value.strip()))
-PROXY_SECRET = setting("FAMILY_PROXY_SECRET")
-REMOTE_PUBLIC_ORIGIN = setting("FAMILY_REMOTE_PUBLIC_ORIGIN").rstrip("/")
-REMOTE_FAMILY_HOME_ORIGIN = setting("FAMILY_REMOTE_HOME_ORIGIN").rstrip("/")
-FAMILY_HOME_ORIGIN = setting("FAMILY_HOME_ORIGIN").rstrip("/")
 PUBLIC_ORIGIN = setting("FAMILY_PUBLIC_ORIGIN").rstrip("/")
-CF_ISSUER = setting("CF_ACCESS_ISSUER").rstrip("/")
-CF_AUDIENCE = setting("CF_ACCESS_AUDIENCE")
-CF_USERS = frozenset((value.strip() for value in setting("CF_ACCESS_USERS").split(",") if value.strip()))
-CF_KEYS = (jwt.PyJWKClient(CF_ISSUER + "/cdn-cgi/access/certs", timeout=5)
-           if CF_ISSUER.startswith("https://") and urlparse(CF_ISSUER).hostname
-           and urlparse(CF_ISSUER).hostname.endswith(".cloudflareaccess.com")
-           and urlparse(CF_ISSUER).path == "" else None)
-try:
-    ADMIN_HANDOFF = AdminHandoff(
-        setting("FAMILY_ADMIN_HANDOFF_SECRET"),
-        replay_file=os.environ.get("ADMIN_REPLAY_FILE", "/data/admin_used_tickets.json"))
-except HandoffError:
-    ADMIN_HANDOFF = None
-
-
-def trusted_proxy(handler):
-    try:
-        peer = str(ipaddress.ip_address(handler.client_address[0]))
-    except ValueError:
-        return False
-    supplied = single_header(handler, "X-Family-Proxy-Secret")
-    return bool(peer in TRUSTED_PROXIES and len(PROXY_SECRET) >= 32
-                and hmac.compare_digest(supplied.encode(), PROXY_SECRET.encode()))
-
-
-def remote_identity_verified(handler):
-    if (not trusted_proxy(handler) or single_header(handler, "X-Family-Boundary") != "remote"
-            or not CF_KEYS or not CF_AUDIENCE or not CF_USERS):
-        return False
-    token = single_header(handler, "Cf-Access-Jwt-Assertion")
-    if not token or len(token) > 16384:
-        return False
-    try:
-        key = CF_KEYS.get_signing_key_from_jwt(token).key
-        claims = jwt.decode(token, key, algorithms=["RS256"], audience=CF_AUDIENCE,
-                            issuer=CF_ISSUER, options={"require": ["exp", "iat", "sub", "email"]})
-        return bool(isinstance(claims["sub"], str) and claims["sub"]
-                    and claims["email"] in CF_USERS)
-    except (jwt.PyJWTError, ValueError, TypeError, KeyError):
-        return False
-
-
-def consume_admin_handoff(ticket):
-    if ADMIN_HANDOFF is None:
-        raise HandoffError("Administrator handoff unavailable")
-    try:
-        return ADMIN_HANDOFF.exchange(ticket)
-    except (UnicodeError, AttributeError, TypeError) as exc:
-        raise HandoffError("Malformed ticket") from exc
-
+REMOTE_PUBLIC_ORIGIN = setting("FAMILY_REMOTE_PUBLIC_ORIGIN").rstrip("/")
 
 ROOT = Path(__file__).resolve().parent
 HA = os.environ.get("HA_URL", "http://supervisor/core").rstrip("/")
 TOKEN = os.environ.get("SUPERVISOR_TOKEN", "")
 PORT = int(os.environ.get("PORT", "8101"))
-PIN = ""
-try:
-    PIN = str(json.loads(Path("/data/options.json").read_text()).get("family_pin", ""))
-except (OSError, ValueError, TypeError):
-    PIN = os.environ.get("FAMILY_PIN", "")
-SESSION_FILE = Path(os.environ.get("SESSION_FILE", "/data/trusted_devices.json"))
-SESSION_DAYS = 180
-
-def load_sessions():
-    try:
-        saved = json.loads(SESSION_FILE.read_text())
-        if isinstance(saved, dict):
-            return {key: value for key, value in saved.items()
-                    if isinstance(key, str) and isinstance(value, (int, float))
-                    and value > time.time()}
-    except (OSError, ValueError, TypeError):
-        pass
-    return {}
-
-SESSIONS = load_sessions()
+FAMILY_PIN = setting("FAMILY_PIN")
+ADMIN_PIN = setting("ADMIN_PIN")
+SESSION_FILE = Path(os.environ.get("SESSION_FILE", "/data/role_sessions.json"))
+SESSIONS = DeviceSessions(SESSION_FILE, FAMILY_PIN, ADMIN_PIN)
 LOGIN_ATTEMPTS = {}
 
-def save_sessions():
-    SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temporary = SESSION_FILE.with_suffix(".tmp")
-    temporary.write_text(json.dumps(SESSIONS))
-    os.chmod(temporary, 0o600)
-    temporary.replace(SESSION_FILE)
 CONTROLS = {
     "pool": ("climate.pool_thermostat", "climate"),
     "spa": ("climate.hot_tub_thermostat", "climate"),
@@ -174,41 +91,33 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def family_authorized(self):
-        return bool(trusted_proxy(self) and (
-            single_header(self, "X-Family-Boundary") == "local"
-            or remote_identity_verified(self)))
-
-    def admin_authorized(self):
-        if not self.family_authorized() or ADMIN_HANDOFF is None:
-            return False
+    def session_id(self):
         try:
-            cookies = SimpleCookie(self.headers.get("Cookie", ""))
-            sid = cookies.get("family_admin")
-            return ADMIN_HANDOFF.is_admin(sid.value if sid else "")
+            cookie = SimpleCookie(self.headers.get("Cookie", ""))
+            return cookie["session"].value if "session" in cookie else None
         except CookieError:
-            return False
+            return None
 
     def authorized(self):
-        return self.family_authorized()
+        return SESSIONS.role(self.session_id()) in ("family", "admin")
+
+    def admin_authorized(self):
+        return SESSIONS.role(self.session_id()) == "admin"
 
     def valid_origin(self):
-        origin = REMOTE_PUBLIC_ORIGIN if single_header(self, "X-Family-Boundary") == "remote" else PUBLIC_ORIGIN
-        return bool(origin.startswith("https://")
-                    and single_header(self, "Origin") == origin
-                    and self.headers.get("Sec-Fetch-Site") != "cross-site")
+        origin = single_header(self, "Origin")
+        host = single_header(self, "Host")
+        if not host or not origin or self.headers.get("Sec-Fetch-Site") == "cross-site":
+            return False
+        # Never trust a client-supplied Host header to authorize cross-site writes.
+        allowed = {value for value in (PUBLIC_ORIGIN, REMOTE_PUBLIC_ORIGIN)
+                   if value.startswith("https://")}
+        return origin in allowed and origin == f"https://{host}"
 
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/api/health":
-            return self.send_json({"ok": True, "configured": bool(TOKEN and TRUSTED_PROXIES and len(PROXY_SECRET) >= 32 and PUBLIC_ORIGIN.startswith("https://"))})
-        if path == "/api/handoff/config":
-            if not self.family_authorized():
-                return self.send_json({"error": "Sign in required"}, 401)
-            home_origin = REMOTE_FAMILY_HOME_ORIGIN if single_header(self, "X-Family-Boundary") == "remote" else FAMILY_HOME_ORIGIN
-            if not home_origin.startswith("https://") or ADMIN_HANDOFF is None:
-                return self.send_json({"error": "Administrator handoff unavailable"}, 503)
-            return self.send_json({"home_origin": home_origin})
+            return self.send_json({"ok": True, "configured": bool(TOKEN and len(FAMILY_PIN) >= 4)})
         if path == "/api/permissions":
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
@@ -220,12 +129,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(snapshot())
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError) as exc:
                 return self.send_json({"error": "Home Assistant unavailable"}, 503)
-        assets = {"/admin-handoff.html": ("web/admin-handoff.html", "text/html"), "/admin-handoff.js": ("web/admin-handoff.js", "text/javascript"), "/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
+        assets = {"/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
                   "/style.css": ("web/style.css", "text/css"), "/manifest.webmanifest": ("web/manifest.webmanifest", "application/manifest+json"), "/icon.svg": ("web/icon.svg", "image/svg+xml"), "/sw.js": ("web/sw.js", "text/javascript")}
         if path not in assets:
             return self.send_json({"error": "Not found"}, 404)
-        if path in ("/admin-handoff.html", "/admin-handoff.js") and not self.family_authorized():
-            return self.send_json({"error": "Sign in required"}, 401)
         filename, content_type = assets[path]
         content = (ROOT / filename).read_bytes()
         self.send_response(200)
@@ -239,8 +146,6 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if not self.family_authorized():
-            return self.send_json({"error": "Sign in required"}, 401)
         if not self.valid_origin():
             return self.send_json({"error": "Invalid origin"}, 403)
         if self.headers.get("Content-Type", "").split(";", 1)[0].strip() != "application/json":
@@ -254,29 +159,27 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": "Invalid request"}, 400)
         except (ValueError, json.JSONDecodeError):
             return self.send_json({"error": "Invalid JSON"}, 400)
-        if path == "/api/admin/handoff":
-            try:
-                sid = consume_admin_handoff(body.get("ticket"))
-            except HandoffError:
-                return self.send_json({"error": "Invalid administrator handoff"}, 403)
-            return self.send_json({"ok": True}, cookie=(
-                f"family_admin={sid}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=900"))
         if path == "/api/login":
-            supplied = str(body.get("pin", ""))
+            supplied = body.get("pin", "")
             client = self.client_address[0]
             now = time.monotonic()
             attempts = [t for t in LOGIN_ATTEMPTS.get(client, []) if now - t < 300]
             if len(attempts) >= 5:
                 return self.send_json({"error": "Too many attempts; try again later"}, 429)
-            if len(PIN) < 4 or not hmac.compare_digest(supplied.encode(), PIN.encode()):
+            result = SESSIONS.login(supplied)
+            if result is None:
                 attempts.append(now)
                 LOGIN_ATTEMPTS[client] = attempts
                 return self.send_json({"error": "Incorrect PIN"}, 401)
             LOGIN_ATTEMPTS.pop(client, None)
-            sid = secrets.token_urlsafe(32)
-            SESSIONS[sid] = time.time() + SESSION_DAYS * 86400
-            save_sessions()
-            return self.send_json({"ok": True}, cookie=f"session={sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_DAYS * 86400}" + "; Secure")
+            sid, role = result
+            return self.send_json({"ok": True, "role": role}, cookie=(
+                f"session={sid}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age={180 * 86400}"))
+        if path == "/api/logout":
+            if not self.authorized():
+                return self.send_json({"error": "Sign in required"}, 401)
+            SESSIONS.logout(self.session_id())
+            return self.send_json({"ok": True}, cookie="session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0")
         if not self.authorized():
             return self.send_json({"error": "Sign in required"}, 401)
         if path != "/api/control":

@@ -13,9 +13,13 @@ spec.loader.exec_module(server)
 
 class BoundaryTests(unittest.TestCase):
     def test_pin_accepts_four_digits(self):
-        script = (ROOT / "server.py").read_text()
-        self.assertIn("len(PIN) < 4", script)
-        self.assertNotIn("len(PIN) < 6", script)
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            sessions = server.DeviceSessions(Path(directory) / "roles.json", "1234", "987654")
+            family = sessions.login("1234")
+            self.assertIsNotNone(family)
+            self.assertEqual(sessions.role(family[0]), "family")
+            self.assertIsNone(sessions.login("123"))
     def test_climate_on_off_uses_explicit_hvac_mode(self):
         script = (ROOT / "server.py").read_text()
         self.assertIn('service = "set_hvac_mode"', script)
