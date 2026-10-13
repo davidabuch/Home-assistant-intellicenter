@@ -153,6 +153,11 @@ class Handler(BaseHTTPRequestHandler):
         key, operation = body.get("control"), body.get("operation")
         if key not in CONTROLS:
             return self.send_json({"error": "Unknown control"}, 400)
+        # A household PIN proves family access, never administrator authority.
+        # Do not enable this gate in production until a verified Family Home
+        # administrator session handoff is implemented and tested.
+        if key == "pool" and os.environ.get("POOL_ADMIN_GATE_ENABLED") == "1":
+            return self.send_json({"error": "Administrator authorization required"}, 403)
         entity, domain = CONTROLS[key]
         if operation in ("on", "off"):
             if domain == "climate":
