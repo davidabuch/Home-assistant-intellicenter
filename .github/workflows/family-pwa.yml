@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - name: Install authentication dependencies
+        run: pip install -r standalone/requirements.txt
       - name: Compile backend
         run: python -m compileall -q standalone
       - name: Unit tests
