@@ -28,7 +28,7 @@ jobs:
       - name: Install authentication dependencies
         run: pip install -r standalone/requirements.txt Pillow==11.3.0
       - name: Verify approved icon derivatives
-        run: python standalone/scripts/generate_icons.py --check
+        run: python standalone/scripts/generate_icons.py --check && python standalone/scripts/test_icon_artwork.py
       - name: Compile backend
         run: python -m compileall -q standalone
       - name: Unit and cross-repository signer tests

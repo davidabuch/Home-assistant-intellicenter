@@ -131,10 +131,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": "Home Assistant unavailable"}, 503)
         assets = {"/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
                   "/style.css": ("web/style.css", "text/css"), "/manifest.webmanifest": ("web/manifest.webmanifest", "application/manifest+json"), "/sw.js": ("web/sw.js", "text/javascript")}
-        assets.update({f"/icons/approved-v1/icon-{size}.png":
-                       (f"web/icons/approved-v1/icon-{size}.png", "image/png")
+        assets.update({f"/icons/approved-v2/icon-{size}.png":
+                       (f"web/icons/approved-v2/icon-{size}.png", "image/png")
                        for size in (16, 32, 180, 192, 512)})
-        assets["/favicon.ico"] = ("web/icons/approved-v1/favicon.ico", "image/x-icon")
+        assets["/favicon.ico"] = ("web/icons/approved-v2/favicon.ico", "image/x-icon")
+        for alias in ("/apple-touch-icon.png", "/apple-touch-icon-precomposed.png"):
+            assets[alias] = ("web/icons/approved-v2/icon-180.png", "image/png")
         if path not in assets:
             return self.send_json({"error": "Not found"}, 404)
         filename, content_type = assets[path]
