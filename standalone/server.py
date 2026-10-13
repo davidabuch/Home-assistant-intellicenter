@@ -99,6 +99,10 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/health":
             return self.send_json({"ok": True, "configured": bool(PIN and TOKEN)})
+        if path == "/api/permissions":
+            if not self.authorized():
+                return self.send_json({"error": "Sign in required"}, 401)
+            return self.send_json({"pool_control": os.environ.get("POOL_ADMIN_GATE_ENABLED") != "1"})
         if path == "/api/state":
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
