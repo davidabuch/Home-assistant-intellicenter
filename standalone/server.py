@@ -32,6 +32,9 @@ def single_header(handler, name):
     return values[0] if len(values) == 1 else ""
 
 
+PUBLIC_ORIGIN = setting("FAMILY_PUBLIC_ORIGIN").rstrip("/")
+REMOTE_PUBLIC_ORIGIN = setting("FAMILY_REMOTE_PUBLIC_ORIGIN").rstrip("/")
+
 ROOT = Path(__file__).resolve().parent
 HA = os.environ.get("HA_URL", "http://supervisor/core").rstrip("/")
 TOKEN = os.environ.get("SUPERVISOR_TOKEN", "")
