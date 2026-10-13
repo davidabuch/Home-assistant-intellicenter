@@ -102,7 +102,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/permissions":
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
-            return self.send_json({"pool_control": os.environ.get("POOL_ADMIN_GATE_ENABLED") != "1"})
+            return self.send_json({"pool_control": False})
         if path == "/api/state":
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
@@ -158,9 +158,8 @@ class Handler(BaseHTTPRequestHandler):
         if key not in CONTROLS:
             return self.send_json({"error": "Unknown control"}, 400)
         # A household PIN proves family access, never administrator authority.
-        # Do not enable this gate in production until a verified Family Home
-        # administrator session handoff is implemented and tested.
-        if key == "pool" and os.environ.get("POOL_ADMIN_GATE_ENABLED") == "1":
+        # The administrator handoff is not yet implemented: deny by default.
+        if key == "pool":
             return self.send_json({"error": "Administrator authorization required"}, 403)
         entity, domain = CONTROLS[key]
         if operation in ("on", "off"):
