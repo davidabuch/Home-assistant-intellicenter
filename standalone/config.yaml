@@ -15,5 +15,19 @@ webui: "[PROTO:http]://[HOST]:[PORT:8101]"
 watchdog: http://[HOST]:8101/api/health
 options:
   family_pin: ""
+  family_trusted_proxies: ""
+  family_proxy_secret: ""
+  family_public_origin: ""
+  family_admin_handoff_secret: ""
+  cf_access_issuer: ""
+  cf_access_audience: ""
+  cf_access_users: ""
 schema:
   family_pin: password
+  family_trusted_proxies: str
+  family_proxy_secret: password
+  family_public_origin: str
+  family_admin_handoff_secret: password
+  cf_access_issuer: str
+  cf_access_audience: str
+  cf_access_users: str
