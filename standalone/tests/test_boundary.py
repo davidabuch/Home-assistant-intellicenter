@@ -37,7 +37,7 @@ class BoundaryTests(unittest.TestCase):
         self.assertIn("const heating=on&&(solarActive||gasActive)", script)
     def test_pool_admin_gate_is_fail_closed_when_enabled(self):
         script = (ROOT / "server.py").read_text()
-        self.assertIn('if key == "pool" and os.environ.get("POOL_ADMIN_GATE_ENABLED") == "1":', script)
+        self.assertIn('if key == "pool":', script)
         self.assertIn('"Administrator authorization required"', script)
         self.assertIn('if key not in CONTROLS:', script)
     def test_exact_allowlist(self):
