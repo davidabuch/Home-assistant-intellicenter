@@ -13,6 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: davidabuch/Family_Home
+          ref: fcdb069b7c791a1af771991c1c226c0df444cb49
+          path: _family_home
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -20,9 +29,15 @@ jobs:
         run: pip install -r standalone/requirements.txt
       - name: Compile backend
         run: python -m compileall -q standalone
-      - name: Unit tests
+      - name: Unit and cross-repository signer tests
+        env:
+          FAMILY_HOME_SOURCE: ${{ github.workspace }}/_family_home
         run: python -m unittest discover -s standalone/tests -v
       - name: Check frontend JavaScript
-        run: node --check standalone/web/app.js && node --check standalone/web/sw.js
+        run: node --check standalone/web/app.js && node --check standalone/web/sw.js && node --check standalone/web/admin-handoff.js
+      - name: Browser handoff integration tests
+        env:
+          FAMILY_HOME_SOURCE: ${{ github.workspace }}/_family_home
+        run: node --test standalone/tests/js/*.cjs
       - name: Check PWA manifest
         run: python -c "import json; m=json.load(open('standalone/web/manifest.webmanifest')); assert m['display']=='standalone'; assert m['icons']"

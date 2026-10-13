@@ -22,6 +22,9 @@ options:
   cf_access_issuer: ""
   cf_access_audience: ""
   cf_access_users: ""
+  family_home_origin: ""
+  family_remote_public_origin: ""
+  family_remote_home_origin: ""
 schema:
   family_pin: password
   family_trusted_proxies: str
@@ -31,3 +34,6 @@ schema:
   cf_access_issuer: str
   cf_access_audience: str
   cf_access_users: str
+  family_home_origin: str
+  family_remote_public_origin: str
+  family_remote_home_origin: str

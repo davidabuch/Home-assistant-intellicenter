@@ -1,6 +1,6 @@
 # Pool & Spa Family administrator authorization contract (2026-10-12)
 
-Status: engineering design, NOT deployed. Existing PIN-only sessions retain current behavior until a complete, tested rollout.
+Status: implementation candidate, NOT deployed. Authentication backend baseline was merged in PR #77; PIN-free frontend and integrated Family Home issuance continue on a new development PR and Family Home draft PR #10. No runtime or physical acceptance is claimed.
 
 ## Goal
 All signed-in household members may view Pool status and control Spa, Jets/Bubbles, Spillway, and Water Slide. Only a verified Family Home administrator may send Pool ON/OFF or Pool setpoint commands. The Pool tile stays visible but its controls are disabled for family sessions.
@@ -20,3 +20,8 @@ Family Home authenticates named users and persists role-bound sessions; Pool & S
 
 ## Deployment gate
 Do not deploy a frontend-only restriction or remove the existing PIN gate without a complete replacement.
+## Candidate implementation clarification
+
+Verified local proxy access or a verified remote Access JWT establishes family authority; PINs and remembered-device cookies grant no boundary or administrator authority. The frontend removes the PIN screen and keeps all existing tiles/mappings. Family Home resolves its current named administrator session and issues a short-lived ticket only through a CSRF-checked POST. Tickets travel in JSON and origin/source-checked messages, never query strings. Pool exchanges them through `POST /api/admin/handoff`, persists consumed nonces, and grants the separate bounded administrator cookie. Pool ON/OFF/setpoint checks remain server-side.
+
+[Proxy topology and commissioning prerequisites](../standalone/docs/NPM_POOL_FAMILY_CONFIGURATION.md) supersede outdated PIN migration statements above for this candidate. Household network and live NPM host rules remain unverified; no configuration, installation or equipment command is authorized in this task.
