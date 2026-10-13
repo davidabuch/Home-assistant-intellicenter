@@ -27,6 +27,11 @@ def setting(name):
     return value if isinstance(value, str) else ""
 
 
+def single_header(handler, name):
+    values = handler.headers.get_all(name, [])
+    return values[0] if len(values) == 1 else ""
+
+
 ROOT = Path(__file__).resolve().parent
 HA = os.environ.get("HA_URL", "http://supervisor/core").rstrip("/")
 TOKEN = os.environ.get("SUPERVISOR_TOKEN", "")
