@@ -194,8 +194,28 @@ class AuthenticationAcceptance(unittest.TestCase):
         headers = self.login("1234")
         self.assertEqual(self.request("/api/state", headers=headers, method="GET")[0], 200)
         self.assertEqual([call.args[0] for call in self.ha.call_args_list],
-                         ["/api/states/" + entity for key, (entity, _) in server.CONTROLS.items() if key != "light"] +
+                         ["/api/states/" + entity for key, (entity, _) in server.CONTROLS.items() if key not in ("light", "pool_sanitation", "spa_sanitation")] +
                          ["/api/states/" + entity for entity in server.READ_ONLY])
+
+    def test_sanitation_is_admin_only(self):
+        family = self.login("1234")
+        status, state, _ = self.request("/api/state", headers=family, method="GET")
+        self.assertEqual(status, 200)
+        for key in ("pool_sanitation", "spa_sanitation"):
+            self.assertNotIn(key, state)
+            for operation in ("on", "off"):
+                self.ha.reset_mock()
+                self.assertEqual(self.request(body={"control": key, "operation": operation}, headers=family)[0], 403)
+                self.ha.assert_not_called()
+        admin = self.login("9876")
+        status, state, _ = self.request("/api/state", headers=admin, method="GET")
+        self.assertEqual(status, 200)
+        for key in ("pool_sanitation", "spa_sanitation"):
+            self.assertIn(key, state)
+            for operation in ("on", "off"):
+                self.assertEqual(self.request(body={"control": key, "operation": operation}, headers=admin)[0], 200)
+                self.ha.assert_called_with("/api/services/input_boolean/turn_" + operation,
+                                           {"entity_id": server.CONTROLS[key][0]})
 
     def test_ha_unavailable_returns_503(self):
         headers = self.login("1234")
