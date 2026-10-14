@@ -39,3 +39,8 @@ main{max-width:510px;padding:22px 16px 56px}header{margin-bottom:16px}.eyebrow{f
 #controls #sanitation:not([hidden]){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:10px;align-items:stretch}
 #controls #sanitation > .sanitation-tile{grid-column:auto!important;max-width:100%;min-width:0;margin:0!important;display:flex;flex-direction:column}
 #controls #sanitation > .sanitation-tile > button{width:100%;min-width:0}
+
+/* Compact sanitation row, visually separated from Water Slide. */
+#controls #sanitation:not([hidden]){margin-top:12px!important;row-gap:0}
+#controls #sanitation > .sanitation-tile{padding:9px 11px!important;gap:5px!important;border-radius:18px}
+#controls #sanitation > .sanitation-tile > button{min-height:44px;height:44px;padding:7px 9px}
