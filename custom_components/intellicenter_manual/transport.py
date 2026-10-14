@@ -278,7 +278,8 @@ class IntelliCenterManualTransport:
                                  system_mode=props.get(SERVICE_ATTR))
         return adapt_snapshot(SimpleNamespace(
             connected=self.connected, observed_at=self._observed_at,
-            bodies=bodies, circuits=circuits, telemetry=telemetry,
+            bodies=bodies, circuits=circuits,
+            sanitation_circuit_id=self.sanitation_circuit_id(), telemetry=telemetry,
             freeze_active=freeze_active,
         ))
 
