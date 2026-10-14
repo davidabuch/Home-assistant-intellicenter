@@ -60,6 +60,12 @@ class _DiscoveryPoolModel(PoolModel):
             SNAME_ATTR, HEATER_ATTR, HITMP_ATTR, HTMODE_ATTR, LOTMP_ATTR,
             LSTTMP_ATTR, MODE_ATTR, STATUS_ATTR, VOL_ATTR,
         }
+        # Feature circuits (FTRxx) must subscribe to STATUS explicitly.
+        # Discovery by SNAME alone can create an entity with no ON/OFF telemetry.
+        self._attribute_map[CIRCUIT_TYPE] = (
+            self._attribute_map.get(CIRCUIT_TYPE, set()) |
+            {SNAME_ATTR, STATUS_ATTR, SUBTYP_ATTR, PARENT_ATTR}
+        )
         self._attribute_map[SENSE_TYPE] = {SNAME_ATTR, SOURCE_ATTR}
         super().__init__(self._attribute_map)
 
