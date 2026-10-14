@@ -52,6 +52,8 @@ CONTROLS = {
     "spillway": ("switch.spillway", "switch"),
     "slide": ("switch.water_slide", "switch"),
     "light": ("light.pool_light", "light"),
+    "pool_sanitation": ("input_boolean.pool_sanitation_session", "input_boolean"),
+    "spa_sanitation": ("input_boolean.spa_sanitation_session", "input_boolean"),
 }
 READ_ONLY = ["binary_sensor.solar_heating_active", "binary_sensor.gas_heater_active", "sensor.pool_temperature", "sensor.spa_temperature",
              "binary_sensor.1_powerwall_grid_status", "input_boolean.grid_outage_active"]
@@ -70,7 +72,7 @@ def ha_request(path, payload=None):
 def snapshot():
     result = {}
     for key, (entity, _) in CONTROLS.items():
-        if key == "light":
+        if key in ("light", "pool_sanitation", "spa_sanitation"):
             continue  # Light state and effect choices are administrator-only.
         result[key] = ha_request("/api/states/" + entity)
     for entity in READ_ONLY:
@@ -124,6 +126,11 @@ class Handler(BaseHTTPRequestHandler):
                 result["light"] = ha_request("/api/states/" + CONTROLS["light"][0])
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
                 result["light"] = {"state": "unavailable", "attributes": {"effect_list": []}}
+            for key in ("pool_sanitation", "spa_sanitation"):
+                try:
+                    result[key] = ha_request("/api/states/" + CONTROLS[key][0])
+                except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+                    result[key] = {"state": "unavailable"}
         return result
 
     def do_GET(self):
@@ -207,7 +214,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": "Unknown control"}, 400)
         if key not in CONTROLS:
             return self.send_json({"error": "Unknown control"}, 400)
-        if key in ("pool", "light"):
+        if key in ("pool", "light", "pool_sanitation", "spa_sanitation"):
             if not self.admin_authorized():
                 return self.send_json({"error": "Administrator authorization required"}, 403)
         entity, domain = CONTROLS[key]

@@ -41,15 +41,15 @@ class BoundaryTests(unittest.TestCase):
         self.assertIn("const heating=on&&(solarActive||gasActive)", script)
     def test_pool_admin_gate_is_fail_closed_when_enabled(self):
         script = (ROOT / "server.py").read_text()
-        self.assertIn('if key in ("pool", "light"):', script)
+        self.assertIn('if key in ("pool", "light", "pool_sanitation", "spa_sanitation"):', script)
         self.assertIn('"Administrator authorization required"', script)
         self.assertIn('if key not in CONTROLS:', script)
     def test_exact_allowlist(self):
-        self.assertEqual(set(server.CONTROLS), {"pool", "spa", "jets", "spillway", "slide", "light"})
+        self.assertEqual(set(server.CONTROLS), {"pool", "spa", "jets", "spillway", "slide", "light", "pool_sanitation", "spa_sanitation"})
         self.assertNotIn("input_boolean.grid_outage_protection", [v[0] for v in server.CONTROLS.values()])
     def test_admin_light_boundary_and_effect_allowlist(self):
         script = (ROOT / "server.py").read_text()
-        self.assertIn('if key == "light":\n            continue', script)
+        self.assertIn('if key in ("light", "pool_sanitation", "spa_sanitation"):\n            continue', script)
         self.assertIn('if self.admin_authorized():', script)
         self.assertIn('"light_control": self.admin_authorized()', script)
         self.assertIn('if value not in current.get("attributes", {}).get("effect_list", []):', script)
