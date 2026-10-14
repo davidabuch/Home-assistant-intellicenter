@@ -30,3 +30,7 @@ main{max-width:510px;padding:22px 16px 56px}header{margin-bottom:16px}.eyebrow{f
 .light-effects button{min-height:44px;padding:8px;font-size:13px}
 @media(max-width:350px){.water-bodies{gap:6px}.water-bodies>.panel{padding:9px!important}.water-bodies .top h2{font-size:15px}.water-bodies .actions .power-button{width:39px;height:39px;min-height:39px}}
 \n/* Administrator-only sanitation row */\n.sanitation-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}.sanitation-tile{min-width:0;margin:0;padding:12px;display:flex;flex-direction:column;gap:10px;border-radius:16px}.sanitation-tile strong{font-size:13px}.sanitation-tile .feature-toggle{min-height:40px;padding:6px;border-radius:999px;font-size:13px;background:#30445b}.sanitation-tile .feature-toggle.active{background:#26769c;border-color:#69bfe4}\n
+/* Keep both sanitation cards on one row, including narrow phones. */
+#sanitation.sanitation-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;width:100%}
+#sanitation .sanitation-tile{min-width:0;width:auto;margin:0;padding:12px;box-sizing:border-box}
+#sanitation .sanitation-tile strong{overflow-wrap:anywhere}
