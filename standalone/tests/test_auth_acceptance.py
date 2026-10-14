@@ -123,6 +123,7 @@ class AuthenticationAcceptance(unittest.TestCase):
         status, data, _ = self.request("/api/state", headers=family, method="GET")
         self.assertEqual(status, 200)
         self.assertNotIn("light", data)
+        self.ha.reset_mock()
         admin = self.login("9876")
         self.ha.return_value = {"state": "off", "attributes": {"effect_list": ["Blue", "Party Mode"]}}
         status, data, _ = self.request("/api/state", headers=admin, method="GET")
