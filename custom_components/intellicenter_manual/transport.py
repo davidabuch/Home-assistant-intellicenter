@@ -23,6 +23,15 @@ from pyintellicenter.attributes import ALL_ATTRIBUTES_BY_TYPE
 
 BODY_IDS = frozenset({"B1101", "B1202"})
 CIRCUIT_IDS = frozenset({"C0002", "C0003", "C0004", "FTR01"})
+
+
+def _sanitation_candidates(model):
+    """Only a unique native circuit explicitly named Sanitation is eligible."""
+    return [str(obj.objnam) for obj in model.get_by_type(CIRCUIT_TYPE)
+            if str(obj.properties.get(SNAME_ATTR) or "").strip().casefold() == "sanitation"
+            and str(obj.objnam).startswith(("C", "FTR"))
+            and str(obj.objnam) not in CIRCUIT_IDS]
+
 HEATER_IDS = frozenset({"00000", "H0001", "H0002"})
 
 def _native_status(value):
@@ -170,6 +179,10 @@ class IntelliCenterManualTransport:
         if self._on_observation is not None:
             self._on_observation()
 
+    def sanitation_circuit_id(self):
+        candidates = _sanitation_candidates(self.model)
+        return candidates[0] if len(candidates) == 1 else None
+
     def read_observation(self):
         from .observation import adapt_snapshot
         from types import SimpleNamespace
@@ -199,8 +212,9 @@ class IntelliCenterManualTransport:
                     target_temperature=properties.get(LOTMP_ATTR),
                     active_heat_source=properties.get(HEATER_ATTR),
                 ))
+            sanitation_id = self.sanitation_circuit_id()
             for obj in self.model.get_by_type(CIRCUIT_TYPE):
-                if str(obj.objnam) not in CIRCUIT_IDS:
+                if str(obj.objnam) not in CIRCUIT_IDS and str(obj.objnam) != sanitation_id:
                     continue
                 status = obj.properties.get(STATUS_ATTR)
                 active = _native_status(status)
@@ -342,7 +356,7 @@ class IntelliCenterManualTransport:
                 and args[1][SPEED_ATTR].isdigit()
                 and 600 <= int(args[1][SPEED_ATTR]) <= 3450)
             or (method == "set_circuit_state" and len(args) == 2
-                and args[0] in CIRCUIT_IDS and type(args[1]) is bool)
+                and args[0] in (CIRCUIT_IDS | {self.sanitation_circuit_id()}) and type(args[1]) is bool)
             or (method == "set_light_effect" and len(args) == 2
                 and args[0] == "C0002" and args[1] in LIGHT_EFFECTS)
             or (method == "set_chlorinator_output" and len(args) in (2, 3)
@@ -423,7 +437,7 @@ class IntelliCenterManualTransport:
         await self._send("request_changes", body_id, {HEATER_ATTR: heater_id})
 
     async def set_circuit(self, circuit_id: str, active: bool) -> None:
-        if circuit_id not in CIRCUIT_IDS or type(active) is not bool:
+        if circuit_id not in (CIRCUIT_IDS | {self.sanitation_circuit_id()}) or type(active) is not bool:
             raise ValueError("invalid circuit or state")
         await self._send("set_circuit_state", circuit_id, active)
 

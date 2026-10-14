@@ -51,4 +51,21 @@ class ManualAccessory(SwitchEntity):
         await self._runtime.transport.set_circuit(self._circuit_id, False)
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    async_add_entities(ManualAccessory(entry, entry.runtime_data, *row) for row in ACCESSORIES)
+    runtime = entry.runtime_data
+    async_add_entities(ManualAccessory(entry, runtime, *row) for row in ACCESSORIES)
+    discovered = set()
+
+    def discover_sanitation(_observation):
+        circuit_id = runtime.transport.sanitation_circuit_id()
+        if circuit_id is None or circuit_id in discovered:
+            return
+        discovered.add(circuit_id)
+        # Stable native identity; no arbitrary circuit becomes a writable switch.
+        async_add_entities([ManualAccessory(
+            entry, runtime, f"sanitation_{circuit_id.lower()}",
+            "Sanitation", circuit_id,
+        )])
+
+    unsubscribe = runtime.observation_fanout.subscribe(discover_sanitation)
+    entry.async_on_unload(unsubscribe)
+    discover_sanitation(runtime.transport.read_observation())
