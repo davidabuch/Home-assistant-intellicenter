@@ -106,7 +106,7 @@ def adapt_snapshot(snapshot: Any, *, now: datetime | None = None) -> ReadObserva
     circuits = []
     for item in getattr(snapshot, 'circuits', ()):
         native_id = str(getattr(item, 'id', ''))
-        if native_id not in {'C0002', 'C0003', 'C0004', 'FTR01'}:
+        if native_id not in {'C0002', 'C0003', 'C0004', 'FTR01'} and native_id != getattr(snapshot, 'sanitation_circuit_id', None):
             continue
         raw_effect = getattr(item, 'effect_code', None)
         effect_code = raw_effect if isinstance(raw_effect, str) and raw_effect else None
