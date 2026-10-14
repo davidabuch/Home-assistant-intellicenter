@@ -29,7 +29,8 @@ def _sanitation_candidates(model):
     """Only a unique native circuit explicitly named Sanitation is eligible."""
     return [str(obj.objnam) for obj in model.get_by_type(CIRCUIT_TYPE)
             if str(obj.properties.get(SNAME_ATTR) or "").strip().casefold() == "sanitation"
-            and str(obj.objnam).startswith(("C", "FTR"))]
+            and str(obj.objnam).startswith(("C", "FTR"))
+            and str(obj.objnam) not in CIRCUIT_IDS]
 
 HEATER_IDS = frozenset({"00000", "H0001", "H0002"})
 
