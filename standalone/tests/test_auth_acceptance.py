@@ -72,7 +72,7 @@ class AuthenticationAcceptance(unittest.TestCase):
     def test_family_can_use_spa_and_features(self):
         headers = self.login("1234")
         self.assertEqual(self.request("/api/permissions", headers=headers, method="GET")[1],
-                         {"pool_control": False})
+                         {"pool_control": False, "light_control": False})
         for key, entity, domain in [("spa", "climate.hot_tub_thermostat", "climate"),
                                      ("jets", "switch.jets_bubbles", "switch"),
                                      ("spillway", "switch.spillway", "switch"),
@@ -104,7 +104,7 @@ class AuthenticationAcceptance(unittest.TestCase):
     def test_admin_controls_and_permissions(self):
         headers = self.login("9876")
         self.assertEqual(self.request("/api/permissions", headers=headers, method="GET")[1],
-                         {"pool_control": True})
+                         {"pool_control": True, "light_control": True})
         for operation in ("on", "off", "temperature"):
             status, _, _ = self.request(body={"control": "pool", "operation": operation,
                                               "value": 80}, headers=headers)
@@ -114,6 +114,25 @@ class AuthenticationAcceptance(unittest.TestCase):
             payload.update({"temperature": 80} if operation == "temperature"
                            else {"hvac_mode": "heat" if operation == "on" else "off"})
             self.ha.assert_called_with("/api/services/climate/" + service, payload)
+
+    def test_light_effect_permissions_and_validation(self):
+        family = self.login("1234")
+        for operation in ("on", "off", "effect"):
+            self.assertEqual(self.request(body={"control": "light", "operation": operation, "value": "Blue"}, headers=family)[0], 403)
+        self.ha.assert_not_called()
+        status, data, _ = self.request("/api/state", headers=family, method="GET")
+        self.assertEqual(status, 200)
+        self.assertNotIn("light", data)
+        self.ha.reset_mock()
+        admin = self.login("9876")
+        self.ha.return_value = {"state": "off", "attributes": {"effect_list": ["Blue", "Party Mode"]}}
+        status, data, _ = self.request("/api/state", headers=admin, method="GET")
+        self.assertEqual(status, 200)
+        self.assertIn("light", data)
+        self.ha.reset_mock()
+        self.assertEqual(self.request(body={"control": "light", "operation": "effect", "value": "Not Listed"}, headers=admin)[0], 400)
+        self.assertEqual(self.request(body={"control": "light", "operation": "effect", "value": "Blue"}, headers=admin)[0], 200)
+        self.ha.assert_called_with("/api/services/light/turn_on", {"entity_id": "light.pool_light", "effect": "Blue"})
 
     def test_no_role_escalation_via_headers_or_body(self):
         headers = self.login("1234")
@@ -175,7 +194,7 @@ class AuthenticationAcceptance(unittest.TestCase):
         headers = self.login("1234")
         self.assertEqual(self.request("/api/state", headers=headers, method="GET")[0], 200)
         self.assertEqual([call.args[0] for call in self.ha.call_args_list],
-                         ["/api/states/" + entity for entity, _ in server.CONTROLS.values()] +
+                         ["/api/states/" + entity for key, (entity, _) in server.CONTROLS.items() if key != "light"] +
                          ["/api/states/" + entity for entity in server.READ_ONLY])
 
     def test_ha_unavailable_returns_503(self):

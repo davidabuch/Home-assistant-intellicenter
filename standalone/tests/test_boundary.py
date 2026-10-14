@@ -41,12 +41,30 @@ class BoundaryTests(unittest.TestCase):
         self.assertIn("const heating=on&&(solarActive||gasActive)", script)
     def test_pool_admin_gate_is_fail_closed_when_enabled(self):
         script = (ROOT / "server.py").read_text()
-        self.assertIn('if key == "pool":', script)
+        self.assertIn('if key in ("pool", "light"):', script)
         self.assertIn('"Administrator authorization required"', script)
         self.assertIn('if key not in CONTROLS:', script)
     def test_exact_allowlist(self):
-        self.assertEqual(set(server.CONTROLS), {"pool", "spa", "jets", "spillway", "slide"})
+        self.assertEqual(set(server.CONTROLS), {"pool", "spa", "jets", "spillway", "slide", "light"})
         self.assertNotIn("input_boolean.grid_outage_protection", [v[0] for v in server.CONTROLS.values()])
+    def test_admin_light_boundary_and_effect_allowlist(self):
+        script = (ROOT / "server.py").read_text()
+        self.assertIn('if key == "light":\n            continue', script)
+        self.assertIn('if self.admin_authorized():', script)
+        self.assertIn('"light_control": self.admin_authorized()', script)
+        self.assertIn('if value not in current.get("attributes", {}).get("effect_list", []):', script)
+        self.assertIn('{"entity_id": entity, "effect": value}', script)
+
+    def test_compact_layout_and_light_picker(self):
+        html = (ROOT / "web" / "index.html").read_text()
+        css = (ROOT / "web" / "style.css").read_text()
+        js = (ROOT / "web" / "app.js").read_text()
+        self.assertIn('class="water-bodies"', html)
+        self.assertIn('.water-bodies{display:grid', css)
+        self.assertIn('root.hidden=!allowed', js)
+        self.assertIn('send("light","effect",effect)', js)
+        self.assertNotIn("Other Features", html)
+
     def test_no_startup_actuation(self):
         self.assertFalse(any("turn_on" in str(v) for v in server.CONTROLS.values()))
     def test_ha_token_only_backend(self):

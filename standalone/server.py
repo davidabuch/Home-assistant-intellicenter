@@ -51,6 +51,7 @@ CONTROLS = {
     "jets": ("switch.jets_bubbles", "switch"),
     "spillway": ("switch.spillway", "switch"),
     "slide": ("switch.water_slide", "switch"),
+    "light": ("light.pool_light", "light"),
 }
 READ_ONLY = ["binary_sensor.solar_heating_active", "binary_sensor.gas_heater_active", "sensor.pool_temperature", "sensor.spa_temperature",
              "binary_sensor.1_powerwall_grid_status", "input_boolean.grid_outage_active"]
@@ -69,6 +70,8 @@ def ha_request(path, payload=None):
 def snapshot():
     result = {}
     for key, (entity, _) in CONTROLS.items():
+        if key == "light":
+            continue  # Light state and effect choices are administrator-only.
         result[key] = ha_request("/api/states/" + entity)
     for entity in READ_ONLY:
         try:
@@ -114,6 +117,15 @@ class Handler(BaseHTTPRequestHandler):
                    if value.startswith("https://")}
         return origin in allowed and origin == f"https://{host}"
 
+    def admin_snapshot(self):
+        result = snapshot()
+        if self.admin_authorized():
+            try:
+                result["light"] = ha_request("/api/states/" + CONTROLS["light"][0])
+            except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+                result["light"] = {"state": "unavailable", "attributes": {"effect_list": []}}
+        return result
+
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/api/health":
@@ -121,12 +133,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/permissions":
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
-            return self.send_json({"pool_control": self.admin_authorized()})
+            return self.send_json({"pool_control": self.admin_authorized(), "light_control": self.admin_authorized()})
         if path == "/api/state":
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
             try:
-                return self.send_json(snapshot())
+                return self.send_json(self.admin_snapshot())
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError) as exc:
                 return self.send_json({"error": "Home Assistant unavailable"}, 503)
         assets = {"/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
@@ -195,7 +207,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"error": "Unknown control"}, 400)
         if key not in CONTROLS:
             return self.send_json({"error": "Unknown control"}, 400)
-        if key == "pool":
+        if key in ("pool", "light"):
             if not self.admin_authorized():
                 return self.send_json({"error": "Administrator authorization required"}, 403)
         entity, domain = CONTROLS[key]
@@ -206,6 +218,17 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 service = "turn_on" if operation == "on" else "turn_off"
                 payload = {"entity_id": entity}
+        elif operation == "effect" and key == "light":
+            value = body.get("value")
+            if not isinstance(value, str):
+                return self.send_json({"error": "Invalid light effect"}, 400)
+            try:
+                current = ha_request("/api/states/" + entity)
+            except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+                return self.send_json({"error": "Pool light unavailable"}, 503)
+            if value not in current.get("attributes", {}).get("effect_list", []):
+                return self.send_json({"error": "Unsupported light effect"}, 400)
+            service, payload = "turn_on", {"entity_id": entity, "effect": value}
         elif operation == "temperature" and domain == "climate":
             value = body.get("value")
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not 70 <= value <= 104:
