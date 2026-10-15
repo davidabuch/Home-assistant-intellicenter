@@ -253,6 +253,14 @@ class LightweightScheduleTests(unittest.TestCase):
         for e,v in [('binary_sensor.freeze_protection_active','on'),('binary_sensor.freeze_protection_active','unavailable'),('sensor.system_mode','SERVICE'),('switch.water_slide','on'),('switch.spillway','on'),('switch.jets_bubbles','on')]:
             r=Replay(**{e:v,TARGET:'71'})
             self.assertEqual(r.run(),[])
+        for e in [COUNT,GOAL]:
+            r=Replay(**{e:'unavailable',TARGET:'71'})
+            self.assertEqual(r.run('thermal_change','03:00:00'),[])
+        r=Replay(**{POOL:'off',MASTER:'off'})
+        self.assertEqual(r.run(),[])
+        self.assertEqual(r.states[OWNS],'off')
+        r.states[MASTER]='on'
+        self.assertIn((POOL,'heat'),r.run())
 
     def test_authority_revoked_while_queued_or_after_source_selection(self):
         r=Replay(**{POOL:'off',OWNS:'off'})

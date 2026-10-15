@@ -117,6 +117,28 @@
       ]
     },
     {
+      "if": [
+        {
+          "condition": "state",
+          "entity_id": "climate.pool_thermostat",
+          "state": "off"
+        },
+        {
+          "condition": "state",
+          "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+          "state": "on"
+        }
+      ],
+      "then": [
+        {
+          "action": "input_boolean.turn_off",
+          "target": {
+            "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+          }
+        }
+      ]
+    },
+    {
       "condition": "state",
       "entity_id": "input_boolean.pool_automatic_ownership",
       "state": "on"
@@ -200,20 +222,35 @@
               "state": "heat"
             },
             {
-              "condition": "not",
+              "condition": "or",
               "conditions": [
+                {
+                  "condition": "time",
+                  "after": "08:00:00",
+                  "before": "00:00:00"
+                },
                 {
                   "condition": "and",
                   "conditions": [
                     {
-                      "condition": "time",
-                      "after": "00:00:00",
-                      "before": "08:00:00"
+                      "condition": "numeric_state",
+                      "entity_id": "counter.pool_simple_filtration_minutes",
+                      "above": -1
                     },
                     {
                       "condition": "numeric_state",
-                      "entity_id": "counter.pool_simple_filtration_minutes",
-                      "below": "sensor.pool_daily_filtration_target"
+                      "entity_id": "sensor.pool_daily_filtration_target",
+                      "above": 0
+                    },
+                    {
+                      "condition": "not",
+                      "conditions": [
+                        {
+                          "condition": "numeric_state",
+                          "entity_id": "counter.pool_simple_filtration_minutes",
+                          "below": "sensor.pool_daily_filtration_target"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -411,20 +448,35 @@
               ]
             },
             {
-              "condition": "not",
+              "condition": "or",
               "conditions": [
+                {
+                  "condition": "time",
+                  "after": "08:00:00",
+                  "before": "00:00:00"
+                },
                 {
                   "condition": "and",
                   "conditions": [
                     {
-                      "condition": "time",
-                      "after": "00:00:00",
-                      "before": "08:00:00"
+                      "condition": "numeric_state",
+                      "entity_id": "counter.pool_simple_filtration_minutes",
+                      "above": -1
                     },
                     {
                       "condition": "numeric_state",
-                      "entity_id": "counter.pool_simple_filtration_minutes",
-                      "below": "sensor.pool_daily_filtration_target"
+                      "entity_id": "sensor.pool_daily_filtration_target",
+                      "above": 0
+                    },
+                    {
+                      "condition": "not",
+                      "conditions": [
+                        {
+                          "condition": "numeric_state",
+                          "entity_id": "counter.pool_simple_filtration_minutes",
+                          "below": "sensor.pool_daily_filtration_target"
+                        }
+                      ]
                     }
                   ]
                 }
