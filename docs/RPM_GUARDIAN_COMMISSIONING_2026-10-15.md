@@ -238,3 +238,46 @@ Reference: https://developers.home-assistant.io/docs/asyncio_thread_safety/
 Automatic approval review held the new minute reconciliation automation until
 this adapter correction is deployed and verified. Existing controller updates
 and the RPM dashboard were installed with the Guardian write-disarmed.
+
+## Final write-disarmed verification
+
+The callback correction merged in PR #102 as
+795c7a15bf23580552abc7430b7012716b85d6ee; post-merge run 38816103337 passed.
+HA was backed up again, all 20 installed files were compared to the pinned
+commit, and a normal HA deployment restart loaded that exact diagnostic revision.
+Startup authority changes advanced the epoch; log inspection found no new
+Guardian thread-safety error after correction. The earlier 15:13 error remains
+historical evidence. Native communication recovered and Solar remained at 2900.
+
+The reconciliation automation was then created as
+automation.intellicenter_rpm_guardian_reconciliation (HA-generated unique ID
+1792102863523). Its 15:22 trace 5719a88db1bc18dee2b7e0f349375b57 finished
+successfully through the registered coordinator service. Subsequent minute
+reconciliations reported five MATCH results, zero corrections and zero failed
+writes. No persistent SPEED write was made.
+
+HA draft test: Pool draft 2600 -> 2610 persisted a pending edit while applied
+normal policy and native p0102 both remained 2600. Manual Reconcile preserved
+that separation. Draft was restored to 2600, then Apply was exercised with
+unchanged policy; native settings remained unchanged. This is an HA interface
+test, not physical acceptance B or C.
+
+All four deployed controller/reconciliation configs match repository artifacts
+semantically (excluding HA-assigned ID for the new automation). The detector
+hash remains c9d9786ed8e95e57. HA configuration check is valid and explicit
+automation reload succeeded. The 15:22 schedule trace
+bbd69a36e42ed778bb0b3721f8aca91e credited one observed circulation minute,
+passed the new interlock, found actual 76 F below target 90 F, and emitted no
+equipment command. Ledger continued to 349/480 minutes.
+
+PR #103 fixed Markdown comparison row spacing; post-merge run 38816307375
+passed. Visual verification showed all five live MATCH rows and the six draft
+controls. A final blank line separates the outage-policy paragraph from the table.
+The other operations views were preserved.
+
+At this handoff Guardian is DISARMED, running-Pool approval=false, normal-control
+interlock OFF, restoration_pending=false and no pending draft edits. Simulation
+OFF, real grid ON, qualified outage OFF, Pool Solar 2900 RPM, Spa/sanitation/freeze
+OFF and native AUTO. Tests B-F remain NOT RUN pending explicit operator readiness
+and authorization. The previous target-satisfied shutdown/Solar restart physical
+sequence remains operator-reported baseline, not a newly repeated physical test.
