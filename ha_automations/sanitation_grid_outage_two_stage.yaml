@@ -1,0 +1,74 @@
+# Source-controlled Home Assistant automation. Deploy through the HA automation API,
+# NOT by refreshing the Pool & Spa Family App; the app does not own HA automations.
+# Sensor OFF for 2 minutes: early shutdown; grid_outage_active ON (~5 minutes):
+# unconditional second shutdown. Each minute and attempted restart: reconcile.
+# No restoration of sanitation after grid returns.
+id: "1792072800001"
+alias: "Sanitation - Grid Outage Two-Stage Shutdown"
+description: >-
+  Preempt Pool/Spa sanitation 2 minutes after continuous Powerwall grid loss,
+  repeat at qualified grid outage (~5 minutes), and reject/reconcile any
+  sanitation restart during the outage. Never restart sanitation on restoration.
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.1_powerwall_grid_status
+    to: "off"
+    for: "00:02:00"
+    id: early
+  - trigger: state
+    entity_id: input_boolean.grid_outage_active
+    to: "on"
+    id: qualified
+  - trigger: time_pattern
+    minutes: "/1"
+    id: reconcile
+  - trigger: state
+    entity_id:
+      - input_boolean.pool_sanitation_session
+      - input_boolean.spa_sanitation_session
+      - switch.sanitation
+    to: "on"
+    id: attempted_restart
+conditions:
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: input_boolean.grid_outage_active
+        state: "on"
+      - condition: and
+        conditions:
+          - condition: state
+            entity_id: input_boolean.grid_outage_use_real_sensor
+            state: "on"
+          - condition: state
+            entity_id: binary_sensor.1_powerwall_grid_status
+            state: "off"
+            for: "00:02:00"
+  - condition: or
+    conditions:
+      - condition: trigger
+        id:
+          - early
+          - qualified
+      - condition: state
+        entity_id: input_boolean.pool_sanitation_session
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.spa_sanitation_session
+        state: "on"
+      - condition: state
+        entity_id: switch.sanitation
+        state: "on"
+actions:
+  - action: switch.turn_off
+    target:
+      entity_id: switch.sanitation
+  - action: timer.cancel
+    target:
+      entity_id: timer.sanitation_session_limit
+  - action: input_boolean.turn_off
+    target:
+      entity_id:
+        - input_boolean.pool_sanitation_session
+        - input_boolean.spa_sanitation_session
+mode: restart
