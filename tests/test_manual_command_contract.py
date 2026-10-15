@@ -34,10 +34,12 @@ class ManualCommandContractTests(unittest.TestCase):
 
     def test_all_mutators_route_through_guard(self):
         transport = next(node for node in tree("transport.py").body if isinstance(node, ast.ClassDef) and node.name == "IntelliCenterManualTransport")
-        for name in ("set_body_active", "set_pump_rpm", "set_target", "set_heat_source", "set_circuit", "set_light_effect", "set_chlorine"):
+        for name in ("set_body_active", "set_configured_pump_program_rpm", "set_target", "set_heat_source", "set_circuit", "set_light_effect", "set_chlorine"):
             fn = method(transport, name)
             calls = [n for n in ast.walk(fn) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "_send"]
             self.assertEqual(len(calls), 1, name)
+        legacy = method(transport, "set_pump_rpm")
+        self.assertTrue(any(isinstance(n, ast.Raise) for n in ast.walk(legacy)))
         send = method(transport, "_send")
         self.assertIn("if not self._allow_commands", ast.get_source_segment((ROOT / "transport.py").read_text(), send))
 
