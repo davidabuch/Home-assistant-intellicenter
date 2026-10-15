@@ -211,3 +211,30 @@ Status must distinguish CODE TESTED / GATEWAY TESTED / CI GREEN / DEPLOYED /
 HA OBSERVED / PHYSICALLY COMMISSIONED. A disarmed deployment is not an enabled
 outage controller or physical acceptance. Record exact CI/deployed SHA and the
 operator's physical results in the final commissioning ledger.
+
+## Initial HA deployment and adapter correction
+
+PR #101 merged as ea7a29b626fb3706a928f0f475598d67e64b833a, with green
+post-merge CI run 38815109151. The HA-host component was backed up outside
+custom_components, installed from that exact commit and compared byte for byte
+(20 files). HA restart loaded the matching installed_commit diagnostic. Guardian
+reported DISARMED, enabled=false, running_pool_approved=false and no interlock.
+
+Manual read-only Reconcile observed all five expected native settings as MATCH,
+with corrected=0 and failed_writes=0. This satisfies the read-only configuration
+comparison portion of Test A; it does not commission persistent writes or
+running-speed behavior. No simulation or new Pentair SPEED write was initiated.
+
+Startup log inspection exposed an HA adapter defect missed by the pure gateway
+suite: the synchronous authority listener lacked Home Assistant's callback
+decorator, so HA dispatched it in an executor and rejected entity publication.
+The fix marks this nonblocking listener for immediate event-loop execution,
+preserving immediate permit invalidation. Two adapter tests now exercise the
+actual listener registration/invalidation/publication through HA's documented
+callback-versus-executor dispatch contract, including an authority flap and an
+attribute-only update. The complete offline suite now passes 185 tests.
+Reference: https://developers.home-assistant.io/docs/asyncio_thread_safety/
+
+Automatic approval review held the new minute reconciliation automation until
+this adapter correction is deployed and verified. Existing controller updates
+and the RPM dashboard were installed with the Guardian write-disarmed.
