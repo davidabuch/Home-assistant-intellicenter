@@ -6,20 +6,35 @@ A minimal, non-autonomous Home Assistant integration for Pentair IntelliCenter.
 - Manual Pool and Spa thermostat ON/OFF and setpoint control
 - Manual heat-source selection; IntelliChlor output, salt, temperatures, pump telemetry and manual RPM if safely supported
 - Manual Pool Light with existing IntelliBrite effects, Spillway, Jets/Bubbles, Slide and other commissioned accessories
-- Preserve existing `poolos_native_intellicenter_*` entity IDs during cutover; preserve existing automations and lighting behavior
+- Preserve commissioned bridge entity IDs, HomeKit identities, automations and lighting behavior. PoolOS is retired; historical cutover prefixes are not the active control architecture.
 - **No** PoolOS autonomy, TOU, opportunistic heating, filtration engine, arbitration, or background equipment decisions
 - Outage safety and seasonal schedules belong to **separate Home Assistant automations**, not the manual bridge
 - Do not include credentials, addresses, tokens or HA registry backups in this public repository
 
-## Grid outage contract (October 9, 2026)
-- Tesla Powerwall gateway grid-status sensors are independent physical evidence. Either sensor continuously OFF for at least five minutes enters outage mode. Unknown/unavailable is not proof of outage. Both sensors ON stably for two minutes clears the mode.
-- `input_boolean.grid_outage_protection` is ON by default. An operator may turn it OFF during an outage to release native equipment lockouts; this does not turn equipment ON. Operator bypass is latched through restart for the current outage and automatically rearmed when the grid returns.
-- When outage protection is active, grid safety preempts ordinary Pool, Spa, heating, pump, and accessory commands. The native transport refuses noncompliant writes at dispatch, including Spa ON, Slide ON, high RPM, heating, lighting effects, and chlorinator adjustments.
-- Pool circulates ONLY 09:00–17:00 local time at 1500 RPM, Pool heat source OFF. Pool OFF outside this window. Spa OFF; Water Slide, Jets/Bubbles, Spillway, Pool Light OFF. Pool may prime at its native equipment-managed speed before settling.
-- Filtration credit accrues for observed pump-running minutes toward the existing 600-minute 10:00-to-10:00 ledger; 10 AM resets the counter even during an outage. Normal solar/filtration equipment actions are suppressed while outage protection owns equipment.
-- Grid restoration releases outage authority and reevaluates current roof temperature, filtration need, and operator state; never blindly restores old commands or Spa/Slide sessions. Daytime solar reacquisition sets Solar heat source and 2900 RPM when eligible.
-- The HA automation entities are `automation.grid_outage_detection_and_rearm`, `automation.grid_outage_pool_safety_supervisor`, and `automation.grid_outage_preserve_operator_bypass`. The native bridge enforces the hard command lockout.
-- Physical commissioning evidence: simulated daytime entry changed heat source to OFF and verified pump eventually reached 1500 RPM; a conflicting 2900 RPM request was rejected by the native safety gate; bypass allowed the RPM command; clearing the simulated outage restored Solar and 2900 RPM. Nighttime and real-grid transitions remain untested.
+## Current controller and outage status — October 15, 2026
+
+Home Assistant lightweight automations control scheduling and heating preferences
+through the `intellicenter_manual` bridge. PoolOS is retired. The inspected HA
+host has no configured PoolOS entry and no `custom_components/poolos` directory.
+The October 8 cutover documents below are historical evidence.
+
+See [controller repair and retirement audit](docs/LIGHTWEIGHT_CONTROLLER_AUDIT_2026-10-15.md)
+for the target-satisfied shutdown repair, regression coverage, dependency matrix,
+and commissioning limits. The checked-in `ha_automations/*.json` files are HA
+config-API deployment artifacts; installing this integration does not load them.
+
+Outage detection, operator bypass, native command lockouts, Spa/accessory shutdown,
+and sanitation protection remain independent safety mechanisms. The old outage
+supervisor's request to `number.pool_rpm` is rejected by the bridge: live RPM is
+telemetry. It cannot enforce 1500 RPM. The repair artifact removes that rejected
+request without replacing the deferred runtime supervisor. Do not claim low-speed
+outage circulation is commissioned, or change a persistent Pool preset as a throttle.
+The lightweight ledger uses an 08:00-to-08:00 cycle; the duplicate 10 AM reset is
+removed in the repair artifact.
+
+Native programs remain Spa/Pool 2600, Sanitation 3200, Heater 3000, Solar 2900,
+and Grid Outage 1500 RPM. Their explicit writable configured-number entities
+change persistent configuration and are never ordinary-operation speed controls.
 
 ## Cutover gates
 1. Read-only inventory of every existing entity, unique ID, integration owner, and HA consumer.
@@ -29,5 +44,9 @@ A minimal, non-autonomous Home Assistant integration for Pentair IntelliCenter.
 5. Physical commissioning of Pool, Spa, heat source, light effects, sanitation, accessories, interlocks and outage/recovery; stop on unexpected actuation.
 6. Only then uninstall PoolOS. Never enable its autonomy to facilitate migration.
 
-## Current state — October 8, 2026
-The new `intellicenter_manual` integration is installed in Home Assistant and supplies **read-only live observations**, with command delivery disabled. PoolOS remains the sole operational writer and owner of the legacy entity IDs. This is **not** a completed replacement or cutover. See [deployment status](docs/DEPLOYMENT_STATUS.md) and [physical commissioning evidence](docs/PHYSICAL_COMMISSIONING_2026-10-08.md). The commissioning controls were exercised through PoolOS-native entities, not the replacement bridge.
+## Historical cutover evidence
+
+The October 8 read-only deployment and legacy-writer observations describe the
+state at that date, not the current architecture. See
+[historical deployment status](docs/DEPLOYMENT_STATUS.md) and
+[historical physical commissioning evidence](docs/PHYSICAL_COMMISSIONING_2026-10-08.md).

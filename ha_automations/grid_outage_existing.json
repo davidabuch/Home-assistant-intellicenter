@@ -1,0 +1,192 @@
+{
+  "id": "1791567921134",
+  "alias": "Grid Outage - Pool Safety Supervisor",
+  "triggers": [
+    {
+      "trigger": "time_pattern",
+      "minutes": "/1"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.grid_outage_active"
+    },
+    {
+      "trigger": "time",
+      "at": "09:00:00"
+    },
+    {
+      "trigger": "time",
+      "at": "17:00:00"
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "state",
+      "entity_id": "input_boolean.grid_outage_active",
+      "state": "on"
+    },
+    {
+      "condition": "state",
+      "entity_id": "input_boolean.grid_outage_protection",
+      "state": "on"
+    },
+    {
+      "condition": "state",
+      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+      "state": "off"
+    }
+  ],
+  "actions": [
+    {
+      "if": [
+        {
+          "condition": "state",
+          "entity_id": "climate.hot_tub_thermostat",
+          "state": "heat"
+        }
+      ],
+      "then": [
+        {
+          "action": "climate.set_hvac_mode",
+          "target": {
+            "entity_id": "climate.hot_tub_thermostat"
+          },
+          "data": {
+            "hvac_mode": "off"
+          }
+        }
+      ]
+    },
+    {
+      "repeat": {
+        "for_each": [
+          "switch.water_slide",
+          "switch.jets_bubbles",
+          "switch.spillway"
+        ],
+        "sequence": [
+          {
+            "if": [
+              {
+                "condition": "template",
+                "value_template": "{{ is_state(repeat.item, 'on') }}"
+              }
+            ],
+            "then": [
+              {
+                "action": "switch.turn_off",
+                "target": {
+                  "entity_id": "{{ repeat.item }}"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "if": [
+        {
+          "condition": "state",
+          "entity_id": "light.pool_light",
+          "state": "on"
+        }
+      ],
+      "then": [
+        {
+          "action": "light.turn_off",
+          "target": {
+            "entity_id": "light.pool_light"
+          }
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "state",
+              "entity_id": "select.pool_heat_source",
+              "state": "Off"
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "select.select_option",
+          "target": {
+            "entity_id": "select.pool_heat_source"
+          },
+          "data": {
+            "option": "Off"
+          }
+        }
+      ]
+    },
+    {
+      "delay": "00:00:03"
+    },
+    {
+      "choose": [
+        {
+          "conditions": [
+            {
+              "condition": "time",
+              "after": "08:59:59",
+              "before": "17:00:00"
+            }
+          ],
+          "sequence": [
+            {
+              "if": [
+                {
+                  "condition": "state",
+                  "entity_id": "climate.pool_thermostat",
+                  "state": "off"
+                }
+              ],
+              "then": [
+                {
+                  "action": "climate.set_hvac_mode",
+                  "target": {
+                    "entity_id": "climate.pool_thermostat"
+                  },
+                  "data": {
+                    "hvac_mode": "heat"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "default": [
+        {
+          "if": [
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            }
+          ],
+          "then": [
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mode": "restart",
+  "description": "Existing outage safety actions retained: Spa/accessories OFF, Pool heat source OFF, Pool circulation 09:00-17:00. Removed rejected legacy number.pool_rpm request; this supervisor cannot enforce 1500 RPM. Native configured presets are never an outage throttle. Native Grid Outage feature handoff is a separate unimplemented commissioning task. The lightweight schedule alone owns 08:00 filtration rollover and observed-minute credit."
+}

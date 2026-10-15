@@ -1,3 +1,5 @@
+> Historical October 8 snapshot. For current lightweight-controller ownership and PoolOS retirement status, see [October 15 audit](LIGHTWEIGHT_CONTROLLER_AUDIT_2026-10-15.md).
+
 # Deployment status — READ-ONLY LIVE; NOT CUTOVER-READY
 
 Observed in Home Assistant on October 8, 2026 (PDT).

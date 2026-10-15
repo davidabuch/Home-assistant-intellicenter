@@ -1,0 +1,4 @@
+{
+  "intellicenter-native": "config['views'][0]['sections'][0]['cards'][12]['entity'] = 'sensor.pump_rpm'\nconfig['views'][0]['sections'][0]['cards'][12]['name'] = 'Actual Pump RPM'\nconfig['views'][0]['sections'][0]['cards'][12].pop('features', None)\nconfig['views'][1]['sections'][2]['cards'][1]['entity'] = 'sensor.pump_rpm'\nconfig['views'][1]['sections'][2]['cards'][1]['name'] = 'Actual Pump RPM'\nconfig['views'][1]['sections'][2]['cards'][1].pop('features', None)",
+  "intellicenter-operations": "config['views'][1]['sections'][2]['cards'][1]['entity'] = 'sensor.pump_rpm'\nconfig['views'][1]['sections'][2]['cards'][1]['name'] = 'Actual Pump RPM'\nconfig['views'][1]['sections'][2]['cards'][1].pop('features', None)"
+}
