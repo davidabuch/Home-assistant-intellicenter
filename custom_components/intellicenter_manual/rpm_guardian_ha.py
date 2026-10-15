@@ -5,6 +5,7 @@ import math
 from datetime import datetime, timezone
 from time import monotonic
 
+from homeassistant.core import callback
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -128,6 +129,7 @@ class GuardianHA:
         self.transport.set_preset_policy_check(self.core.permitted)
         self.transport.set_control_policy_check(self.core.ordinary_command_allowed)
 
+        @callback
         def authority_changed(event):
             old, new = event.data.get('old_state'), event.data.get('new_state')
             if old is None or new is None or old.state != new.state:
