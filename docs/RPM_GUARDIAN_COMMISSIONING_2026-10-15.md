@@ -281,3 +281,50 @@ OFF, real grid ON, qualified outage OFF, Pool Solar 2900 RPM, Spa/sanitation/fre
 OFF and native AUTO. Tests B-F remain NOT RUN pending explicit operator readiness
 and authorization. The previous target-satisfied shutdown/Solar restart physical
 sequence remains operator-reported baseline, not a newly repeated physical test.
+
+## Supervised physical Tests B–E, later October 15
+
+The operator explicitly authorized B, C, D and E sequentially, was physically
+present, and directed autonomous connected-tool execution. Test F was expressly
+excluded. Fresh baseline: normal real grid, simulation OFF, all five native
+identities/presets correct, Pool Solar 2900 RPM, water 76 F / target 90 F,
+Spa/sanitation/freeze/accessories OFF, AUTO and fresh observations.
+
+Scheduled Guardian requests were paused during manual commissioning; existing
+outage safety stayed active. Pool flow floor was temporarily changed to 2500
+through the commissioning service for the idle tests, then restored to 2600.
+
+| Test | Result and native evidence |
+|---|---|
+| B | PASS: target-satisfied shutdown to 0 RPM, guarded Apply p0102 2500 verified 15:39:32, restore 2600 verified 15:39:49; pump stayed OFF |
+| C | PASS: guarded idle Apply 2500, legitimate Solar restart/3450 priming, Apply normal policy 2600 while running correctly deferred; Solar settled 2900; target-satisfied OFF/0 followed by manual Reconcile restored 2600 at 15:41:49 |
+| D | PASS: simulation ON 15:42:30.573; qualified latch ON 15:47:30.576; no early preset writes; heating OFF, Pool retained; cooldown/settling deferred lowering; native p0102 1500 verified 15:52:44.969, physical telemetry 1500 at 15:53:00.958, runtime VERIFIED at 15:56:23 |
+| E | PASS: simulation OFF 15:56:29.875; latch cleared 15:58:29.879; manual supervised reconciliation restored p0102 2600 before journal/interlock clearing; current-demand event resumed Solar at 15:58:44, physical telemetry 2900 at 15:59:00.960 |
+
+C's mismatch was applied-policy/native divergence created through guarded Apply
+and its running deferral, rather than a separate external native writer.
+Heating preference was briefly paused to isolate the manual C correction, then
+restored before D. No native program other than p0102 was written. Total six
+verified SPEED writes: B two, C two, D one, E one; failed writes zero.
+
+The running outage SPEED change took effect without Pool circuit reactivation:
+physical telemetry reached 1500 about 16 seconds after configured verification.
+Pool stayed ON throughout D/E. No renewed 3450-RPM priming was observed for the
+running preset change. Power fell from about 1095 W at 2600 to 213–215 W at 1500.
+This proves behavior for this supervised trial, not universal timing or
+manufacturer-certified flow suitability. Pentair restart persistence and
+interrupted physical recovery remain untested; Test F was not performed.
+
+All five native presets restored to Pool/Spa 2600, Sanitation 3200, Heater 3000,
+Solar 2900; target 90 restored; real-grid mode ON, simulation and qualified outage
+OFF; ordinary automations restored; recovery session/intent cleared only after
+verified restoration. The RPM write gate was explicitly disabled after E.
+
+Final cleanup identified two small defects: explicit running-write approval=false
+did not revoke its prior true value, although enabled=false correctly blocked all
+writes; and a resolved cooldown warning remained displayed after verified outage
+operation. Two tests reproduce both failures on the prior build. Revocation now
+persists false and reenabling alone cannot restore it; successful, non-conflicting
+outage reconciliation clears the resolved warning. All 187 tests pass. These
+changes affect authorization revocation/status cleanup and do not repeat a
+physical RPM write or perform restart/fault-injection acceptance Test F.

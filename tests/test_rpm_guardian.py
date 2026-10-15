@@ -285,5 +285,29 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.writes); self.assertTrue(r['restoration_pending'])
         await self.run_policy(); self.assertEqual(self.actual(),1500)
 
+    async def test_59_disarm_revokes_running_approval_and_persists_revocation(self):
+        self.assertTrue(self.g.data['running_pool_approved'])
+        await self.g.enable(False, running_pool_approved=False)
+        self.assertFalse(self.g.data['enabled'])
+        self.assertFalse(self.g.data['running_pool_approved'])
+        self.assertFalse(self.saved[-1]['running_pool_approved'])
+        await self.g.enable(True)  # Reenabling alone is not renewed running approval.
+        self.outage()
+        await self.run_policy()
+        self.assertFalse(self.writes)
+        self.assertEqual(self.actual(),2600)
+
+    async def test_60_verified_outage_clears_resolved_cooldown_warning(self):
+        self.outage(settled=False)
+        result=await self.run_policy()
+        self.assertIsNotNone(result['failure'])
+        self.assertFalse(self.writes)
+        self.change(settled=True)
+        result=await self.run_policy()
+        self.assertEqual(self.actual(),1500)
+        self.assertEqual(result['state'],'OUTAGE_ACTIVE')
+        self.assertEqual(result['runtime_status'],'SETTLING')
+        self.assertIsNone(result['failure'])
+
 
 if __name__=='__main__': unittest.main()

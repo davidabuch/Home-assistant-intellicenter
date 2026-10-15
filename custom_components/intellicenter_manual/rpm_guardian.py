@@ -179,8 +179,7 @@ class RPMGuardian:
             if not self.loaded:
                 raise RuntimeError("Valid durable state is required")
             self.data["enabled"] = bool(enabled)
-            if running_pool_approved:
-                self.data["running_pool_approved"] = True
+            self.data["running_pool_approved"] = bool(running_pool_approved)
             await self.persist()
 
     async def reset(self):
@@ -367,7 +366,10 @@ class RPMGuardian:
                             await self._change(key, desired[key], "normal")
                 if all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values()):
                     self.data["last_success"] = timestamp()
-                    if self.data['state'] == 'NORMAL': self.data['failure'] = None
+                    if (self.data['state'] == 'NORMAL' or
+                            (self.data['state'] == 'OUTAGE_ACTIVE' and
+                             self.data['runtime_status'] in {'SETTLING', 'VERIFIED'})):
+                        self.data['failure'] = None
                 await self.persist()
             except Exception as exc:
                 self.data["failure"] = str(exc)
