@@ -86,5 +86,104 @@ class NativeTelemetry(SensorEntity):
         return self.native_value is not None
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    async_add_entities(NativeTelemetry(entry, entry.runtime_data, *item)
+    runtime = entry.runtime_data
+    async_add_entities(NativeTelemetry(entry, runtime, *item)
                        for item in MEASUREMENTS)
+
+    # Discover by stable native identity, never by current active pump speed.
+    # Refresh discovery on each native observation to handle late model arrival.
+    created = set()
+    def discover(_observation):
+        if not runtime.transport.connected:
+            return
+        programs = list(runtime.transport.model.get_by_type(PMPCIRC_TYPE))
+        new_ids = sorted({str(obj.objnam) for obj in programs} - created)
+        if not new_ids:
+            return
+        created.update(new_ids)
+        async_add_entities(NativePumpCircuitSpeed(entry, runtime, object_id)
+                           for object_id in new_ids)
+    unsubscribe = runtime.observation_fanout.subscribe(discover)
+    entry.async_on_unload(unsubscribe)
+
+
+# Native pump-program settings are persistent IntelliCenter configuration, not
+# instantaneous motor RPM. Keep these entities read-only during commissioning.
+from pyintellicenter import (
+    PMPCIRC_TYPE, PUMP_TYPE, CIRCUIT_TYPE, PARENT_ATTR, CIRCUIT_ATTR,
+    SELECT_ATTR, SPEED_ATTR, GPM_ATTR,
+)
+
+class NativePumpCircuitSpeed(SensorEntity):
+    """One read-only Pentair PMPCIRC configuration assignment."""
+
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+
+    def __init__(self, entry, runtime, object_id):
+        self._runtime = runtime
+        self._object_id = object_id
+        self._unsubscribe = None
+        self._attr_unique_id = f"{entry.entry_id}_native_pump_program_{object_id}"
+        self._attr_name = f"IntelliCenter Pump Program {object_id}"
+        self._attr_native_unit_of_measurement = "rpm"
+
+    def _program(self):
+        if not self._runtime.transport.connected:
+            return None
+        matches = [obj for obj in self._runtime.transport.model.get_by_type(PMPCIRC_TYPE)
+                   if str(obj.objnam) == self._object_id]
+        return matches[0] if len(matches) == 1 else None
+
+    @property
+    def native_value(self):
+        obj = self._program()
+        if obj is None or str(obj.properties.get(SELECT_ATTR) or "").upper() != "RPM":
+            return None
+        try:
+            value = float(obj.properties.get(SPEED_ATTR))
+            return int(value) if value.is_integer() and value > 0 else None
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+    @property
+    def available(self):
+        return self.native_value is not None
+
+    @property
+    def extra_state_attributes(self):
+        obj = self._program()
+        if obj is None:
+            return {}
+        model = self._runtime.transport.model
+        circuit_id = str(obj.properties.get(CIRCUIT_ATTR) or "")
+        parent_id = str(obj.properties.get(PARENT_ATTR) or "")
+        circuit = model[circuit_id] if circuit_id else None
+        pump = model[parent_id] if parent_id else None
+        return {
+            "native_pmpcirc_id": self._object_id,
+            "circuit_id": circuit_id,
+            "circuit_name": None if circuit is None else circuit.sname,
+            "pump_id": parent_id,
+            "pump_name": None if pump is None else pump.sname,
+            "control_mode": obj.properties.get(SELECT_ATTR),
+            "configured_rpm": obj.properties.get(SPEED_ATTR),
+            "configured_gpm": obj.properties.get(GPM_ATTR),
+            "source": "intellicenter_native_configuration",
+            "writable": False,
+        }
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._unsubscribe = self._runtime.observation_fanout.subscribe(self._updated)
+
+    async def async_will_remove_from_hass(self):
+        if self._unsubscribe is not None:
+            self._unsubscribe()
+            self._unsubscribe = None
+        await super().async_will_remove_from_hass()
+
+    def _updated(self, observation):
+        if self.hass is not None:
+            self.async_write_ha_state()
+
