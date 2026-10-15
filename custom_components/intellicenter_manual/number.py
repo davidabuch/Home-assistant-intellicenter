@@ -145,4 +145,4 @@ async def async_setup_entry(hass, entry, async_add_entities):
                        [ConfiguredPumpProgramRPM(entry, entry.runtime_data, object_id, label)
                         for object_id, label in (("p0101", "Spa"), ("p0102", "Pool"),
                                                  ("p0103", "Sanitation"), ("p0104", "Heater"),
-                                                 ("p0105", "Solar"))])
+                                                 ("p0105", "Solar"), ("p0106", "Grid Outage"))])
