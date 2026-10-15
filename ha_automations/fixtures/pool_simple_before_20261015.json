@@ -1,0 +1,862 @@
+{
+  "id": "1791536051066",
+  "alias": "Pool Simple Solar and Filtration - Commissioning",
+  "description": "COMMISSIONING: roof >=90F solar eligibility (5-minute solar-up trigger); 600 verified pump-running minutes per 08:00-08:00 accounting cycle. Midnight catchup can run as late as 8AM to finish 10h. Spa priority; only stop Pool when schedule owns it. PoolOS autonomy stays disabled. Reset at 8AM, re-evaluate roof. Pool running during solar-eligible conditions is re-adopted on the next minute tick, including external restart or return from Spa, so solar-down can stop it. MASTER AUTHORITY: Pool Automatic Ownership ON means schedule controls equipment regardless of external button use; OFF means no schedule equipment commands. Independent safety protections remain active. Midnight reconciles externally started pool sessions: adopt running Pool when filtration debt remains, start Pool only if off, and stop running Pool when quota already met. Maintenance mode blocks all actions. Heating preference: solar-start only for Solar/Eco Heat; solar-down only for Solar. Heating source selected by separate preference controller. Quota shutdown on tick is suppressed when solar roof >=90F so daytime solar heating continues after filtration goal. Dynamic filtration target based on pool water: <=70F 360min; <=80F 480min; <=85F 540min; <=90F 600min; >90F 720min; invalid 600min. No equipment sequences changed.",
+  "triggers": [
+    {
+      "trigger": "numeric_state",
+      "entity_id": "sensor.solar_temperature",
+      "above": 89.999,
+      "for": "00:05:00",
+      "id": "solar_up"
+    },
+    {
+      "trigger": "numeric_state",
+      "entity_id": "sensor.solar_temperature",
+      "below": 90,
+      "for": "00:05:00",
+      "id": "solar_down"
+    },
+    {
+      "trigger": "time",
+      "at": "00:00:00",
+      "id": "midnight"
+    },
+    {
+      "trigger": "time",
+      "at": "08:00:00",
+      "id": "reset"
+    },
+    {
+      "trigger": "time_pattern",
+      "minutes": "/1",
+      "id": "tick"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "climate.pool_thermostat",
+      "to": "off",
+      "id": "pool_off"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.grid_outage_active",
+      "from": "on",
+      "to": "off",
+      "id": "grid_restored"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.pool_automatic_ownership",
+      "from": "off",
+      "to": "on",
+      "id": "ownership_resumed"
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "state",
+      "entity_id": "input_boolean.pool_automatic_ownership",
+      "state": "on"
+    }
+  ],
+  "actions": [
+    {
+      "choose": [
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "ownership_resumed"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.solar_temperature",
+              "below": 90
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "pool_off"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "reset"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "choose": [
+                {
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "climate.hot_tub_thermostat",
+                      "state": "off"
+                    },
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.solar_temperature",
+                      "below": 90
+                    }
+                  ],
+                  "sequence": [
+                    {
+                      "action": "climate.set_hvac_mode",
+                      "target": {
+                        "entity_id": "climate.pool_thermostat"
+                      },
+                      "data": {
+                        "hvac_mode": "off"
+                      }
+                    },
+                    {
+                      "action": "input_boolean.turn_off",
+                      "target": {
+                        "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "action": "counter.reset",
+              "target": {
+                "entity_id": "counter.pool_simple_filtration_minutes"
+              }
+            },
+            {
+              "choose": [
+                {
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "climate.hot_tub_thermostat",
+                      "state": "off"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "climate.pool_thermostat",
+                      "state": "off"
+                    },
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.solar_temperature",
+                      "above": 89.999
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_select.pool_heating_preference",
+                      "state": [
+                        "Solar",
+                        "Eco Heat"
+                      ]
+                    }
+                  ],
+                  "sequence": [
+                    {
+                      "action": "input_boolean.turn_on",
+                      "target": {
+                        "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+                      }
+                    },
+                    {
+                      "action": "climate.set_hvac_mode",
+                      "target": {
+                        "entity_id": "climate.pool_thermostat"
+                      },
+                      "data": {
+                        "hvac_mode": "heat"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "tick"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pump_rpm",
+              "above": 500
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ states('counter.pool_simple_filtration_minutes') | int(0) < states('sensor.pool_daily_filtration_target') | int(600) }}"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "counter.increment",
+              "target": {
+                "entity_id": "counter.pool_simple_filtration_minutes"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "solar_up"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "time",
+              "after": "06:00:00",
+              "before": "23:59:59"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_select.pool_heating_preference",
+              "state": [
+                "Solar",
+                "Eco Heat"
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "action": "input_boolean.turn_on",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            },
+            {
+              "action": "select.select_option",
+              "target": {
+                "entity_id": "select.pool_heat_source"
+              },
+              "data": {
+                "option": "Solar"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "heat"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "tick"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.solar_temperature",
+              "above": 89.999
+            },
+            {
+              "condition": "time",
+              "after": "08:00:00",
+              "before": "23:59:59"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_select.pool_heating_preference",
+              "state": [
+                "Solar",
+                "Eco Heat"
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "action": "input_boolean.turn_on",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "tick"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.solar_temperature",
+              "above": 89.999
+            },
+            {
+              "condition": "time",
+              "after": "08:00:00",
+              "before": "23:59:59"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+              "state": "off"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_select.pool_heating_preference",
+              "state": [
+                "Solar",
+                "Eco Heat"
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "action": "input_boolean.turn_on",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            },
+            {
+              "action": "select.select_option",
+              "target": {
+                "entity_id": "select.pool_heat_source"
+              },
+              "data": {
+                "option": "Solar"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "heat"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "solar_down"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+              "state": "on"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "time",
+              "after": "08:00:00",
+              "before": "23:59:59"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_select.pool_heating_preference",
+              "state": "Solar"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "midnight"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ states('counter.pool_simple_filtration_minutes') | int(0) < states('sensor.pool_daily_filtration_target') | int(600) }}"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "action": "input_boolean.turn_on",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            },
+            {
+              "choose": [
+                {
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "climate.pool_thermostat",
+                      "state": "off"
+                    }
+                  ],
+                  "sequence": [
+                    {
+                      "action": "climate.set_hvac_mode",
+                      "target": {
+                        "entity_id": "climate.pool_thermostat"
+                      },
+                      "data": {
+                        "hvac_mode": "heat"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "midnight"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ states('counter.pool_simple_filtration_minutes') | int(0) >= states('sensor.pool_daily_filtration_target') | int(600) }}"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "tick"
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ states('counter.pool_simple_filtration_minutes') | int(0) >= states('sensor.pool_daily_filtration_target') | int(600) }}"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+              "state": "on"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.solar_temperature",
+              "below": 90
+            }
+          ],
+          "sequence": [
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "grid_restored"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.solar_temperature",
+              "above": 89.999
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_select.pool_heating_preference",
+              "state": [
+                "Solar",
+                "Eco Heat"
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "action": "input_boolean.turn_on",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "heat"
+              }
+            },
+            {
+              "delay": "00:00:05"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mode": "queued",
+  "max": 10
+}
