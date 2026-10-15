@@ -135,6 +135,8 @@ class ConfiguredPumpProgramRPM(NumberEntity):
         return self._runtime.transport.connected and self.native_value is not None
 
     async def async_set_native_value(self, value):
+        if getattr(self._runtime, 'guardian', None) is not None:
+            raise RuntimeError('Native configured RPM is a readback; edit Desired RPM and press Apply Configuration Changes')
         await self._runtime.transport.set_configured_pump_program_rpm(self._object_id, value)
 
 
@@ -145,4 +147,42 @@ async def async_setup_entry(hass, entry, async_add_entities):
                        [ConfiguredPumpProgramRPM(entry, entry.runtime_data, object_id, label)
                         for object_id, label in (("p0101", "Spa"), ("p0102", "Pool"),
                                                  ("p0103", "Sanitation"), ("p0104", "Heater"),
-                                                 ("p0105", "Solar"), ("p0106", "Grid Outage"))])
+                                                 ("p0105", "Solar"))])
+    from .rpm_guardian import DEFAULTS
+    async_add_entities(DesiredRPM(entry, key) for key in DEFAULTS)
+
+
+class DesiredRPM(NumberEntity):
+    _attr_native_min_value = 600
+    _attr_native_max_value = 3450
+    _attr_native_step = 10
+    _attr_native_unit_of_measurement = "rpm"
+    _attr_should_poll = False
+
+    def __init__(self, entry, key):
+        self._guardian = entry.runtime_data.guardian
+        self._key = key
+        self._attr_name = f"IntelliCenter Desired {key.replace('_', ' ').title()} RPM"
+        self._attr_unique_id = f"{entry.entry_id}_rpm_guardian_desired_{key}"
+        self._unsubscribe = None
+
+    @property
+    def native_value(self):
+        return self._guardian.core.data['draft'][self._key]
+
+    @property
+    def extra_state_attributes(self):
+        return {'applied_policy_rpm': self._guardian.core.data['applied'][self._key],
+                'approved_minimum_rpm': self._guardian.core.data['floors'][self._key],
+                'pending_apply': self.native_value != self._guardian.core.data['applied'][self._key]}
+
+    async def async_set_native_value(self, value):
+        await self._guardian.core.edit(self._key, value)
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._unsubscribe = self._guardian.subscribe(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self):
+        if self._unsubscribe: self._unsubscribe()
+        await super().async_will_remove_from_hass()

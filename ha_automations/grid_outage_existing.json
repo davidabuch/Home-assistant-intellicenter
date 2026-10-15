@@ -1,6 +1,7 @@
 {
   "id": "1791567921134",
   "alias": "Grid Outage - Pool Safety Supervisor",
+  "description": "Qualified-outage safety: retain Spa/accessory/light shutdown and heating OFF, then request the single RPM Guardian. No Pool ON/OFF command, legacy runtime RPM setter or removed Grid Outage feature. Native priming/freeze/flow authority preempts speed enforcement. The existing detector retains five-minute qualification and two-minute restoration.",
   "triggers": [
     {
       "trigger": "time_pattern",
@@ -127,66 +128,32 @@
       ]
     },
     {
-      "delay": "00:00:03"
-    },
-    {
-      "choose": [
+      "if": [
         {
-          "conditions": [
-            {
-              "condition": "time",
-              "after": "08:59:59",
-              "before": "17:00:00"
-            }
-          ],
-          "sequence": [
-            {
-              "if": [
-                {
-                  "condition": "state",
-                  "entity_id": "climate.pool_thermostat",
-                  "state": "off"
-                }
-              ],
-              "then": [
-                {
-                  "action": "climate.set_hvac_mode",
-                  "target": {
-                    "entity_id": "climate.pool_thermostat"
-                  },
-                  "data": {
-                    "hvac_mode": "heat"
-                  }
-                }
-              ]
-            }
-          ]
+          "condition": "state",
+          "entity_id": "climate.hot_tub_thermostat",
+          "state": "off"
         }
       ],
-      "default": [
+      "then": [
         {
-          "if": [
-            {
-              "condition": "state",
-              "entity_id": "climate.pool_thermostat",
-              "state": "heat"
-            }
-          ],
-          "then": [
-            {
-              "action": "climate.set_hvac_mode",
-              "target": {
-                "entity_id": "climate.pool_thermostat"
-              },
-              "data": {
-                "hvac_mode": "off"
-              }
-            }
-          ]
+          "action": "select.select_option",
+          "target": {
+            "entity_id": "select.hot_tub_heat_source"
+          },
+          "data": {
+            "option": "Off"
+          }
         }
       ]
+    },
+    {
+      "action": "intellicenter_manual.reconcile_pump_speeds",
+      "data": {
+        "entry_id": "01M4F1DFGA4AH4F9E9M7MJCR5Q",
+        "reason": "qualified_outage_safety"
+      }
     }
   ],
-  "mode": "restart",
-  "description": "Existing outage safety actions retained: Spa/accessories OFF, Pool heat source OFF, Pool circulation 09:00-17:00. Removed rejected legacy number.pool_rpm request; this supervisor cannot enforce 1500 RPM. Native configured presets are never an outage throttle. Native Grid Outage feature handoff is a separate unimplemented commissioning task. The lightweight schedule alone owns 08:00 filtration rollover and observed-minute credit."
+  "mode": "restart"
 }

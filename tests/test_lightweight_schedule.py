@@ -40,6 +40,7 @@ class Replay:
             'switch.jets_bubbles':'off', 'binary_sensor.freeze_protection_active':'off',
             'sensor.system_mode':'AUTO', 'input_select.pool_heating_preference':'Solar',
             'select.pool_heat_source':'Solar',
+            'binary_sensor.rpm_guardian_blocks_normal_control':'off',
         }
         self.states.update(changes)
         self.commands = []
@@ -297,6 +298,11 @@ class LightweightScheduleTests(unittest.TestCase):
         self.assertNotIn('number.pool_rpm',json.dumps(grid['actions']))
         self.assertIn('climate.hot_tub_thermostat',json.dumps(grid['actions']))
         self.assertIn('select.pool_heat_source',json.dumps(grid['actions']))
+
+    def test_guardian_restoration_blocks_equipment_not_ledger(self):
+        r=Replay(**{'binary_sensor.rpm_guardian_blocks_normal_control':'on',TARGET:'71'})
+        self.assertEqual(r.run(),[])
+        self.assertEqual(r.states[COUNT],'197')
 
 
 if __name__ == '__main__': unittest.main()

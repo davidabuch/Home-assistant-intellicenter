@@ -45,6 +45,9 @@ class ManualHeatSource(SelectEntity):
     async def async_select_option(self, option):
         if option not in HEAT_SOURCES:
             raise ValueError("Unsupported heat source")
+        guardian = getattr(self._runtime, 'guardian', None)
+        if guardian is not None and option in {'Gas', 'Solar'}:
+            await guardian.preflight('heater' if option == 'Gas' else 'solar')
         await self._runtime.transport.set_heat_source(self._body_id, HEAT_SOURCES[option])
 
 async def async_setup_entry(hass, entry, async_add_entities):

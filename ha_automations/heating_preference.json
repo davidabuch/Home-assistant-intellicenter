@@ -25,6 +25,42 @@
       "trigger": "state",
       "entity_id": "climate.hot_tub_thermostat",
       "to": "heat"
+    },
+    {
+      "trigger": "event",
+      "event_type": "intellicenter_rpm_guardian_restored"
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "not",
+      "conditions": [
+        {
+          "condition": "and",
+          "conditions": [
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.grid_outage_active",
+              "state": "on"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.grid_outage_protection",
+              "state": "on"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+              "state": "off"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "condition": "state",
+      "entity_id": "binary_sensor.rpm_guardian_blocks_normal_control",
+      "state": "off"
     }
   ],
   "actions": [
@@ -319,32 +355,5 @@
       ]
     }
   ],
-  "mode": "restart",
-  "conditions": [
-    {
-      "condition": "not",
-      "conditions": [
-        {
-          "condition": "and",
-          "conditions": [
-            {
-              "condition": "state",
-              "entity_id": "input_boolean.grid_outage_active",
-              "state": "on"
-            },
-            {
-              "condition": "state",
-              "entity_id": "input_boolean.grid_outage_protection",
-              "state": "on"
-            },
-            {
-              "condition": "state",
-              "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
-              "state": "off"
-            }
-          ]
-        }
-      ]
-    }
-  ]
+  "mode": "restart"
 }

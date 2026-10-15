@@ -46,3 +46,56 @@ disarm_manual_thermostats:
       required: true
       selector:
         text:
+
+apply_rpm_configuration:
+  name: Apply Configuration Changes
+  description: Validate and commit draft RPM policy, reconcile permitted differences, and verify native readbacks. No equipment ON/OFF commands.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+
+reconcile_pump_speeds:
+  name: Reconcile Pump Speeds
+  description: Read, compare, correct permitted drift through the single writer, and verify. Preserves outage and restoration authority.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+    reason:
+      selector:
+        text:
+
+configure_rpm_guardian:
+  name: Configure RPM Guardian commissioning gate
+  description: Explicit supervised commissioning authorization. Deployments start write-disarmed. Flow floors are conservative commissioning constraints, not manufacturer minimum-flow claims.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+    confirm:
+      required: true
+      description: Enter AUTHORIZE_RPM_GUARDIAN_COMMISSIONING only for an authorized supervised sequence.
+      selector:
+        text:
+    enabled:
+      required: true
+      selector:
+        boolean:
+    approve_running_pool_write:
+      description: Explicit operator approval to test and subsequently use the running-Pool preset change under guarded conditions.
+      selector:
+        boolean:
+    settling_seconds:
+      selector:
+        number:
+          min: 180
+          max: 900
+          unit_of_measurement: s
+    minimums:
+      description: Approved minimum RPM per policy key after equipment-flow review. Omitted floors remain unchanged.
+      selector:
+        object:

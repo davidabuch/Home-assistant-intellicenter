@@ -75,3 +75,26 @@ class NativeStatus(BinarySensorEntity):
 async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(NativeStatus(entry, entry.runtime_data, *description)
                        for description in DESCRIPTIONS)
+    async_add_entities([GuardianInterlock(entry)])
+
+
+class GuardianInterlock(BinarySensorEntity):
+    _attr_name = "RPM Guardian Blocks Normal Control"
+    _attr_should_poll = False
+
+    def __init__(self, entry):
+        self._guardian = entry.runtime_data.guardian
+        self._attr_unique_id = f"{entry.entry_id}_rpm_guardian_normal_interlock"
+        self._unsubscribe = None
+
+    @property
+    def is_on(self):
+        return self._guardian.core.blocks_normal
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._unsubscribe = self._guardian.subscribe(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self):
+        if self._unsubscribe: self._unsubscribe()
+        await super().async_will_remove_from_hass()
