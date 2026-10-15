@@ -22,13 +22,14 @@ from .observation_coordinator import ObservationFanout
 DIAGNOSTIC_SERVICE = "commission_abort_own_tcp"
 DOMAIN = "intellicenter_manual"
 
-PLATFORMS = ["climate", "binary_sensor", "sensor", "switch", "light", "number", "select"]
+PLATFORMS = ["climate", "binary_sensor", "sensor", "switch", "light", "number", "select", "button"]
 
 
 @dataclass
 class Runtime:
     transport: IntelliCenterManualTransport
     observation_fanout: ObservationFanout
+    guardian: object = None
 
     def __getattr__(self, name):
         # Climate platform receives runtime_data and calls transport methods.
@@ -107,7 +108,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 return changes[STATUS_ATTR] == STATUS_OFF
             if obj == "B1101" and set(changes) == {STATUS_ATTR}:
                 return changes[STATUS_ATTR] == STATUS_OFF or (within_window and changes[STATUS_ATTR] == STATUS_ON)
-            # Persistent PMPCIRC preset writes are never an outage throttle.
+            # Persistent PMPCIRC preset writes are never an outage throttle
+            # through this default gate. A separate dispatch-locked Guardian
+            # permit authorizes only the explicitly commissioned Pool exception.
             if set(changes) == {SPEED_ATTR}:
                 return False
         if method == "set_circuit_state" and len(args) == 2:
@@ -118,6 +121,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     fanout = ObservationFanout(transport, asyncio.get_running_loop())
     runtime = Runtime(transport=transport, observation_fanout=fanout)
+    from .rpm_guardian_ha import GuardianHA
+    runtime.guardian = GuardianHA(hass, entry, transport)
+    await runtime.guardian.setup()
     entry.runtime_data = runtime
     fanout.start()
     try:

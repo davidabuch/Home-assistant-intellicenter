@@ -1,0 +1,66 @@
+{
+  "id": "intellicenter_rpm_guardian_reconciliation",
+  "alias": "IntelliCenter RPM Guardian - Reconciliation",
+  "description": "Request-driven single-writer policy. Desired edits are drafts until Apply. HA-start initialization is guarded in the coordinator; heartbeat retries pending safe work and observes runtime settling. Does not reset accounting or start/stop equipment. Native RPM writes remain commissioning-disarmed until explicit approval.",
+  "triggers": [
+    {
+      "trigger": "time",
+      "at": "23:59:00",
+      "id": "before_filtration"
+    },
+    {
+      "trigger": "time",
+      "at": "08:00:00",
+      "id": "accounting_rollover"
+    },
+    {
+      "trigger": "time_pattern",
+      "minutes": "/1",
+      "id": "recovery_heartbeat"
+    },
+    {
+      "trigger": "homeassistant",
+      "event": "start",
+      "id": "startup"
+    },
+    {
+      "trigger": "state",
+      "entity_id": [
+        "input_boolean.grid_outage_active",
+        "input_boolean.grid_outage_protection",
+        "input_boolean.grid_outage_operator_bypass_latch",
+        "input_boolean.grid_outage_simulation",
+        "input_boolean.grid_outage_use_real_sensor",
+        "binary_sensor.1_powerwall_grid_status"
+      ],
+      "id": "grid_policy"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "climate.hot_tub_thermostat",
+      "to": "heat",
+      "id": "spa_session"
+    },
+    {
+      "trigger": "state",
+      "entity_id": [
+        "input_boolean.pool_sanitation_session",
+        "input_boolean.spa_sanitation_session"
+      ],
+      "to": "on",
+      "id": "sanitation_request"
+    }
+  ],
+  "conditions": [],
+  "actions": [
+    {
+      "action": "intellicenter_manual.reconcile_pump_speeds",
+      "data": {
+        "entry_id": "01M4F1DFGA4AH4F9E9M7MJCR5Q",
+        "reason": "ha_policy_request"
+      }
+    }
+  ],
+  "mode": "queued",
+  "max": 3
+}

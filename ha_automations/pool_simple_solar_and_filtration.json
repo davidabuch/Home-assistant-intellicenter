@@ -61,6 +61,11 @@
       "trigger": "state",
       "entity_id": "sensor.pool_temperature",
       "id": "thermal_change"
+    },
+    {
+      "trigger": "event",
+      "event_type": "intellicenter_rpm_guardian_restored",
+      "id": "grid_restored"
     }
   ],
   "conditions": [],
@@ -196,6 +201,11 @@
     {
       "condition": "state",
       "entity_id": "switch.sanitation",
+      "state": "off"
+    },
+    {
+      "condition": "state",
+      "entity_id": "binary_sensor.rpm_guardian_blocks_normal_control",
       "state": "off"
     },
     {

@@ -89,6 +89,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     runtime = entry.runtime_data
     async_add_entities(NativeTelemetry(entry, runtime, *item)
                        for item in MEASUREMENTS)
+    async_add_entities([GuardianStatus(entry)])
 
     # Discover by stable native identity, never by current active pump speed.
     # Refresh discovery on each native observation to handle late model arrival.
@@ -190,4 +191,38 @@ class NativePumpCircuitSpeed(SensorEntity):
     def _updated(self, observation):
         if self.hass is not None:
             self.async_write_ha_state()
+
+
+class GuardianStatus(SensorEntity):
+    _attr_name = "IntelliCenter RPM Guardian"
+    _attr_should_poll = False
+
+    def __init__(self, entry):
+        self._guardian = entry.runtime_data.guardian
+        self._attr_unique_id = f"{entry.entry_id}_rpm_guardian_status"
+        self._unsubscribe = None
+
+    @property
+    def native_value(self):
+        data = self._guardian.core.data
+        return data['state'] if data['enabled'] or data['restoration_pending'] else 'DISARMED'
+
+    @property
+    def extra_state_attributes(self):
+        from copy import deepcopy
+        data = deepcopy(self._guardian.core.data)
+        data['pending_configuration_changes'] = {
+            key: value for key, value in data['draft'].items()
+            if value != data['applied'][key]}
+        data['blocks_normal_control'] = self._guardian.core.blocks_normal
+        data['installed_commit'] = self._guardian.revision
+        return data
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._unsubscribe = self._guardian.subscribe(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self):
+        if self._unsubscribe: self._unsubscribe()
+        await super().async_will_remove_from_hass()
 

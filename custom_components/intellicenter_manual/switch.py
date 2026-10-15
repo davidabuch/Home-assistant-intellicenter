@@ -45,6 +45,9 @@ class ManualAccessory(SwitchEntity):
         return self._state()
 
     async def async_turn_on(self, **kwargs):
+        guardian = getattr(self._runtime, 'guardian', None)
+        if guardian is not None and self._circuit_id == self._runtime.transport.sanitation_circuit_id():
+            await guardian.preflight('sanitation')
         await self._runtime.transport.set_circuit(self._circuit_id, True)
 
     async def async_turn_off(self, **kwargs):

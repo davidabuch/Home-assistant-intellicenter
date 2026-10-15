@@ -78,7 +78,8 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("candidate[CIRCUIT_ATTR]", source)
         self.assertIn("candidate[SELECT_ATTR]", source)
         self.assertIn("len(matches) != 1", source)
-        self.assertIn('await self._send("request_changes", object_id, {SPEED_ATTR: target})', source)
+        self.assertIn('await self._send("request_changes", object_id, {SPEED_ATTR: target}, preset_authority=authority)', source)
+        self.assertIn('RPM Guardian single-writer policy rejected preset command', source)
         self.assertIn("def _verified_pump_program(self, object_id", source)
         self.assertIn("Configured RPM not confirmed by fresh native observation", source)
 

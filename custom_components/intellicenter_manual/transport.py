@@ -141,6 +141,14 @@ class IntelliCenterManualTransport:
         self._started = False
         self._manual_authority_check = None
         self._outage_command_check = None
+        self._preset_policy_check = None
+        self._control_policy_check = None
+
+    def set_preset_policy_check(self, callback):
+        self._preset_policy_check = callback
+
+    def set_control_policy_check(self, callback):
+        self._control_policy_check = callback
 
     @property
     def connected(self) -> bool:
@@ -342,7 +350,7 @@ class IntelliCenterManualTransport:
             raise ManualCommandError("Unique Pool RPM PMPCIRC assignment unavailable")
         return matches[0]
 
-    async def _send(self, method: str, *args: Any) -> Any:
+    async def _send(self, method: str, *args: Any, preset_authority=None) -> Any:
         if not self._allow_commands:
             raise ManualCommandError("Read-only commissioning: all physical commands are disabled")
         # Explicit manual actuator allowlist; no arbitrary protocol commands.
@@ -357,7 +365,7 @@ class IntelliCenterManualTransport:
                 and set(args[1]) == {HEATER_ATTR}
                 and args[1][HEATER_ATTR] in HEATER_IDS)
             or (method == "request_changes" and len(args) == 2
-                and args[0] in {"p0101", "p0102", "p0103", "p0104", "p0105", "p0106"}
+                and args[0] in {"p0101", "p0102", "p0103", "p0104", "p0105"}
                 and self._verified_pump_program(args[0]) is not None
                 and type(args[1]) is dict
                 and set(args[1]) == {SPEED_ATTR}
@@ -387,8 +395,22 @@ class IntelliCenterManualTransport:
             if self._manual_authority_check is None or not self._manual_authority_check():
                 self.disarm_manual_thermostats()
                 raise ManualCommandError("Exclusive manual authority lost")
+            preset_write = (method == "request_changes" and len(args) == 2
+                            and set(args[1]) == {SPEED_ATTR})
+            policy_authorized = False
+            if preset_write and self._preset_policy_check is not None:
+                policy_authorized = self._preset_policy_check(
+                    args[0], int(args[1][SPEED_ATTR]), preset_authority)
+                if not policy_authorized:
+                    raise ManualCommandError("RPM Guardian single-writer policy rejected preset command")
+            if self._control_policy_check is not None and not self._control_policy_check(method, args):
+                raise ManualCommandError("RPM Guardian restoration/authority interlock")
             if self._outage_command_check is not None and not self._outage_command_check(method, args):
-                raise ManualCommandError("Grid outage safety lockout: command prohibited")
+                # Only a dispatch-locked coordinator permit allows the current
+                # operator-authorized Pool preset exception. Other native
+                # outage lockouts are unchanged.
+                if not (preset_write and policy_authorized and args[0] == "p0102"):
+                    raise ManualCommandError("Grid outage safety lockout: command prohibited")
             try:
                 result = await getattr(self.controller, method)(*args)
             except Exception as exc:
@@ -431,7 +453,7 @@ class IntelliCenterManualTransport:
 
     def _verified_pump_program(self, object_id: str):
         expected = {"p0101": "C0001", "p0102": "C0006", "p0103": "FTR02",
-                    "p0104": "X0051", "p0105": "X0052", "p0106": "FTR03"}
+                    "p0104": "X0051", "p0105": "X0052"}
         if object_id not in expected:
             raise ManualCommandError("Uncommissioned native pump program")
         matches = [obj for obj in self.model.get_by_type(PMPCIRC_TYPE)
@@ -445,12 +467,12 @@ class IntelliCenterManualTransport:
             raise ManualCommandError("Native pump program identity mismatch")
         return obj
 
-    async def set_configured_pump_program_rpm(self, object_id: str, rpm: float) -> None:
+    async def set_configured_pump_program_rpm(self, object_id: str, rpm: float, *, authority=None) -> None:
         if isinstance(rpm, bool) or not float(rpm).is_integer() or not 600 <= rpm <= 3450:
             raise ValueError("Configured RPM must be an integer from 600 to 3450")
         self._verified_pump_program(object_id)
         target = str(int(rpm))
-        dispatched_at = await self._send("request_changes", object_id, {SPEED_ATTR: target})
+        dispatched_at = await self._send("request_changes", object_id, {SPEED_ATTR: target}, preset_authority=authority)
         deadline = asyncio.get_running_loop().time() + 25.0
         while asyncio.get_running_loop().time() < deadline:
             if self.connected and self._observed_at is not None and self._observed_at > dispatched_at:

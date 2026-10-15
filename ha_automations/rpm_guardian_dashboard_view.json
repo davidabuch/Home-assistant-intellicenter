@@ -1,0 +1,182 @@
+{
+  "title": "RPM Guardian",
+  "path": "rpm-guardian",
+  "type": "sections",
+  "max_columns": 3,
+  "sections": [
+    {
+      "type": "grid",
+      "cards": [
+        {
+          "type": "heading",
+          "heading": "Desired RPM configuration"
+        },
+        {
+          "type": "markdown",
+          "content": "Edit draft settings, then press **Apply Configuration Changes**. Editing alone does not write to Pentair. **Reconcile Pump Speeds** uses the last applied policy. Writes defer when equipment state or flow safety is unresolved."
+        },
+        {
+          "type": "tile",
+          "entity": "number.intellicenter_desired_pool_rpm",
+          "name": "Pool circulation \u2014 draft",
+          "features": [
+            {
+              "type": "numeric-input",
+              "style": "buttons"
+            }
+          ]
+        },
+        {
+          "type": "tile",
+          "entity": "number.intellicenter_desired_spa_rpm",
+          "name": "Spa \u2014 draft",
+          "features": [
+            {
+              "type": "numeric-input",
+              "style": "buttons"
+            }
+          ]
+        },
+        {
+          "type": "tile",
+          "entity": "number.intellicenter_desired_sanitation_rpm",
+          "name": "Sanitation \u2014 draft",
+          "features": [
+            {
+              "type": "numeric-input",
+              "style": "buttons"
+            }
+          ]
+        },
+        {
+          "type": "tile",
+          "entity": "number.intellicenter_desired_heater_rpm",
+          "name": "Gas heater \u2014 draft",
+          "features": [
+            {
+              "type": "numeric-input",
+              "style": "buttons"
+            }
+          ]
+        },
+        {
+          "type": "tile",
+          "entity": "number.intellicenter_desired_solar_rpm",
+          "name": "Solar heating \u2014 draft",
+          "features": [
+            {
+              "type": "numeric-input",
+              "style": "buttons"
+            }
+          ]
+        },
+        {
+          "type": "tile",
+          "entity": "number.intellicenter_desired_outage_rpm",
+          "name": "Grid Outage override \u2014 draft",
+          "features": [
+            {
+              "type": "numeric-input",
+              "style": "buttons"
+            }
+          ]
+        },
+        {
+          "type": "tile",
+          "entity": "button.apply_configuration_changes"
+        },
+        {
+          "type": "tile",
+          "entity": "button.reconcile_pump_speeds"
+        }
+      ]
+    },
+    {
+      "type": "grid",
+      "cards": [
+        {
+          "type": "heading",
+          "heading": "Policy and native configuration"
+        },
+        {
+          "type": "tile",
+          "entity": "sensor.intellicenter_rpm_guardian"
+        },
+        {
+          "type": "markdown",
+          "content": "{% set d = state_attr('sensor.intellicenter_rpm_guardian', 'applied') or {} %}\n{% set a = state_attr('sensor.intellicenter_rpm_guardian', 'last_observed') or {} %}\n{% set r = state_attr('sensor.intellicenter_rpm_guardian', 'results') or {} %}\n| Program | Applied normal | Native configuration | Status |\n|---|---:|---:|---|\n{% for key in ['pool','spa','sanitation','heater','solar'] %}\n| {{ key | title }} | {{ d.get(key, '\u2014') }} | {{ a.get(key, '\u2014') }} | {{ r.get(key, 'UNKNOWN') }} |\n{% endfor %}\n**Outage override policy:** {{ d.get('outage', '\u2014') }} RPM. During protected outage this is the effective Pool target; its difference from normal Pool RPM is intentional.\n\n**Write gate:** {{ 'enabled' if state_attr('sensor.intellicenter_rpm_guardian','enabled') else 'DISARMED \u2014 commissioning approval required' }}\n\n**Restoration pending:** {{ state_attr('sensor.intellicenter_rpm_guardian','restoration_pending') }}\n\n**Runtime verification:** {{ state_attr('sensor.intellicenter_rpm_guardian','runtime_status') }}\n\n**Attention:** {{ state_attr('sensor.intellicenter_rpm_guardian','failure') or 'No current failure' }}\n"
+        },
+        {
+          "type": "tile",
+          "entity": "sensor.intellicenter_pump_program_p0102",
+          "name": "Pool configured RPM"
+        },
+        {
+          "type": "tile",
+          "entity": "sensor.intellicenter_pump_program_p0101",
+          "name": "Spa configured RPM"
+        },
+        {
+          "type": "tile",
+          "entity": "sensor.intellicenter_pump_program_p0103",
+          "name": "Sanitation configured RPM"
+        },
+        {
+          "type": "tile",
+          "entity": "sensor.intellicenter_pump_program_p0104",
+          "name": "Heater configured RPM"
+        },
+        {
+          "type": "tile",
+          "entity": "sensor.intellicenter_pump_program_p0105",
+          "name": "Solar configured RPM"
+        }
+      ]
+    },
+    {
+      "type": "grid",
+      "cards": [
+        {
+          "type": "heading",
+          "heading": "Physical equipment and diagnostics"
+        },
+        {
+          "type": "tile",
+          "entity": "sensor.pump_rpm"
+        },
+        {
+          "type": "tile",
+          "entity": "sensor.pump_power"
+        },
+        {
+          "type": "tile",
+          "entity": "climate.pool_thermostat"
+        },
+        {
+          "type": "tile",
+          "entity": "climate.hot_tub_thermostat"
+        },
+        {
+          "type": "tile",
+          "entity": "select.pool_heat_source"
+        },
+        {
+          "type": "tile",
+          "entity": "input_boolean.grid_outage_active"
+        },
+        {
+          "type": "tile",
+          "entity": "binary_sensor.rpm_guardian_blocks_normal_control"
+        },
+        {
+          "type": "markdown",
+          "content": "**Last reconciliation:** {{ state_attr('sensor.intellicenter_rpm_guardian','last_reconciliation') }}"
+        },
+        {
+          "type": "markdown",
+          "content": "**Last successful reconciliation:** {{ state_attr('sensor.intellicenter_rpm_guardian','last_success') }}\n\n**Last verified:** {{ state_attr('sensor.intellicenter_rpm_guardian','last_verified') }}\n\n**Last corrected program:** {{ state_attr('sensor.intellicenter_rpm_guardian','last_corrected_program') }}\n\n**Corrections / failed writes:** {{ state_attr('sensor.intellicenter_rpm_guardian','corrected') }} / {{ state_attr('sensor.intellicenter_rpm_guardian','failed_writes') }}\n\n**Pending draft edits:** {{ state_attr('sensor.intellicenter_rpm_guardian','pending_configuration_changes') }}"
+        }
+      ]
+    }
+  ]
+}

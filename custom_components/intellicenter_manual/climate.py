@@ -86,6 +86,9 @@ class ManualBodyThermostat(ClimateEntity):
             raise ValueError("unsupported HVAC mode")
         if not self.available:
             raise RuntimeError("Cannot actuate without trustworthy live observation")
+        if hvac_mode == HVACMode.HEAT and self._body_id == "B1202":
+            guardian = getattr(self._transport, 'guardian', None)
+            if guardian is not None: await guardian.preflight('spa')
         await self._transport.set_body_active(self._body_id, hvac_mode == HVACMode.HEAT)
 
     async def async_set_temperature(self, **kwargs: Any):

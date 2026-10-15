@@ -23,18 +23,26 @@ for the target-satisfied shutdown repair, regression coverage, dependency matrix
 and commissioning limits. The checked-in `ha_automations/*.json` files are HA
 config-API deployment artifacts; installing this integration does not load them.
 
-Outage detection, operator bypass, native command lockouts, Spa/accessory shutdown,
-and sanitation protection remain independent safety mechanisms. The old outage
-supervisor's request to `number.pool_rpm` is rejected by the bridge: live RPM is
-telemetry. It cannot enforce 1500 RPM. The repair artifact removes that rejected
-request without replacing the deferred runtime supervisor. Do not claim low-speed
-outage circulation is commissioned, or change a persistent Pool preset as a throttle.
-The lightweight ledger uses an 08:00-to-08:00 cycle; the duplicate 10 AM reset is
-removed in the repair artifact.
+The coordinated [RPM Guardian commissioning line](docs/RPM_GUARDIAN_COMMISSIONING_2026-10-15.md)
+uses **five** native programs: Spa/Pool 2600, Sanitation 3200, Heater 3000,
+and Solar 2900 RPM initially. The operator removed the separate Grid Outage
+feature/program; do not recreate it. Its residual unassigned observation is
+excluded from writable configuration.
 
-Native programs remain Spa/Pool 2600, Sanitation 3200, Heater 3000, Solar 2900,
-and Grid Outage 1500 RPM. Their explicit writable configured-number entities
-change persistent configuration and are never ordinary-operation speed controls.
+Six persistent Desired RPM values are drafts until **Apply Configuration Changes**.
+A single serialized, durable coordinator reconciles only permitted differences.
+The new operator-approved outage policy temporarily applies the configurable
+outage RPM (initially 1500) to Pool p0102, then verifies restoration to the current
+normal applied value before normal demand resumes. This supersedes the earlier
+prohibition on that strategy. It remains **write-disarmed pending explicit
+supervised commissioning**, including separate running-Pool flow approval.
+
+Normal writes defer during circulation. Native priming, freeze, Spa/sanitation
+priority, existing outage qualification/interlocks and the 08:00 ledger remain.
+Actual motor RPM is telemetry; a persistent configuration readback is a separate
+fact. Runtime mismatch does not cause a repeated-write or forced Pool-cycle loop.
+See the dated commissioning protocol for evidence levels and unresolved native
+running-speed behavior. No public release is promoted before physical acceptance.
 
 ## Cutover gates
 1. Read-only inventory of every existing entity, unique ID, integration owner, and HA consumer.
