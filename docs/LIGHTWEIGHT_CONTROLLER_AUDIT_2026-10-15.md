@@ -1,5 +1,9 @@
 # Lightweight controller regression and PoolOS retirement audit
 
+See the [dated commissioning baseline](LIGHTWEIGHT_COMMISSIONING_BASELINE_2026-10-15.md)
+for Workflow v3.2 authorization, exact provenance, gateway test fidelity and
+acceptance labels. Physical acceptance remains pending.
+
 Evidence date: October 15, 2026, America/Los_Angeles. The active controller is
 Home Assistant automation plus `intellicenter_manual`. PoolOS is retired.
 

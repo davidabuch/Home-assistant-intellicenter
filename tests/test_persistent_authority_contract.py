@@ -1,6 +1,7 @@
 """Source-level regression checks for the persistent command authority boundary."""
 import ast
 from pathlib import Path
+import unittest
 
 SOURCE = Path(__file__).resolve().parents[1] / 'custom_components' / 'intellicenter_manual' / '__init__.py'
 
@@ -21,3 +22,13 @@ def test_persistent_authority_and_legacy_gate():
     assert 'transport.disarm_manual_thermostats()' in source
     assert '_reacquire_native_authority()' in source
     assert 'timedelta(seconds=30)' in source
+
+
+class PersistentAuthorityContractTests(unittest.TestCase):
+    """Include the existing contract checks in the repository's unittest CI."""
+
+    def test_contract_compiles(self):
+        test_native_authority_contract_compiles()
+
+    def test_persistent_and_legacy_authority(self):
+        test_persistent_authority_and_legacy_gate()
