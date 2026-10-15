@@ -66,7 +66,8 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn('input_boolean.grid_outage_active', setup)
         self.assertIn('input_boolean.grid_outage_protection', setup)
         self.assertIn('9 <= dt_util.as_local(dt_util.utcnow()).hour < 17', setup)
-        self.assertIn('changes[SPEED_ATTR] == "1500"', setup)
+        self.assertIn("if set(changes) == {SPEED_ATTR}:", setup)
+        self.assertIn("Persistent PMPCIRC preset writes are never an outage throttle", setup)
         self.assertIn('return args[1] is False', setup)
         self.assertIn('return False', setup)
 
