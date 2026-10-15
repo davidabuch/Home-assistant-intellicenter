@@ -107,8 +107,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 return changes[STATUS_ATTR] == STATUS_OFF
             if obj == "B1101" and set(changes) == {STATUS_ATTR}:
                 return changes[STATUS_ATTR] == STATUS_OFF or (within_window and changes[STATUS_ATTR] == STATUS_ON)
-            if obj == transport._pool_speed_assignment() and set(changes) == {SPEED_ATTR}:
-                return within_window and changes[SPEED_ATTR] == "1500"
+            # Persistent PMPCIRC preset writes are never an outage throttle.
+            if set(changes) == {SPEED_ATTR}:
+                return False
         if method == "set_circuit_state" and len(args) == 2:
             return args[1] is False
         return False

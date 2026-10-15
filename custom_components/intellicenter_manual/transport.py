@@ -357,7 +357,9 @@ class IntelliCenterManualTransport:
                 and set(args[1]) == {HEATER_ATTR}
                 and args[1][HEATER_ATTR] in HEATER_IDS)
             or (method == "request_changes" and len(args) == 2
-                and args[0] == self._pool_speed_assignment() and type(args[1]) is dict
+                and args[0] in {"p0101", "p0102", "p0103", "p0104", "p0105"}
+                and self._verified_pump_program(args[0]) is not None
+                and type(args[1]) is dict
                 and set(args[1]) == {SPEED_ATTR}
                 and type(args[1][SPEED_ATTR]) is str
                 and args[1][SPEED_ATTR].isdigit()
@@ -425,9 +427,38 @@ class IntelliCenterManualTransport:
         await self._confirm_body(body_id, "active", active, dispatched_at)
 
     async def set_pump_rpm(self, rpm: float) -> None:
-        if isinstance(rpm, bool) or not 600 <= float(rpm) <= 3450:
-            raise ValueError("Pump RPM outside commissioned range")
-        await self._send("request_changes", self._pool_speed_assignment(), {SPEED_ATTR: str(round(float(rpm)))})
+        raise ManualCommandError("Live pump RPM is telemetry; use an explicit configured pump program")
+
+    def _verified_pump_program(self, object_id: str):
+        expected = {"p0101": "C0001", "p0102": "C0006", "p0103": "FTR02",
+                    "p0104": "X0051", "p0105": "X0052"}
+        if object_id not in expected:
+            raise ManualCommandError("Uncommissioned native pump program")
+        matches = [obj for obj in self.model.get_by_type(PMPCIRC_TYPE)
+                   if str(obj.objnam) == object_id]
+        if len(matches) != 1:
+            raise ManualCommandError("Missing or ambiguous native pump program")
+        obj = matches[0]
+        if (str(obj.properties.get(PARENT_ATTR) or "") != "PMP01"
+                or str(obj.properties.get(SELECT_ATTR) or "").upper() != "RPM"
+                or str(obj.properties.get(CIRCUIT_ATTR) or "") != expected[object_id]):
+            raise ManualCommandError("Native pump program identity mismatch")
+        return obj
+
+    async def set_configured_pump_program_rpm(self, object_id: str, rpm: float) -> None:
+        if isinstance(rpm, bool) or not float(rpm).is_integer() or not 600 <= rpm <= 3450:
+            raise ValueError("Configured RPM must be an integer from 600 to 3450")
+        self._verified_pump_program(object_id)
+        target = str(int(rpm))
+        dispatched_at = await self._send("request_changes", object_id, {SPEED_ATTR: target})
+        deadline = asyncio.get_running_loop().time() + 25.0
+        while asyncio.get_running_loop().time() < deadline:
+            if self.connected and self._observed_at is not None and self._observed_at > dispatched_at:
+                obj = self._verified_pump_program(object_id)
+                if str(obj.properties.get(SPEED_ATTR)) == target:
+                    return
+            await asyncio.sleep(0.5)
+        raise ManualCommandError("Configured RPM not confirmed by fresh native observation")
 
     async def set_target(self, body_id: str, fahrenheit: float) -> None:
         if body_id not in BODY_IDS or isinstance(fahrenheit, bool):

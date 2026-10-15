@@ -66,7 +66,8 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn('input_boolean.grid_outage_active', setup)
         self.assertIn('input_boolean.grid_outage_protection', setup)
         self.assertIn('9 <= dt_util.as_local(dt_util.utcnow()).hour < 17', setup)
-        self.assertIn('changes[SPEED_ATTR] == "1500"', setup)
+        self.assertIn("if set(changes) == {SPEED_ATTR}:", setup)
+        self.assertIn("Persistent PMPCIRC preset writes are never an outage throttle", setup)
         self.assertIn('return args[1] is False', setup)
         self.assertIn('return False', setup)
 
@@ -77,7 +78,9 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("candidate[CIRCUIT_ATTR]", source)
         self.assertIn("candidate[SELECT_ATTR]", source)
         self.assertIn("len(matches) != 1", source)
-        self.assertIn("SPEED_ATTR: str(round(float(rpm)))", source)
+        self.assertIn('await self._send("request_changes", object_id, {SPEED_ATTR: target})', source)
+        self.assertIn("def _verified_pump_program(self, object_id", source)
+        self.assertIn("Configured RPM not confirmed by fresh native observation", source)
 
     def test_emergency_pool_off_always_permitted(self):
         setup = (SOURCE.parent / "__init__.py").read_text()
