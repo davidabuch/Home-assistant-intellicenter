@@ -109,10 +109,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 # Native pump-program settings are persistent IntelliCenter configuration, not
 # instantaneous motor RPM. Keep these entities read-only during commissioning.
-from pyintellicenter import (
-    PMPCIRC_TYPE, PUMP_TYPE, CIRCUIT_TYPE, PARENT_ATTR, CIRCUIT_ATTR,
-    SELECT_ATTR, SPEED_ATTR, GPM_ATTR,
-)
+# Protocol attribute identifiers; avoid requiring pyintellicenter at sensor
+# module import time (HA supplies the library to the integration runtime).
+PMPCIRC_TYPE = "PMPCIRC"
+PARENT_ATTR = "PARENT"
+CIRCUIT_ATTR = "CIRCUIT"
+SELECT_ATTR = "SELECT"
+SPEED_ATTR = "SPEED"
+GPM_ATTR = "GPM"
 
 class NativePumpCircuitSpeed(SensorEntity):
     """One read-only Pentair PMPCIRC configuration assignment."""
