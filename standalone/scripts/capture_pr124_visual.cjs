@@ -16,15 +16,15 @@ const fs = require("fs");
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        pool: { state: "off", attributes: { current_temperature: 74, temperature: 90 } },
-        spa: { state: "off", attributes: { current_temperature: 73, temperature: 98 } },
+        pool: { state: "heat", attributes: { current_temperature: 76, temperature: 90 } },
+        spa: { state: "off", attributes: { current_temperature: 75, temperature: 98 } },
         jets: { state: "off", attributes: {} },
-        spillway: { state: "off", attributes: {} },
+        spillway: { state: "on", attributes: {} },
         slide: { state: "off", attributes: {} },
         light: { state: "off", attributes: { effect: null, effect_list: ["Light Show"] } },
         pool_sanitation: { state: "off", attributes: {} },
         spa_sanitation: { state: "off", attributes: {} },
-        "binary_sensor.solar_heating_active": { state: "off", attributes: {} },
+        "binary_sensor.solar_heating_active": { state: "on", attributes: {} },
         "binary_sensor.gas_heater_active": { state: "off", attributes: {} }
       })
     });
