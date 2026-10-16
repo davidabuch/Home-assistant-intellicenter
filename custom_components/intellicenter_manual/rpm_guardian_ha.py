@@ -126,6 +126,7 @@ class GuardianHA:
         except Exception as exc:
             await self.core.load({'version': 'unreadable'})
             self.core.data['failure'] = f'Durable storage unavailable: {exc}'
+        await self.core.queue_startup_scan()
         self.transport.set_preset_policy_check(self.core.permitted)
         self.transport.set_control_policy_check(self.core.ordinary_command_allowed)
 
