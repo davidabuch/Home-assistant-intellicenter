@@ -58,7 +58,7 @@ apply_rpm_configuration:
 
 reconcile_pump_speeds:
   name: Reconcile Pump Speeds
-  description: Read, compare, correct permitted drift through the single writer, and verify. Preserves outage and restoration authority.
+  description: Explicit manual/default, scheduled and session reasons discover ordinary drift. recovery_heartbeat/grid_policy only service durable pending work and safety recovery. Single guarded writer and verified readback remain mandatory.
   fields:
     entry_id:
       required: true

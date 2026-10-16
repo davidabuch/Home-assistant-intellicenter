@@ -1,7 +1,7 @@
 {
   "id": "intellicenter_rpm_guardian_reconciliation",
   "alias": "IntelliCenter RPM Guardian - Reconciliation",
-  "description": "Request-driven single-writer policy. Desired edits are drafts until Apply. HA-start initialization is guarded in the coordinator; heartbeat retries pending safe work and observes runtime settling. Does not reset accounting or start/stop equipment. Native RPM writes remain commissioning-disarmed until explicit approval.",
+  "description": "Event-driven ordinary anti-drift; minute heartbeat services durable pending work and safety recovery only. Startup scan waits for fresh initialization. Single guarded writer; no equipment ON/OFF decisions.",
   "triggers": [
     {
       "trigger": "time",
@@ -57,7 +57,7 @@
       "action": "intellicenter_manual.reconcile_pump_speeds",
       "data": {
         "entry_id": "01M4F1DFGA4AH4F9E9M7MJCR5Q",
-        "reason": "ha_policy_request"
+        "reason": "{{ trigger.id | default('manual', true) }}"
       }
     }
   ],

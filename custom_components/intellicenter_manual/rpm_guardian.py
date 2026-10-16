@@ -15,6 +15,13 @@ from uuid import uuid4
 PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
             "sanitation": ("p0103", "FTR02"), "heater": ("p0104", "X0051"),
             "solar": ("p0105", "X0052")}
+# Only named operator/schedule/session requests discover ordinary drift.
+# Unknown/legacy requests fail closed to recovery servicing, never broad scans.
+ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
+    "before_filtration", "accounting_rollover", "spa_session", "sanitation_request",
+    "spa_requested", "sanitation_requested", "heater_requested", "solar_requested",
+    "08:00", "23:59"})
+
 DEFAULTS = {"pool": 2600, "spa": 2600, "sanitation": 3200,
             "heater": 3000, "solar": 2900, "outage": 1500}
 # Conservative change floors from the commissioned configuration, not a claim
@@ -96,6 +103,7 @@ class RPMGuardian:
             "failure": None, "runtime_status": "NOT_RUN",
             "last_failure": None,
             "runtime_wait_until": None,
+            "routine_scan_pending": False, "pending_routine": {},
         }
 
     @property
@@ -140,6 +148,14 @@ class RPMGuardian:
                         or type(stored.get("settling_seconds")) is not int
                         or not 180 <= stored['settling_seconds'] <= 900):
                     raise ValueError("Invalid commissioning or epoch metadata")
+                pending = stored.get("pending_routine", {})
+                if (not isinstance(pending, dict) or not set(pending) <= set(PROGRAMS)
+                        or type(stored.get("routine_scan_pending", False)) is not bool):
+                    raise ValueError("Invalid pending routine work")
+                for key, value in pending.items():
+                    speed(value)
+                    if value != stored["applied"][key]:
+                        raise ValueError("Pending routine target differs from applied policy")
                 self.data.update(deepcopy(stored))
                 if self.data["intent"] or self.data["restoration_pending"]:
                     self.data["restoration_pending"] = True
@@ -154,6 +170,13 @@ class RPMGuardian:
                 return
         self.loaded = True
         self.notify()
+
+    async def queue_startup_scan(self):
+        """Durable startup request; heartbeat completes it after HA initialization."""
+        async with self.lock:
+            if self.loaded:
+                self.data["routine_scan_pending"] = True
+                await self.persist()
 
     async def edit(self, key, value):
         if not self.loaded: raise RuntimeError("Resolve invalid recovery record first")
@@ -171,6 +194,9 @@ class RPMGuardian:
             for key, value in self.data["draft"].items():
                 speed(value, max(sample.minimum, self.data["floors"][key]), sample.maximum)
             self.data["applied"] = dict(self.data["draft"])
+            # Supersede old approved corrections atomically with the new policy.
+            self.data["pending_routine"] = {}
+            self.data["routine_scan_pending"] = True
             await self.persist()
         return await self.reconcile("apply")
 
@@ -212,7 +238,8 @@ class RPMGuardian:
             return (key == "pool" and sample.restored and sample.qualified is False
                     and sample.raw_outage is False and target == self.data["applied"]["pool"]
                     and self.pool_change_safe(sample))
-        return (not sample.protected and not self.blocks_normal
+        return (self.data["pending_routine"].get(key) == target
+                and not sample.protected and not self.blocks_normal
                 and sample.bypass is False
                 and sample.raw_outage is False and sample.actual_rpm is not None
                 and sample.actual_rpm < 500 and sample.pool is False
@@ -288,6 +315,12 @@ class RPMGuardian:
             self._generation += 1
             self.data["last_reconciliation"] = timestamp()
             self.data["reason"] = reason
+            self.data["request_class"] = "routine" if reason in ROUTINE_REASONS else "recovery"
+            if reason in ROUTINE_REASONS:
+                # Persist before reads: stale startup/failed observations must
+                # not lose this event or silently broaden every later heartbeat.
+                self.data["routine_scan_pending"] = True
+                await self.persist()
             sample = self.conditions()
             try:
                 self.data['results'] = {key: 'UNKNOWN' for key in PROGRAMS}
@@ -328,6 +361,25 @@ class RPMGuardian:
                     self.data["state"] = "RECOVERY_REQUIRED"
                     self.data["failure"] = "Unjournaled outage-speed Pool preset; verified restoration required"
                     await self.persist()
+                pending = self.data["pending_routine"]
+                if self.data["routine_scan_pending"]:
+                    for key in PROGRAMS:
+                        # A protected Pool target belongs to safety recovery,
+                        # not an ordinary correction to normal during outage.
+                        if key == "pool" and sample.protected:
+                            continue
+                        if actual[key] != self.data["applied"][key]:
+                            pending[key] = self.data["applied"][key]
+                    self.data["routine_scan_pending"] = False
+                for key in list(pending):
+                    if actual[key] == pending[key]:
+                        del pending[key]  # uncertain ACK/external correction: read first
+                for key in PROGRAMS:
+                    if (actual[key] != desired[key] and key not in pending
+                            and not (key == "pool" and (sample.protected or self.blocks_normal))):
+                        self.data["results"][key] = "DRIFT: awaiting routine event"
+                # These obligations are durable BEFORE any normal dispatch.
+                await self.persist()
                 if not self.data["enabled"]:
                     self.data["failure"] = (
                         "Recovery pending; authorize guarded restoration before normal control"
@@ -382,9 +434,10 @@ class RPMGuardian:
                     # existing five-minute qualified latch.
                 else:
                     self.data["state"] = "NORMAL"
-                    for key in PROGRAMS:
+                    for key in list(self.data["pending_routine"]):
                         if actual[key] != desired[key]:
-                            await self._change(key, desired[key], "normal")
+                            if await self._change(key, desired[key], "normal"):
+                                del self.data["pending_routine"][key]
                 if all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values()):
                     self.data["last_success"] = timestamp()
                     if (self.data['state'] == 'NORMAL' or

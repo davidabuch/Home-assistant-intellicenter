@@ -5,7 +5,7 @@ import sys
 import threading
 from types import ModuleType, SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from test_transport_lifecycle_faults import transport_module as native
 
@@ -90,3 +90,16 @@ class GuardianHACallbackTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.notifications, [])
         await self.dispatch(None, 'on')
         self.assertEqual(self.notifications, [initial + 1])
+
+    async def test_setup_queues_scan_without_early_native_reads(self):
+        self.assertTrue(self.guardian.core.data['routine_scan_pending'])
+        self.assertFalse(self.guardian.core.blocks_normal)
+
+    async def test_service_preserves_request_reason_and_defaults_to_manual(self):
+        self.guardian.reconcile = AsyncMock()
+        handler = self.services['reconcile_pump_speeds']
+        for reason in ('recovery_heartbeat', 'accounting_rollover', 'grid_policy'):
+            await handler(SimpleNamespace(data={'entry_id': 'test', 'reason': reason}))
+            self.guardian.reconcile.assert_awaited_with(reason)
+        await handler(SimpleNamespace(data={'entry_id': 'test'}))
+        self.guardian.reconcile.assert_awaited_with('manual')
