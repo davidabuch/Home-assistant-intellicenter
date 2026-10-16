@@ -106,14 +106,28 @@ def test_scene_layers_share_photo_cover_coordinate_space():
     assert "clip-path:polygon" in css
 
 
-def test_offline_photo_motion_is_isolated_and_uses_real_pixels():
+def test_static_photo_assets_and_routes():
+    html=(ROOT / "web/index.html").read_text()
     lab=(ROOT / "web/scene-lab.html").read_text()
-    script=(ROOT / "web/scene-photo-motion.js").read_text()
     server=(ROOT / "server.py").read_text()
-    assert 'src="./scene-photo-motion.js"' in lab
-    assert "scene-photo-motion.js" not in server
-    assert "backyard-off.jpg" in script
-    assert "drawImage(image" in script and "ctx.clip()" in script
-    assert 'scene.classList.contains("pool-running")' in script
-    assert 'scene.classList.contains("spa-running")' in script
-    assert 'fetch(' not in script and 'api(' not in script
+    sw=(ROOT / "web/sw.js").read_text()
+    assert (ROOT / "web/backyard-static-off.jpg").is_file()
+    assert "backyard-static-off.jpg" in server and "backyard-static-off.jpg" in sw
+    for name in ("pool","spa","jets","slide","spillway","light","spa-light"):
+        path=ROOT / "web" / ("scene-on-"+name+".png")
+        assert path.is_file() and path.stat().st_size > 1000
+        assert path.read_bytes()[:8] == bytes.fromhex("89504e470d0a1a0a")
+        assert 'data-feature="'+name+'"' in html
+        assert 'data-feature="'+name+'"' in lab
+        assert "scene-on-"+name+".png" in sw
+    assert "scene-lab.html" not in server
+    assert 'scene-photo-motion.js' not in lab
+
+def test_static_state_exclusivity_and_photo_order():
+    js=(ROOT / "web/app.js").read_text()
+    css=(ROOT / "web/style.css").read_text()
+    assert 'spaOn=unlocked&&!poolOn&&circulating("spa")' in js
+    assert 'light-running .photo-on-layer[data-feature="spa-light"]' in css
+    for name in ("pool","spa","light","spa-light","jets","spillway","slide"):
+        assert '.photo-on-layer[data-feature="'+name+'"]{z-index:' in css
+    assert "animation:none!important" in css
