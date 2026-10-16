@@ -43,3 +43,26 @@ jobs:
         run: node --test standalone/tests/js/*.cjs
       - name: Check PWA manifest
         run: python -c "import json; m=json.load(open('standalone/web/manifest.webmanifest')); assert m['display']=='standalone'; assert m['icons']"
+      - name: Install browser for PR 124 visual acceptance capture
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Capture iPhone-class PR 124 composition
+        env:
+          PORT: "8765"
+          SESSION_FILE: "/tmp/pool-family-role-sessions.json"
+        run: |
+          python standalone/server.py >/tmp/pool-family-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node standalone/scripts/capture_pr124_visual.cjs
+      - name: Upload PR 124 visual acceptance screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr124-iphone-visual
+          path: standalone/visual-acceptance-pr124.png
+          if-no-files-found: error

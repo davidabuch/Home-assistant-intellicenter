@@ -1,3 +1,21 @@
+# Static backyard visual recovery — 2026-10-16
+
+Status: **RECOVERY CANDIDATE — USER VISUAL ACCEPTANCE REQUIRED BEFORE MERGE OR DEPLOYMENT.**
+
+- Recovery branch: `recovery/static-backyard-final`.
+- Source image: `standalone/web/backyard-final.jpg`.
+- This is the original single composited portrait scene retained from the pre-state-photo implementation.
+- The decorative scene is permanently static and intentionally independent of Home Assistant equipment state.
+- The multi-layer `backyard-static-off.jpg` + `scene-on-*.png` architecture is retired from the live page.
+- Existing Pool/Spa/equipment controls remain state-driven and must continue to reflect confirmed Home Assistant state.
+- Service-worker cache now precaches the recovered single image instead of the failed storyboard layers.
+- Merge/deployment gate: visually verify the complete scene at an iPhone-class portrait viewport and confirm the pool, spa, slide, spillway, lights, jets/bubbles, landscaping, and Liquid Glass composition are acceptable.
+- No physical equipment operation is required or authorized for this visual recovery.
+
+## Historical state-photo experiment
+
+The sections below are retained as incident history only and are not the current product requirement.
+
 # Refined waterslide checkpoint — 2026-10-16
 
 - `9ea277f` replaces only `standalone/web/scene-on-slide.png` with a less luminous, more translucent slide-water treatment.
