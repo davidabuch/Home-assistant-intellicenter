@@ -28,15 +28,18 @@ function region(name,t){
  }
  ctx.restore();
 }
+let lastSecond=-1;
 function frame(t){
  ctx.clearRect(0,0,651,1199);
  if(ready&&!document.hidden){
   if(scene.classList.contains("pool-running"))region("pool",t);
   if(scene.classList.contains("spa-running"))region("spa",t);
  }
- if(diagnostic&&Math.floor(t/500)!==Math.floor((t-17)/500)){
+ if(diagnostic&&Math.floor(t/1000)!==lastSecond){
+  lastSecond=Math.floor(t/1000);
   const on=["pool","spa"].filter(k=>scene.classList.contains(k+"-running"));
-  report("Photo loaded · frame "+Math.floor(t/500)+" · active: "+(on.join(", ")||"none")+(reduced.matches?" · reduced motion":""));
+  report((ready?"Photo loaded":"PHOTO NOT LOADED")+" · seconds "+lastSecond+" · active: "+(on.join(", ")||"none")+(reduced.matches?" · reduced motion":""));
+  const pulse=document.getElementById("motionPulse");if(pulse){pulse.style.transform="translateX("+((lastSecond%4)*28)+"px)";pulse.style.background=on.length?"#52f5bf":"#e8aa4a";}
  }
  requestAnimationFrame(frame);
 }
