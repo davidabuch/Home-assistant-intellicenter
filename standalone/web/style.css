@@ -422,3 +422,93 @@ main{z-index:1}
  #controls #sanitation .feature-tile{font-size:12px!important}
 }
 @media(min-width:701px){.backyard-scene{background-size:cover!important}}
+
+
+/* Approved screenshot target — October 16, 2026.
+   Visual-only refinement: preserve static backyard image and all existing controls. */
+.sr-status{
+  position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+  overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+.reference-toolbar{display:flex;align-items:flex-start;justify-content:space-between;width:100%;gap:12px}
+.feature-banner{
+  display:flex;align-items:center;gap:10px;width:min(215px,70vw);padding:8px 12px;border-radius:20px;
+  color:#fff;background:linear-gradient(135deg,rgba(17,34,57,.82),rgba(79,66,113,.60));
+  border:1px solid rgba(255,255,255,.32);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 7px 22px rgba(0,0,0,.25);
+  backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);
+}
+.feature-banner-icon{
+  flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+  font-size:30px;line-height:1;color:#fff;background:linear-gradient(145deg,#1da1ff,#066fe4);
+  border:1px solid rgba(200,239,255,.72);box-shadow:inset 0 1px 0 #fff8,0 0 15px #169dff88;
+}
+.feature-banner-copy{display:flex;min-width:0;flex-direction:column;justify-content:center;line-height:1.05}
+.feature-banner-copy strong{font-size:16px;letter-spacing:-.01em;white-space:nowrap}
+.feature-banner-copy small{margin-top:4px;font-size:11px;letter-spacing:.02em;color:rgba(255,244,250,.92);white-space:nowrap}
+.settings-orb{
+  width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:50%;
+  font-size:25px;color:#fff;background:linear-gradient(145deg,rgba(194,161,224,.58),rgba(92,83,125,.55));
+  border:1px solid rgba(255,255,255,.48);box-shadow:inset 0 1px 0 #fff8,0 5px 16px #0004;
+  backdrop-filter:blur(22px) saturate(175%);-webkit-backdrop-filter:blur(22px) saturate(175%);
+}
+
+/* Bright refractive glass from the approved reference. */
+#controls #pool,#controls #spa,#controls #poolLight,
+#controls #features .feature-tile,#controls #sanitation .feature-tile{
+  background:linear-gradient(138deg,rgba(255,255,255,.28) 0%,rgba(93,165,239,.22) 38%,rgba(25,63,111,.40) 72%,rgba(255,255,255,.13) 100%)!important;
+  border:1px solid rgba(242,250,255,.78)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.86),inset 1px 0 0 rgba(255,255,255,.28),
+             inset 0 -1px 0 rgba(255,255,255,.18),0 8px 26px rgba(0,16,43,.28)!important;
+  backdrop-filter:blur(27px) saturate(190%) brightness(1.16)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(190%) brightness(1.16)!important;
+}
+#controls #pool .muted,#controls #spa .muted{color:rgba(255,255,255,.95)!important}
+#controls #pool .state-pill,#controls #spa .state-pill{
+  background:rgba(0,57,111,.56)!important;color:#fff!important;border:1px solid rgba(255,255,255,.15);
+}
+#controls #pool .power-button,#controls #spa .power-button,
+#controls #pool .stepper button,#controls #spa .stepper button{
+  background:linear-gradient(145deg,rgba(128,184,244,.36),rgba(24,88,154,.44))!important;
+  border-color:rgba(226,246,255,.72)!important;
+  box-shadow:inset 0 1px 0 #fff9,0 5px 14px rgba(0,30,70,.26)!important;
+}
+#controls #poolLight{grid-template-columns:48px minmax(0,1fr);padding:8px 10px!important}
+#controls #poolLight .light-icon{
+  width:44px;height:44px;min-height:44px;background:linear-gradient(145deg,rgba(255,255,255,.34),rgba(100,172,236,.28))!important;
+  border-color:rgba(255,255,255,.75)!important;box-shadow:inset 0 1px 0 #fff9,0 0 13px rgba(116,205,255,.24)!important;
+}
+#controls #features .feature-tile{
+  min-height:76px!important;height:76px!important;padding:8px 5px!important;border-radius:17px!important;
+  font-size:12px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px!important;
+}
+#controls #features .feature-tile::before{
+  width:30px!important;height:28px!important;font-size:31px!important;line-height:28px!important;color:#b9eeff!important;
+  filter:drop-shadow(0 0 7px rgba(32,174,255,.95))!important;
+}
+#controls #features .feature-tile[data-key="jets"]::before{content:"◦◦"!important;letter-spacing:-5px;font-size:27px!important}
+#controls #features .feature-tile[data-key="spillway"]::before{content:"≋"!important;font-size:34px!important}
+#controls #features .feature-tile[data-key="slide"]::before{content:"≈"!important;font-size:34px!important}
+#controls #sanitation .feature-tile{
+  position:relative;height:54px!important;min-height:54px!important;border-radius:18px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;padding:0 28px 0 34px!important;font-size:12px!important;
+}
+#controls #sanitation .feature-tile::before{position:absolute;left:12px;font-size:18px;color:#c9f1ff;text-shadow:0 0 8px #29a8ff}
+#controls #sanitation .feature-tile::after{content:"›";position:absolute;right:13px;font-size:24px;color:#fff}
+#controls #sanitation .feature-tile:nth-child(1)::before{content:"⛨"}
+#controls #sanitation .feature-tile:nth-child(2)::before{content:"✧"}
+
+@media(max-width:700px){
+  main{padding:calc(env(safe-area-inset-top) + 10px) 14px max(4px,env(safe-area-inset-bottom))!important}
+  main>header{top:calc(env(safe-area-inset-top) + 8px)!important;left:14px!important;right:14px!important;min-height:52px!important}
+  #controls{padding-top:clamp(245px,45dvh,510px)!important}
+  #controls .water-bodies{gap:8px!important}
+  #controls .water-bodies>.panel{padding:8px 10px!important;border-radius:20px!important}
+  #controls .water-bodies .top h2{font-size:17px!important}
+  #controls .water-bodies .temp{font-size:35px!important}
+  #controls .water-bodies .readout{margin:4px 0 5px!important}
+  #controls .water-bodies .stepper{padding-top:4px!important}
+  #controls #poolLight{margin-top:6px!important;margin-bottom:5px!important}
+  #controls #features{margin-top:5px!important;gap:6px!important}
+  #controls #sanitation:not([hidden]){margin-top:6px!important;gap:7px!important}
+}
