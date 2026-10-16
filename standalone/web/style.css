@@ -343,3 +343,19 @@ main{z-index:1}
 /* Live display regression fix: images are loaded normally, visibility follows
    confirmed HA state classes only. No hidden attribute or onload race. */
  .backyard-scene .scene-art .photo-on-layer{display:block}
+
+/* Family-approved static showcase. Deliberately NOT a representation of
+   real-world equipment state. Buttons/status remain connected to HA. */
+.backyard-scene.static-showcase .photo-on-layer[data-feature="light"],
+.backyard-scene.static-showcase .photo-on-layer[data-feature="spa-light"],
+.backyard-scene.static-showcase .photo-on-layer[data-feature="jets"],
+.backyard-scene.static-showcase .photo-on-layer[data-feature="spillway"],
+.backyard-scene.static-showcase .photo-on-layer[data-feature="slide"]{
+ opacity:1;visibility:visible;
+}
+.backyard-scene.static-showcase .photo-on-layer[data-feature="pool"],
+.backyard-scene.static-showcase .photo-on-layer[data-feature="spa"]{
+ opacity:0;visibility:hidden;
+}
+
+.scene-caption{font-size:11px;line-height:1.4;color:rgba(240,247,255,.78);margin:4px 0 10px;text-align:center}

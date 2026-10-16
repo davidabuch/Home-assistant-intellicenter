@@ -141,3 +141,15 @@ def test_live_photo_layers_not_hidden_by_image_load_handlers():
     assert '.backyard-scene .scene-art{aspect-ratio:412 / 408;' in css
     assert 'background-image:url(\'/backyard-static-off.jpg\')' in css
     assert 'light-running .photo-on-layer[data-feature="spa-light"]' in css
+
+def test_family_showcase_is_static_not_equipment_state():
+    html=(ROOT / "web/index.html").read_text()
+    js=(ROOT / "web/app.js").read_text()
+    css=(ROOT / "web/style.css").read_text()
+    assert 'class="backyard-scene static-showcase"' in html
+    assert 'Backyard image is illustrative' in html
+    scene=js.split('function updateScene(){',1)[1].split('function render(){',1)[0]
+    assert 'state[' not in scene and 'classList.toggle' not in scene
+    for feature in ('light','spa-light','jets','spillway','slide'):
+        assert '[data-feature="'+feature+'"]' in css
+    assert '.backyard-scene.static-showcase' in css
