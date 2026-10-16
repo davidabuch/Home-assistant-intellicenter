@@ -588,3 +588,18 @@ main{position:relative;z-index:1}
  background:linear-gradient(145deg,rgba(255,185,76,.48),rgba(171,75,11,.38))!important;
  border-color:#ffc66c!important;box-shadow:inset 0 1px 0 #fff9,0 0 22px rgba(255,137,18,.85)!important;
 }
+
+/* Final approved power-button visual states; applies identically to Pool and Hot Tub.
+   Off intentionally inherits the original neutral Hot Tub OFF appearance. */
+#controls #pool.is-off .power-button,#controls #spa.is-off .power-button{
+ background:#30465d!important;border-color:#55708a!important;color:rgba(255,255,255,.58)!important;
+ box-shadow:inset 0 1px #ffffff18!important;text-shadow:none!important;
+}
+#controls #pool.is-on:not(.is-heating) .power-button,#controls #spa.is-on:not(.is-heating) .power-button{
+ background:#fff!important;border-color:#fff!important;color:#b8bdc4!important;
+ text-shadow:none!important;box-shadow:inset 0 1px rgba(255,255,255,.95),0 0 10px rgba(255,255,255,.40)!important;
+}
+#controls #pool.is-heating .power-button,#controls #spa.is-heating .power-button{
+ background:#f28b1b!important;border-color:#ffbc63!important;color:#fff!important;
+ text-shadow:none!important;box-shadow:inset 0 1px rgba(255,255,255,.55),0 0 18px rgba(255,136,22,.67)!important;
+}
