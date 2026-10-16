@@ -71,11 +71,22 @@ and outage policy does not produce a false alarm. No second writer was added.
 
 ## F2 — normal HA restart
 
-Perform after green merge/deployment with simulation OFF, normal grid, all five
-presets correct, no active write or pending recovery. No equipment stimulus.
-Verify exact revision, durable flags/policy, native settings, normal controller
-health, ledger retention and pump remaining OFF while roof is ineligible.
-Record actual observations in the handoff; CI alone is not this evidence.
+HA VERIFIED at17:50 PDT after the authorized normal restart. Installed revision
+5d463dfd59ac1290c47f5f579d399b4935ecb2ab matches PR106 and its green post-merge
+CI run38831421930. Both approval flags remained false; session/intent null,
+recovery false. Read-only Reconcile verified all five MATCH values, corrected6/
+failed0 unchanged. Pool/Spa stayed OFF, pump0, roof83°F, ledger475/480 retained.
+MasterON/claimOFF; normal automationsON; real grid healthy, simulation/outageOFF.
+The17:50 controller trace completed with no equipment command. Startup guard
+warnings resolved to fresh reads. No new Guardian thread-safety error appeared;
+the15:13 entry remains historical. No equipment stimulus or preset write occurred.
+
+All20 installed files were compared to the pinned merge after backup to
+/config/local_backups/intellicenter_manual_pre_final_recovery_20261015_174718.
+Both exact-head PR106 checks and post-merge CI passed. All214 tests passed.
+Dashboard verification found the persisted prior outage result still labeled as
+runtime verification even while Pool was OFF. Clarify it as last observed outage
+result; do not erase valid historical evidence or pretend it describes current RPM.
 
 ## F3 — physical recovery decision
 
