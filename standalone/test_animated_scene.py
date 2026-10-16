@@ -56,3 +56,23 @@ def test_background_off_state_requires_clean_asset_before_animation_release():
     readme = (ROOT / "SCENE_ACCEPTANCE.md").read_text()
     assert "BLOCKED" in readme
     assert "dry" in readme.lower()
+
+
+def test_offline_motion_lab_has_no_equipment_access():
+    lab = (ROOT / "web/scene-lab.html").read_text()
+    server = (ROOT / "server.py").read_text()
+    assert "no HA connection" in lab
+    assert "fetch(" not in lab and "/api/" not in lab
+    assert "scene-lab.html" not in server  # Never expose test toggles on installed app.
+    for cls in ("slide-running", "spillway-running", "jets-running", "pool-running", "spa-running", "light-running"):
+        assert cls in lab
+
+
+def test_independent_water_effect_masks_and_motion():
+    css = (ROOT / "web/style.css").read_text()
+    assert "--slide-x:" in css and "--fall-x:" in css
+    assert "scene-waterfall-slide" in css
+    assert "scene-bubble-rise" in css
+    assert "prefers-reduced-motion:reduce" in css
+    assert ".backyard-scene .slide-flow" in css
+    assert ".backyard-scene .spillway-flow" in css
