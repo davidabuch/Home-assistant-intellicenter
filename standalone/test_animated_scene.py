@@ -54,7 +54,7 @@ def test_background_off_state_requires_clean_asset_before_animation_release():
     # The current approved photo visibly contains running slide and spillway water.
     # Preserve this release gate until a separate clean dry-base asset is committed.
     readme = (ROOT / "SCENE_ACCEPTANCE.md").read_text()
-    assert "BLOCKED" in readme
+    assert "IN PROGRESS" in readme
     assert "dry" in readme.lower()
 
 
@@ -76,3 +76,16 @@ def test_independent_water_effect_masks_and_motion():
     assert "prefers-reduced-motion:reduce" in css
     assert ".backyard-scene .slide-flow" in css
     assert ".backyard-scene .spillway-flow" in css
+
+
+def test_clean_off_photo_is_present_and_served():
+    photo=ROOT / "web/backyard-off.jpg"
+    assert photo.is_file()
+    assert photo.stat().st_size > 100_000
+    assert photo.read_bytes()[:3] == bytes.fromhex("ffd8ff")
+    server=(ROOT / "server.py").read_text()
+    css=(ROOT / "web/style.css").read_text()
+    sw=(ROOT / "web/sw.js").read_text()
+    assert '"/backyard-off.jpg": ("web/backyard-off.jpg", "image/jpeg")' in server
+    assert "url('/backyard-off.jpg')" in css
+    assert 'cache.add("/backyard-off.jpg")' in sw
