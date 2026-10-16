@@ -538,3 +538,35 @@ main{z-index:1}
 #controls #features .feature-tile::before{display:none!important}
 #controls #features .feature-svg{display:block!important;flex:0 0 36px;width:36px;height:34px;color:#b9eeff;filter:drop-shadow(0 0 6px rgba(32,174,255,.95));pointer-events:none}
 #controls #features .feature-tile.active .feature-svg{color:#fff;filter:drop-shadow(0 0 8px #b9f1ff)}
+
+/* Heating emphasis v2: only true active-heating state; preserve approved layout. */
+#controls #pool.is-heating,#controls #spa.is-heating{
+ background:linear-gradient(135deg,rgba(255,187,74,.72),rgba(242,121,19,.53) 38%,rgba(40,109,167,.45) 78%,rgba(255,204,124,.34))!important;
+ border:2px solid rgba(255,170,53,.99)!important;
+ box-shadow:inset 0 1px 0 rgba(255,241,201,1),inset 0 0 18px rgba(255,166,46,.30),0 0 31px rgba(255,129,17,.78),0 8px 26px rgba(0,16,43,.28)!important;
+}
+#controls #pool.is-heating .top h2,#controls #spa.is-heating .top h2{
+ color:#ff861e!important;text-shadow:0 1px 1px rgba(65,25,0,.65),0 0 12px rgba(255,132,24,.52)!important;
+}
+#controls #pool.is-heating .temp,#controls #spa.is-heating .temp{
+ color:#ff9a34!important;text-shadow:0 1px 2px rgba(65,25,0,.65),0 0 13px rgba(255,132,24,.48)!important;
+}
+#controls #pool.is-heating .state-pill,#controls #spa.is-heating .state-pill{
+ background:linear-gradient(145deg,#ffad38,#de6a06)!important;color:#301603!important;
+ border-color:#ffdc99!important;box-shadow:0 0 13px rgba(255,144,24,.65)!important;
+}
+
+/* Approved final visual: subtly lowered stack, transparent refractive glass.
+   Preserve all geometry inside tiles, status colors and existing interactions. */
+@media(max-width:700px){#controls{padding-top:clamp(255px,46.5dvh,520px)!important}}
+#controls #pool,#controls #spa,#controls #poolLight,
+#controls #features .feature-tile:not(.active),#controls #sanitation .feature-tile{
+ background:linear-gradient(138deg,rgba(255,255,255,.20) 0%,rgba(93,165,239,.13) 38%,rgba(25,63,111,.27) 72%,rgba(255,255,255,.10) 100%)!important;
+ backdrop-filter:blur(19px) saturate(165%) brightness(1.10)!important;
+ -webkit-backdrop-filter:blur(19px) saturate(165%) brightness(1.10)!important;
+}
+#controls #pool.is-heating,#controls #spa.is-heating{
+ background:linear-gradient(135deg,rgba(255,187,74,.49),rgba(242,121,19,.34) 38%,rgba(40,109,167,.30) 78%,rgba(255,204,124,.22))!important;
+ backdrop-filter:blur(19px) saturate(165%) brightness(1.10)!important;
+ -webkit-backdrop-filter:blur(19px) saturate(165%) brightness(1.10)!important;
+}
