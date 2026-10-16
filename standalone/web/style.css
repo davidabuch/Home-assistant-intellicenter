@@ -168,3 +168,26 @@ main{z-index:1}
   #controls #sanitation:not([hidden]){margin-top:5px!important;gap:6px}
   #controls #sanitation .feature-tile{height:42px;min-height:42px}
 }
+
+/* Liquid Glass restored on all compact controls without changing their layout. */
+#controls #features .feature-tile,#controls #sanitation .feature-tile{
+  background:linear-gradient(150deg,#ffffff36 0%,#b8dfff17 35%,#102d4570 100%)!important;
+  border:1px solid #ffffff8a!important;
+  box-shadow:inset 0 1px 1px #ffffffb3,inset 0 -1px #ffffff16,0 7px 20px #03162c44!important;
+  backdrop-filter:blur(19px) saturate(165%) brightness(1.08)!important;
+  -webkit-backdrop-filter:blur(19px) saturate(165%) brightness(1.08)!important;
+  text-shadow:0 1px 2px #06162999;
+}
+#controls #features .feature-tile.active,#controls #sanitation .feature-tile.active{
+  background:linear-gradient(145deg,#6edbffb0,#078ac9a8 55%,#035a9fa6)!important;
+  border-color:#d0f8ff!important;
+  box-shadow:inset 0 1px 2px #fff,0 0 16px #31caffac,0 7px 20px #0324436e!important;
+}
+#controls #pool,#controls #spa,#controls #poolLight{
+  backdrop-filter:blur(17px) saturate(150%)!important;
+  -webkit-backdrop-filter:blur(17px) saturate(150%)!important;
+  box-shadow:inset 0 1px 1px #ffffff7a,0 8px 25px #03142640!important;
+}
+@media(prefers-reduced-transparency:reduce){
+  #controls #features .feature-tile,#controls #sanitation .feature-tile{background:#193b55ee!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+}
