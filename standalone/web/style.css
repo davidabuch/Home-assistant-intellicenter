@@ -59,3 +59,20 @@ main{z-index:1}
 /* Ensure the glass surface shows the actual backdrop without opaque tiles. */
 #pinLogin,.pool-light,.feature,.sanitation-tile{background-color:transparent!important}
 @media(prefers-reduced-transparency:reduce){.panel,#pool,#spa{background:#152c40e8!important}button{background:#284761e8!important}}
+
+/* Final scene calibration for portrait 1024 x 1536 asset: positions are in image coordinates. */
+.backyard-scene{background-position:center center;background-size:cover;--scene-scale:max(100vw / 1024, 100dvh / 1536)}
+/* The following anchors match the slide at upper left and raised spa at upper right. */
+.backyard-scene .pool-water{left:10%;top:43%;width:78%;height:45%;transform:rotate(-3deg)}
+.backyard-scene .spa-water{left:71%;right:auto;top:44%;width:29%;height:12%}
+.backyard-scene .slide-flow{left:14%;top:36%;width:8%;height:9%;transform:rotate(-16deg)}
+.backyard-scene .spillway-flow{left:69%;right:auto;top:53%;width:10%;height:10%;transform:rotate(-10deg)}
+.backyard-scene .jets-bubbles{left:73%;right:auto;top:45%;width:25%;height:10%}
+.backyard-scene .pool-glow{left:9%;top:46%;width:81%;height:42%}
+/* Gentle visual overlays: do not obscure the photographic scene. */
+.backyard-scene.pool-running .pool-water{opacity:.45}
+.backyard-scene.spa-running .spa-water{opacity:.6}
+.backyard-scene.slide-running .slide-flow{opacity:.75}
+.backyard-scene.spillway-running .spillway-flow{opacity:.7}
+.backyard-scene.jets-running .jets-bubbles{opacity:.75}
+.backyard-scene.light-running .pool-glow{opacity:.38}
