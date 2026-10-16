@@ -108,3 +108,22 @@ main{z-index:1}
   #controls .sanitation-tile{padding:8px 10px}
   #pinLogin{margin:auto 0}
 }
+
+/* Compact three-across equipment tiles: preserve the unobstructed pool scene. */
+@media(max-width:700px){
+  #controls{padding-top:clamp(270px,51dvh,560px)}
+  #controls #features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:6px}
+  #controls #features .feature{min-width:0;min-height:88px;padding:9px 7px;display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;gap:7px;text-align:center;border-radius:17px}
+  #controls #features .feature strong{font-size:12px;line-height:1.16;overflow-wrap:normal}
+  #controls #features .feature .feature-toggle{width:100%;min-width:0;min-height:38px;font-size:12px;margin-top:auto}
+  #controls #poolLight{grid-template-columns:42px minmax(0,1fr);gap:8px;padding:8px 10px!important;margin-top:7px!important}
+  #controls #poolLight .light-icon{width:42px;height:42px;min-height:42px}
+  #controls #poolLight .light-detail{min-height:44px}
+  #controls #sanitation:not([hidden]){margin-top:7px!important;gap:7px}
+  #controls #sanitation>.sanitation-tile{padding:8px!important;gap:5px!important}
+  #controls #sanitation>.sanitation-tile>button{min-height:38px;height:38px}
+}
+@media(max-width:340px){
+  #controls #features .feature{padding:7px 4px}
+  #controls #features .feature strong{font-size:11px}
+}
