@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Pool Scene Motion Lab — Offline</title><link rel="stylesheet" href="./style.css"><style>
+.lab{position:fixed;left:8px;right:8px;bottom:8px;z-index:10;padding:12px;border-radius:16px;background:#08192de8;color:white;font:13px system-ui;backdrop-filter:blur(12px)}.lab label{display:inline-flex;align-items:center;gap:5px;margin:5px 8px 5px 0}.lab input{width:auto;margin:0}.lab small{display:block;opacity:.75}.backyard-scene{z-index:-1!important}body{min-height:100dvh}
+/* file:// preview: production root-relative URLs resolve to the disk root.
+   Override the photograph to a sibling file, without changing production paths. */
+.backyard-scene .scene-art{background-image:url('./backyard-static-off.jpg')!important}
+.backyard-scene{background-image:none!important}
+.lab{z-index:20}
+
+/* Experiment 1: no fake water curtains, rings, or floating slide streaks. */
+.backyard-scene .scene-art .slide-flow,.backyard-scene .scene-art .spillway-flow,.backyard-scene .scene-art .jets-bubbles,.backyard-scene .scene-art .pool-water,.backyard-scene .scene-art .spa-water{display:none!important}
+.backyard-scene .scene-art .photo-motion{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.88}
+</style></head><body>
+<div id="backyardScene" class="backyard-scene" aria-hidden="true"><div class="scene-art"><div class="scene-water pool-water"></div><div class="scene-water spa-water"></div><div class="scene-effect slide-flow"></div><div class="scene-effect spillway-flow"></div><div class="scene-effect jets-bubbles"></div><div class="scene-effect pool-glow"></div><img class="photo-on-layer" data-feature="slide" src="./scene-on-slide.png" alt="" decoding="async" onerror="this.hidden=true"><img class="photo-on-layer" data-feature="spillway" src="./scene-on-spillway.png" alt="" decoding="async" onerror="this.hidden=true"><img class="photo-on-layer" data-feature="jets" src="./scene-on-jets.png" alt="" decoding="async" onerror="this.hidden=true"><img class="photo-on-layer" data-feature="pool" src="./scene-on-pool.png" alt="" decoding="async" onerror="this.hidden=true"><img class="photo-on-layer" data-feature="spa" src="./scene-on-spa.png" alt="" decoding="async" onerror="this.hidden=true"><img class="photo-on-layer" data-feature="light" src="./scene-on-light.png" alt="" decoding="async" onerror="this.hidden=true"><img class="photo-on-layer" data-feature="spa-light" src="./scene-on-spa-light.png" alt="" decoding="async" onerror="this.hidden=true"></div></div>
+<div class="lab"><strong>Static Photo State Lab (offline, no HA connection)</strong><div id="toggles"></div><small>Local visual testing only. No equipment commands, API, cookies, or PIN.</small><small>Static ON images will appear when their transparent photographic layers are supplied. Missing layers remain hidden.</small></div>
+<script>
+const labels={slide:"slide-running",spillway:"spillway-running",jets:"jets-running",pool:"pool-running",spa:"spa-running",light:"light-running"};
+const scene=document.getElementById("backyardScene"),root=document.getElementById("toggles");
+// Pool and spa circulation cannot both be active; the lab mirrors that contract.
+const boxes={};
+for(const [name,cls] of Object.entries(labels)){const label=document.createElement("label"),input=document.createElement("input");input.type="checkbox";boxes[name]=input;input.addEventListener("change",()=>{if(input.checked&&(name==="pool"||name==="spa")){const opposite=name==="pool"?"spa":"pool";boxes[opposite].checked=false;scene.classList.remove(labels[opposite])}scene.classList.toggle(cls,input.checked)});label.append(input,document.createTextNode(name));root.append(label)}
+// A known OFF baseline is required before evaluating each isolated effect.
+for(const cls of Object.values(labels))scene.classList.remove(cls);
+</script></body></html>

@@ -149,7 +149,10 @@ class Handler(BaseHTTPRequestHandler):
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError) as exc:
                 return self.send_json({"error": "Home Assistant unavailable"}, 503)
         assets = {"/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
-                  "/style.css": ("web/style.css", "text/css"), "/backyard-scene.svg": ("web/backyard-scene.svg", "image/svg+xml"), "/backyard-final.jpg": ("web/backyard-final.jpg", "image/jpeg"), "/manifest.webmanifest": ("web/manifest.webmanifest", "application/manifest+json"), "/sw.js": ("web/sw.js", "text/javascript")}
+                  "/style.css": ("web/style.css", "text/css"), "/backyard-scene.svg": ("web/backyard-scene.svg", "image/svg+xml"), "/backyard-final.jpg": ("web/backyard-final.jpg", "image/jpeg"), "/backyard-off.jpg": ("web/backyard-off.jpg", "image/jpeg"), "/manifest.webmanifest": ("web/manifest.webmanifest", "application/manifest+json"), "/sw.js": ("web/sw.js", "text/javascript")}
+        assets["/backyard-static-off.jpg"] = ("web/backyard-static-off.jpg", "image/jpeg")
+        assets.update({f"/scene-on-{name}.png": (f"web/scene-on-{name}.png", "image/png")
+                       for name in ("pool", "spa", "jets", "slide", "spillway", "light", "spa-light")})
         assets.update({f"/icons/approved-v2/icon-{size}.png":
                        (f"web/icons/approved-v2/icon-{size}.png", "image/png")
                        for size in (16, 32, 180, 192, 512)})
