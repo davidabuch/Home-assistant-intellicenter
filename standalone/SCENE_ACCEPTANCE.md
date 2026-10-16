@@ -1,6 +1,6 @@
 # Pool & Spa photographic scene — release acceptance
 
-Status: **BLOCKED** for production animation release until the clean background exists.
+Status: **IN PROGRESS** — clean OFF candidate uploaded and wired on development branch; geometric calibration and physical-state confirmation still pending.
 
 The installed sunset photograph (`web/backyard-final.jpg`) has baked-in flowing water at the slide and spa spillway and visible spa turbulence. It cannot represent equipment OFF accurately, regardless of CSS animation.
 
@@ -49,3 +49,10 @@ Asset extraction requirements:
 5. Preserve the existing lower control layout and PIN/permissions; test on the same installed add-on only after CI and release.
 
 Approval is for the visual direction, not for an unverified release.
+
+## Asset integration checkpoint — 2026-10-16
+
+- Clean candidate `web/backyard-off.jpg` committed at `2af9c85` by user via Mac Terminal.
+- Development CSS background now points to `backyard-off.jpg`, with SVG fallback.
+- Static server whitelist includes `/backyard-off.jpg`; service worker precaches it.
+- **Not yet production ready**: visually calibrate masks/placement at actual iPhone crop and verify motion vs observed HA states before merging.
