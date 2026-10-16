@@ -56,3 +56,15 @@ Approval is for the visual direction, not for an unverified release.
 - Development CSS background now points to `backyard-off.jpg`, with SVG fallback.
 - Static server whitelist includes `/backyard-off.jpg`; service worker precaches it.
 - **Not yet production ready**: visually calibrate masks/placement at actual iPhone crop and verify motion vs observed HA states before merging.
+
+## Coordinate calibration checkpoint
+
+The clean uploaded image is **651 × 1199**. The scene now uses one centered `scene-art` element with the exact image aspect ratio. Both the photograph and all decorative layers are children of this plane, so iPhone viewport cropping does not shift the water effects relative to the pool.
+
+Initial image-space regions (awaiting visual confirmation):
+- Slide: approximately image x=23–137, y=333–479; mask follows fiberglass chute and outlet
+- Spillway: approximately x=459–648, y=524–650; curved front-edge mask
+- Spa water/jets: x=469–651, y=478–580
+- Pool: broad masked region starting near y=436
+
+These are **engineering estimates**, not physical commissioning PASS. Test the OFF scene first, then isolated slide, spillway and jets in the offline lab. Verify a full iPhone portrait viewport and no false ON effects from unavailable state. Do not merge until these visual checks pass.
