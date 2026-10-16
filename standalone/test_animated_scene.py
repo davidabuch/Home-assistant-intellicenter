@@ -131,3 +131,13 @@ def test_static_state_exclusivity_and_photo_order():
     for name in ("pool","spa","light","spa-light","jets","spillway","slide"):
         assert '.photo-on-layer[data-feature="'+name+'"]{z-index:' in css
     assert "animation:none!important" in css
+
+def test_live_photo_layers_not_hidden_by_image_load_handlers():
+    html=(ROOT / "web/index.html").read_text()
+    css=(ROOT / "web/style.css").read_text()
+    assert 'onload="this.hidden=false"' not in html
+    assert 'onerror="this.hidden=true"' not in html
+    assert '.scene-art:has(' not in css
+    assert '.backyard-scene .scene-art{aspect-ratio:412 / 408;' in css
+    assert 'background-image:url(\'/backyard-static-off.jpg\')' in css
+    assert 'light-running .photo-on-layer[data-feature="spa-light"]' in css
