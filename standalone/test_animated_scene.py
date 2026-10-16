@@ -40,3 +40,19 @@ def test_scene_is_not_control_endpoint():
     assert 'id="backyardScene"' in html
     assert 'state={};updateScene()' in js
     assert 'scene-paused' in js
+
+
+def test_glass_finish_keeps_stateful_highlight_and_accessibility():
+    css = (ROOT / "web/style.css").read_text()
+    js = (ROOT / "web/app.js").read_text()
+    assert "backdrop-filter:blur(19px)" in css
+    assert "#controls #features .feature-tile.active" in css
+    assert 'setAttribute("aria-checked",String(on))' in js
+    assert 'toggle.disabled=busy||!["on","off"].includes(e.state)' in js
+
+def test_background_off_state_requires_clean_asset_before_animation_release():
+    # The current approved photo visibly contains running slide and spillway water.
+    # Preserve this release gate until a separate clean dry-base asset is committed.
+    readme = (ROOT / "SCENE_ACCEPTANCE.md").read_text()
+    assert "BLOCKED" in readme
+    assert "dry" in readme.lower()
