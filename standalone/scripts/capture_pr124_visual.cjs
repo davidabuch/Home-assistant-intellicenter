@@ -40,7 +40,7 @@ const fs = require("fs");
 
   await page.goto("http://127.0.0.1:8765/", { waitUntil: "networkidle" });
   await page.waitForSelector("#controls:not([hidden])");
-  await page.screenshot({ path: "standalone/visual-acceptance-pr124.png", fullPage: true });
+  await page.screenshot({ path: "standalone/visual-acceptance-pr124.png", fullPage: false });
   await browser.close();
 
   if (!fs.existsSync("standalone/visual-acceptance-pr124.png")) {
