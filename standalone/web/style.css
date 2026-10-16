@@ -357,3 +357,5 @@ main{z-index:1}
 .backyard-scene.static-showcase .photo-on-layer[data-feature="spa"]{
  opacity:0;visibility:hidden;
 }
+
+.scene-caption{font-size:11px;line-height:1.4;color:rgba(240,247,255,.78);margin:4px 0 10px;text-align:center}
