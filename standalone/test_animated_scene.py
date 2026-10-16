@@ -80,3 +80,19 @@ def test_glass_controls_keep_confirmed_state_highlight_and_accessibility():
 def test_offline_scene_lab_is_not_publicly_served():
     server = (ROOT / "server.py").read_text()
     assert "scene-lab.html" not in server
+
+
+def test_approved_reference_chrome_and_mobile_glass_contract():
+    html = (ROOT / "web/index.html").read_text()
+    css = (ROOT / "web/style.css").read_text()
+    sw = (ROOT / "web/sw.js").read_text()
+    assert 'class="reference-toolbar"' in html
+    assert "Features ON" in html
+    assert "Live Water Features" in html
+    assert 'class="settings-orb"' in html
+    assert "reference-match-1" in html
+    assert "#controls{padding-top:clamp(245px,45dvh,510px)!important}" in css
+    assert "#controls #features .feature-tile" in css
+    assert "min-height:76px!important" in css
+    assert "#controls #sanitation .feature-tile::after" in css
+    assert "reference-match-1" in sw
