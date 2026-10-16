@@ -78,3 +78,12 @@ Actual candidate screenshots, not the image-editor output alone, must be reviewe
 against Image A's protected interface and Image B's lawn/background appearance.
 Green CI does not grant visual acceptance. Stop after CI/readback and present the
 rendered candidate for explicit approval. Do not merge, publish or deploy early.
+
+## Approval and release authorization
+
+The operator explicitly approved the rendered candidate, merge, release and HA
+deployment on2026-10-16. The photograph and protected UI are unchanged from
+reviewed heada022f6c. Release metadata advances the app to0.1.31; rerun CI on
+the resulting exact head before merging and deploy through Supervisor afterward.
+No pool equipment actuation is part of this verification. Earlier pending-approval
+statements above describe the pre-approval review stage and are superseded here.
