@@ -555,3 +555,18 @@ main{z-index:1}
  background:linear-gradient(145deg,#ffad38,#de6a06)!important;color:#301603!important;
  border-color:#ffdc99!important;box-shadow:0 0 13px rgba(255,144,24,.65)!important;
 }
+
+/* Approved final visual: subtly lowered stack, transparent refractive glass.
+   Preserve all geometry inside tiles, status colors and existing interactions. */
+@media(max-width:700px){#controls{padding-top:clamp(255px,46.5dvh,520px)!important}}
+#controls #pool,#controls #spa,#controls #poolLight,
+#controls #features .feature-tile:not(.active),#controls #sanitation .feature-tile{
+ background:linear-gradient(138deg,rgba(255,255,255,.20) 0%,rgba(93,165,239,.13) 38%,rgba(25,63,111,.27) 72%,rgba(255,255,255,.10) 100%)!important;
+ backdrop-filter:blur(19px) saturate(165%) brightness(1.10)!important;
+ -webkit-backdrop-filter:blur(19px) saturate(165%) brightness(1.10)!important;
+}
+#controls #pool.is-heating,#controls #spa.is-heating{
+ background:linear-gradient(135deg,rgba(255,187,74,.49),rgba(242,121,19,.34) 38%,rgba(40,109,167,.30) 78%,rgba(255,204,124,.22))!important;
+ backdrop-filter:blur(19px) saturate(165%) brightness(1.10)!important;
+ -webkit-backdrop-filter:blur(19px) saturate(165%) brightness(1.10)!important;
+}
