@@ -34,3 +34,18 @@ Do not mark this document PASS based only on CI or a screenshot of static water.
 Use a **single** clean background image, with independently toggled decorative water layers. Do not overlay an all-off image over a flowing background: that creates mismatched geometry and ghost water. Do not animate a feature merely because the user tapped its button; wait for the existing authenticated state refresh to confirm it.
 
 Current PR #120 only restores the glass appearance and introduces acceptance checks. Keep the release unmerged until the scene asset and behavior are complete.
+
+## Approved visual reference — 2026-10-16
+
+The user approved the latest two-panel **All Features OFF / Features ON** mockup, including the shortened dry waterslide exit (no tongue-shaped fiberglass protrusion), sunset scene, visible spa spillway and bottom-anchored glass console.
+
+**Important:** The mockup is a visual specification, **not a shippable background image**: both halves contain baked-in temperature cards and control buttons, and the ON half depicts a different water state. Never set a full mockup as the CSS scene background; doing so would duplicate the interactive controls and produce a false equipment-state display.
+
+Asset extraction requirements:
+1. Derive a clean portrait OFF background with **no text or controls** and the corrected dry slide outlet. Match the approved perspective and composition.
+2. Keep the pool/spa water, lights and landscape consistent with the OFF reference; eliminate running-water evidence at slide and spillway.
+3. Generate or render independent transparent slide-water, spa-spillway and jet effects aligned to **that same clean background**; do not use a complete ON photograph as an overlay.
+4. Verify slide OFF / ON and spillway OFF / ON against confirmed state in a browser at iPhone viewport dimensions. Confirm no ghost water when OFF.
+5. Preserve the existing lower control layout and PIN/permissions; test on the same installed add-on only after CI and release.
+
+Approval is for the visual direction, not for an unverified release.
