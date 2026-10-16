@@ -191,3 +191,48 @@ main{z-index:1}
 @media(prefers-reduced-transparency:reduce){
   #controls #features .feature-tile,#controls #sanitation .feature-tile{background:#193b55ee!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 }
+
+/* V2 independent water motion: decorative, state-gated, and noninteractive.
+   Calibration targets are the clean OFF background; never ship on a wet photo. */
+.backyard-scene{--slide-x:8%;--slide-y:31%;--slide-w:9%;--slide-h:18%;--fall-x:69%;--fall-y:47%;--fall-w:14%;--fall-h:11%}
+.backyard-scene .slide-flow{
+ left:var(--slide-x);top:var(--slide-y);width:var(--slide-w);height:var(--slide-h);
+ border-radius:38% 48% 28% 40%;transform:rotate(-12deg);filter:blur(1.1px);
+ background:repeating-linear-gradient(175deg,#f1ffffdf 0 3px,#82d7f0b8 4px 9px,#ffffff75 10px 11px,#4eb3df9e 12px 19px);
+ background-size:100% 55px;clip-path:polygon(10% 0,73% 0,90% 48%,100% 72%,74% 100%,28% 100%,3% 69%,0 30%);
+ animation:scene-waterfall-slide 1.35s linear infinite;
+}
+.backyard-scene .slide-flow::after{
+ content:"";position:absolute;left:-35%;bottom:-5%;width:165%;height:27%;
+ background:radial-gradient(ellipse,#e8ffffdb 0,#73d6f0a8 28%,transparent 72%);
+ animation:scene-splash 1.4s ease-in-out infinite;
+}
+.backyard-scene .spillway-flow{
+ left:var(--fall-x);top:var(--fall-y);width:var(--fall-w);height:var(--fall-h);
+ transform:skewX(-11deg);border-radius:3% 3% 38% 30%;filter:blur(.8px);
+ background:repeating-linear-gradient(92deg,#e7ffffdb 0 2px,#91e4f2ab 3px 5px,#ffffff3b 6px 9px,transparent 10px 13px);
+ background-size:100% 48px;
+ clip-path:polygon(0 0,100% 0,89% 83%,72% 100%,12% 96%,0 72%);
+ animation:scene-waterfall-slide .8s linear infinite;
+}
+.backyard-scene .spillway-flow::after{
+ content:"";position:absolute;left:-15%;bottom:-5%;width:130%;height:30%;
+ background:radial-gradient(ellipse,#edffffa8,#77d5f086 35%,transparent 73%);
+ animation:scene-splash 1.2s ease-in-out infinite;
+}
+.backyard-scene .jets-bubbles{
+ background:
+ radial-gradient(circle at 16% 72%,#fff 0 2px,#ffffff4d 3px,transparent 6px),
+ radial-gradient(circle at 38% 37%,#ffffffd8 0 3px,transparent 7px),
+ radial-gradient(circle at 69% 64%,#e9ffffe8 0 4px,transparent 8px),
+ radial-gradient(circle at 82% 31%,#ffffffd4 0 2px,transparent 5px),
+ repeating-radial-gradient(ellipse at 50% 50%,#ffffff26 0 2px,transparent 4px 13px);
+ animation:scene-bubble-rise 2.1s ease-in-out infinite;
+}
+@keyframes scene-waterfall-slide{from{background-position:0 0}to{background-position:0 55px}}
+@keyframes scene-splash{0%,100%{transform:scale(.85);opacity:.65}50%{transform:scale(1.15);opacity:1}}
+@keyframes scene-bubble-rise{0%,100%{transform:translateY(3px) scale(.97)}50%{transform:translateY(-7px) scale(1.04)}}
+@media(prefers-reduced-motion:reduce){
+ .backyard-scene .slide-flow,.backyard-scene .spillway-flow,.backyard-scene .jets-bubbles,
+ .backyard-scene .slide-flow::after,.backyard-scene .spillway-flow::after{animation:none!important}
+}
