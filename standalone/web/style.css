@@ -324,6 +324,6 @@ main{z-index:1}
 }
 
 /* Approved eight-panel storyboard: static ON photo layers, no animation. */
-.backyard-scene .scene-art{aspect-ratio:412 / 408;width:max(100vw,calc(100dvh * 412 / 408));background-image:url('/backyard-static-off.jpg'),url('/backyard-off.jpg');background-size:100% 100%}
+.backyard-scene .scene-art:has(.photo-on-layer:not([hidden])){aspect-ratio:412 / 408;width:max(100vw,calc(100dvh * 412 / 408));background-image:url('/backyard-static-off.jpg'),url('/backyard-off.jpg');background-size:100% 100%}
 .backyard-scene .scene-art .photo-on-layer[hidden]{display:none!important}
 .backyard-scene .scene-art .photo-on-layer{z-index:2}
