@@ -410,3 +410,15 @@ main{z-index:1}
     -webkit-backdrop-filter:none!important;
   }
 }
+
+/* Approved portrait composition: photographic background remains independent of HA. */
+@media(max-width:700px){
+ .backyard-scene{background-position:center top!important;background-size:100% auto!important;background-repeat:no-repeat!important;background-color:#07182b!important}
+ body::before{background:linear-gradient(to bottom,transparent 0%,transparent 39%,rgba(3,18,37,.13) 58%,rgba(3,18,37,.32) 100%)!important}
+ main{justify-content:flex-end!important}
+ #controls{padding-top:clamp(300px,51dvh,600px)!important}
+ #controls .water-bodies>.panel{border-radius:21px!important}
+ #controls #features .feature-tile{font-size:12px!important;text-shadow:0 1px 4px #001b39}
+ #controls #sanitation .feature-tile{font-size:12px!important}
+}
+@media(min-width:701px){.backyard-scene{background-size:cover!important}}
