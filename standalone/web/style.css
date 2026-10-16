@@ -374,3 +374,39 @@ main{z-index:1}
   display:none!important;
   animation:none!important;
 }
+
+/* October 16 approved direction: stronger refractive Liquid Glass, no extra controls. */
+#controls .water-bodies>.panel,#controls #poolLight,
+#controls #features .feature-tile,#controls #sanitation .feature-tile{
+  background:linear-gradient(135deg,rgba(255,255,255,.25),rgba(115,183,235,.13) 35%,rgba(9,35,59,.30) 76%,rgba(255,255,255,.12))!important;
+  border:1px solid rgba(242,251,255,.70)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.76),inset 1px 0 0 rgba(255,255,255,.25),
+             inset 0 -1px 0 rgba(255,255,255,.17),0 9px 25px rgba(0,13,35,.26)!important;
+  backdrop-filter:blur(27px) saturate(185%) brightness(1.10)!important;
+  -webkit-backdrop-filter:blur(27px) saturate(185%) brightness(1.10)!important;
+}
+#controls #features .feature-tile{
+  position:relative;min-height:65px!important;height:auto!important;
+  padding:9px 5px!important;display:flex!important;flex-direction:column!important;
+  gap:4px;align-items:center;justify-content:center;
+}
+#controls #features .feature-tile::before{
+  content:"";display:block;width:25px;height:25px;
+  background-size:contain;background-repeat:no-repeat;background-position:center;
+  filter:drop-shadow(0 0 7px rgba(39,173,255,.85));
+}
+#controls #features .feature-tile[data-key="jets"]::before{content:"◌";font-size:29px;color:#a9eaff;line-height:25px}
+#controls #features .feature-tile[data-key="spillway"]::before{content:"≋";font-size:30px;color:#a9eaff;line-height:25px}
+#controls #features .feature-tile[data-key="slide"]::before{content:"≈";font-size:30px;color:#a9eaff;line-height:25px}
+#controls #features .feature-tile.active{
+  background:linear-gradient(145deg,rgba(38,159,243,.68),rgba(5,78,161,.46))!important;
+  border-color:rgba(196,242,255,.95)!important;
+  box-shadow:inset 0 1px 0 #fff9,0 0 18px #009dff66!important;
+}
+@media(prefers-reduced-transparency:reduce){
+  #controls .water-bodies>.panel,#controls #poolLight,
+  #controls #features .feature-tile,#controls #sanitation .feature-tile{
+    background:rgba(18,43,65,.92)!important;backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+}
