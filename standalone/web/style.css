@@ -615,3 +615,6 @@ main{position:relative!important;z-index:3!important}
 /* iOS compositing safeguard: render lawn over the backdrop in the root stacking context. */
 #lawnForeground{z-index:100!important;isolation:isolate!important;opacity:1!important;visibility:visible!important;display:block!important;background-color:#29401c!important;background-blend-mode:normal!important}
 main{z-index:101!important}
+
+/* Keep photographed grass blades at natural scale rather than stretching a 38px strip to 300px. */
+#lawnForeground{background-size:100% 76px!important;background-repeat:repeat-y!important;background-position:center bottom!important;background-color:#142714!important;}
