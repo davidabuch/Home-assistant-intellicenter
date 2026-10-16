@@ -273,3 +273,33 @@ main{z-index:1}
 @media(prefers-reduced-motion:reduce){
  .backyard-scene .scene-art .slide-flow,.backyard-scene .scene-art .spillway-flow{animation:none!important}
 }
+
+/* Photographic realism: preserve the water texture already in the photograph.
+   Avoid the former full-pool concentric rings and striped spa overlay. */
+.backyard-scene .scene-art .pool-water{
+ background:radial-gradient(ellipse at 45% 50%,rgba(178,238,255,.075),transparent 60%),
+ repeating-linear-gradient(173deg,transparent 0 34px,rgba(196,248,255,.065) 35px 36px,transparent 38px 68px);
+ background-size:100% 100%,180% 110%;
+ mix-blend-mode:soft-light;opacity:0;
+ animation:scene-subtle-current 15s ease-in-out infinite;
+}
+.backyard-scene .scene-art .spa-water{
+ background:radial-gradient(ellipse at 50% 50%,rgba(236,255,255,.16),transparent 70%),
+ repeating-linear-gradient(165deg,transparent 0 14px,rgba(205,248,255,.09) 15px 16px,transparent 18px 31px);
+ background-size:100% 100%,150% 130%;
+ mix-blend-mode:screen;
+ animation:scene-subtle-current 7s ease-in-out infinite;
+}
+.backyard-scene .scene-art .slide-flow{
+ background:repeating-linear-gradient(172deg,rgba(246,255,255,.68) 0 2px,rgba(169,231,250,.42) 4px 7px,rgba(255,255,255,.18) 8px 10px,transparent 11px 19px);
+ mix-blend-mode:screen;filter:blur(1.5px);
+}
+.backyard-scene .scene-art .spillway-flow{
+ background:repeating-linear-gradient(89deg,rgba(239,255,255,.53) 0 2px,rgba(145,220,239,.30) 3px 6px,transparent 7px 13px);
+ mix-blend-mode:screen;filter:blur(1.3px);
+}
+.backyard-scene.pool-running .pool-water{opacity:.5}
+.backyard-scene.spa-running .spa-water{opacity:.65}
+.backyard-scene.slide-running .slide-flow{opacity:.72}
+.backyard-scene.spillway-running .spillway-flow{opacity:.75}
+@keyframes scene-subtle-current{0%,100%{background-position:0 0,0 0;transform:translate(0,0)}50%{background-position:0 0,15px 8px;transform:translate(0,1px)}}
