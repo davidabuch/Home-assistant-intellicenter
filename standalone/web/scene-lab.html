@@ -11,7 +11,7 @@
 .backyard-scene .scene-art .photo-motion{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.88}
 </style></head><body>
 <div id="backyardScene" class="backyard-scene" aria-hidden="true"><div class="scene-art"><div class="scene-water pool-water"></div><div class="scene-water spa-water"></div><div class="scene-effect slide-flow"></div><div class="scene-effect spillway-flow"></div><div class="scene-effect jets-bubbles"></div><div class="scene-effect pool-glow"></div></div></div>
-<div class="lab"><strong>Scene Motion Lab (offline, no HA connection) — photographic water experiment 1</strong><div id="toggles"></div><small>Local visual testing only. No equipment commands, API, cookies, or PIN.</small><small id="motionStatus" role="status">Loading photograph and animation engine…</small></div>
+<div class="lab"><strong>Scene Motion Lab (offline, no HA connection) — photographic water experiment 1</strong><div id="toggles"></div><small>Local visual testing only. No equipment commands, API, cookies, or PIN.</small><small id="motionStatus" role="status">Loading photograph and animation engine…</small><div style="height:9px;margin-top:8px;background:#ffffff24;border-radius:8px;overflow:hidden"><div id="motionPulse" style="width:18px;height:9px;background:#e8aa4a;transition:transform .2s linear"></div></div><small>Heartbeat moves every second if JavaScript is running. Green = Pool/Spa selected. Slide/Spillway/Jets are not implemented in this experiment.</small></div>
 <script>
 const labels={slide:"slide-running",spillway:"spillway-running",jets:"jets-running",pool:"pool-running",spa:"spa-running",light:"light-running"};
 const scene=document.getElementById("backyardScene"),root=document.getElementById("toggles");
