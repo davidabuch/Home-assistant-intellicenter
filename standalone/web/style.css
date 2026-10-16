@@ -127,3 +127,23 @@ main{z-index:1}
   #controls #features .feature{padding:7px 4px}
   #controls #features .feature strong{font-size:11px}
 }
+
+/* One-tap equipment tiles: entire glass surface is the switch. */
+#controls #features{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+#controls #features .feature-tile,#controls #sanitation .feature-tile{display:grid;place-items:center;text-align:center;min-width:0;min-height:48px;height:48px;padding:8px 6px;margin:0;border-radius:17px;font-size:13px;font-weight:650;line-height:1.2;cursor:pointer;color:#f8fcff;transition:background .2s,box-shadow .2s,border-color .2s}
+#controls #features .feature-tile.active,#controls #sanitation .feature-tile.active{background:linear-gradient(140deg,#27a5e2c9,#145e9fc9)!important;border-color:#a3e9ff!important;box-shadow:0 0 16px #37c9ff8a,inset 0 1px #ffffff90!important;color:white}
+#controls #features .feature-tile:disabled,#controls #sanitation .feature-tile:disabled{cursor:not-allowed}
+#controls #sanitation:not([hidden]){margin-top:7px!important}
+#controls #sanitation .feature-tile{width:100%;height:44px;min-height:44px;font-size:12px}
+@media(max-width:700px){
+  #controls{padding-top:clamp(290px,54dvh,600px)}
+  #controls .water-bodies>.panel{padding:9px 11px!important}
+  #controls .water-bodies .readout{margin:5px 0 6px}
+  #controls .water-bodies .temp{font-size:34px}
+  #controls .water-bodies .reading .muted{margin:1px 0 0}
+  #controls .water-bodies .stepper{padding-top:5px;gap:5px}
+  #controls .water-bodies .stepper button{height:34px;min-height:34px}
+  #controls #features .feature-tile{min-height:48px;height:48px;flex-direction:initial;justify-content:center}
+  #controls #sanitation>.sanitation-tile{padding:0!important}
+  #controls #sanitation .feature-tile{height:44px;min-height:44px}
+}
