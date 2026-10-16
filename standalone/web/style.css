@@ -85,3 +85,26 @@ main{z-index:1}
 .feature .feature-toggle,.sanitation-tile .feature-toggle{background:linear-gradient(145deg,#ffffff2c,#102f3b48)!important;border-color:#ffffff75!important}
 .feature strong,.sanitation-tile strong{color:#fff;text-shadow:0 1px 3px #000b}
 @media(prefers-reduced-transparency:reduce){.feature,.sanitation-tile,#pool,#spa{background:#162b3fe8!important}}
+
+/* Restore approved composition: expose the backyard scene above a bottom glass console. */
+@media(max-width:700px){
+  body{min-height:100dvh}
+  main{min-height:100dvh;max-width:540px;display:flex;flex-direction:column;justify-content:flex-end;padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 12px)!important}
+  main>header{position:absolute;top:calc(env(safe-area-inset-top) + 6px);left:14px;right:14px;margin:0;z-index:2}
+  #controls{margin-top:auto;padding-top:clamp(240px,47dvh,540px)}
+  #controls .panel{margin:5px 0;padding:11px 12px}
+  #controls .water-bodies{gap:8px}
+  #controls .top h2{font-size:16px}
+  #controls .temp{font-size:37px;margin:0}
+  #controls .readout{margin:7px 0 9px}
+  #controls .actions .power-button{width:44px;height:44px;min-height:44px}
+  #controls .stepper{padding-top:6px;gap:5px}
+  #controls .stepper button{width:37px;min-width:37px;height:35px;min-height:35px}
+  #controls .stepper .target-label{font-size:11px}
+  #controls .features{gap:6px}
+  #controls .feature{min-height:48px;padding:7px 12px}
+  #controls .feature .feature-toggle{min-height:35px}
+  #controls .sanitation-tiles{gap:7px}
+  #controls .sanitation-tile{padding:8px 10px}
+  #pinLogin{margin:auto 0}
+}
