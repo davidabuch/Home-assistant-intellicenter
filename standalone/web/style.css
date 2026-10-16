@@ -342,4 +342,4 @@ main{z-index:1}
 
 /* Live display regression fix: images are loaded normally, visibility follows
    confirmed HA state classes only. No hidden attribute or onload race. */
-.backyard-scene .scene-art .photo-on-layer{display:block;opacity:0;visibility:hidden}
+ .backyard-scene .scene-art .photo-on-layer{display:block}
