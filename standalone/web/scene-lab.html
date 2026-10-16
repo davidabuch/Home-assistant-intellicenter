@@ -6,13 +6,16 @@
 .backyard-scene{background-image:none!important}
 .lab{z-index:20}
 
+/* Experiment 1: no fake water curtains, rings, or floating slide streaks. */
+.backyard-scene .scene-art .slide-flow,.backyard-scene .scene-art .spillway-flow,.backyard-scene .scene-art .jets-bubbles,.backyard-scene .scene-art .pool-water,.backyard-scene .scene-art .spa-water{display:none!important}
+.backyard-scene .scene-art .photo-motion{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.88}
 </style></head><body>
 <div id="backyardScene" class="backyard-scene" aria-hidden="true"><div class="scene-art"><div class="scene-water pool-water"></div><div class="scene-water spa-water"></div><div class="scene-effect slide-flow"></div><div class="scene-effect spillway-flow"></div><div class="scene-effect jets-bubbles"></div><div class="scene-effect pool-glow"></div></div></div>
-<div class="lab"><strong>Scene Motion Lab (offline, no HA connection) — all effects OFF by default</strong><div id="toggles"></div><small>Local visual testing only. No equipment commands, API, cookies, or PIN.</small></div>
+<div class="lab"><strong>Scene Motion Lab (offline, no HA connection) — photographic water experiment 1</strong><div id="toggles"></div><small>Local visual testing only. No equipment commands, API, cookies, or PIN.</small></div>
 <script>
 const labels={slide:"slide-running",spillway:"spillway-running",jets:"jets-running",pool:"pool-running",spa:"spa-running",light:"light-running"};
 const scene=document.getElementById("backyardScene"),root=document.getElementById("toggles");
 for(const [name,cls] of Object.entries(labels)){const label=document.createElement("label"),input=document.createElement("input");input.type="checkbox";input.addEventListener("change",()=>scene.classList.toggle(cls,input.checked));label.append(input,document.createTextNode(name));root.append(label)}
 // A known OFF baseline is required before evaluating each isolated effect.
 for(const cls of Object.values(labels))scene.classList.remove(cls);
-</script></body></html>
+</script><script src="./scene-photo-motion.js"></script></body></html>
