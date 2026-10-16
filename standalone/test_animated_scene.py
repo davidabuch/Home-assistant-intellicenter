@@ -89,3 +89,18 @@ def test_clean_off_photo_is_present_and_served():
     assert '"/backyard-off.jpg": ("web/backyard-off.jpg", "image/jpeg")' in server
     assert "url('/backyard-off.jpg')" in css
     assert 'cache.add("/backyard-off.jpg")' in sw
+
+
+def test_scene_layers_share_photo_cover_coordinate_space():
+    html=(ROOT / "web/index.html").read_text()
+    lab=(ROOT / "web/scene-lab.html").read_text()
+    css=(ROOT / "web/style.css").read_text()
+    for markup in (html,lab):
+        assert 'class="backyard-scene"' in markup
+        assert 'class="scene-art"' in markup
+        assert markup.index('class="scene-art"') < markup.index('class="scene-effect slide-flow"')
+    assert 'aspect-ratio:651 / 1199' in css
+    assert "background:#0a2840 url('/backyard-off.jpg')" in css
+    assert ".scene-art .slide-flow" in css
+    assert ".scene-art .spillway-flow" in css
+    assert "clip-path:polygon" in css
