@@ -147,3 +147,24 @@ main{z-index:1}
   #controls #sanitation>.sanitation-tile{padding:0!important}
   #controls #sanitation .feature-tile{height:44px;min-height:44px}
 }
+
+/* Screenshot refinement: lift the spa spillway out from behind the cards.
+   Keep safe-area clearance; compress thermostat cards, not touch targets. */
+@media(max-width:700px){
+  main{padding-bottom:max(4px,env(safe-area-inset-bottom))!important}
+  #controls{padding-top:clamp(310px,57dvh,640px)}
+  #controls .water-bodies>.panel{padding:7px 10px!important;margin:3px 0!important}
+  #controls .water-bodies .top{margin-bottom:0}
+  #controls .water-bodies .top h2{font-size:16px}
+  #controls .water-bodies .temp{font-size:32px;line-height:1.05}
+  #controls .water-bodies .readout{margin:3px 0 4px}
+  #controls .water-bodies .muted{font-size:11px;line-height:1.1}
+  #controls .water-bodies .stepper{padding-top:3px;gap:4px}
+  #controls .water-bodies .stepper button{height:34px;min-height:34px}
+  #controls .water-bodies .actions .power-button{width:42px;height:42px;min-height:42px}
+  #controls #poolLight{margin-top:5px!important;margin-bottom:4px!important}
+  #controls #features{margin-top:4px;gap:6px}
+  #controls #features .feature-tile{height:44px;min-height:44px}
+  #controls #sanitation:not([hidden]){margin-top:5px!important;gap:6px}
+  #controls #sanitation .feature-tile{height:42px;min-height:42px}
+}
