@@ -618,3 +618,5 @@ main{z-index:101!important}
 
 /* Keep photographed grass blades at natural scale rather than stretching a 38px strip to 300px. */
 #lawnForeground{background-size:100% 76px!important;background-repeat:repeat-y!important;background-position:center bottom!important;background-color:#142714!important;}
+
+#lawnForeground{background-size:100% 100%,100% 76px!important;background-repeat:no-repeat,repeat-y!important}
