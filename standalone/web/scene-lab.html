@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Pool Scene Motion Lab — Offline</title><link rel="stylesheet" href="./style.css"><style>
+.lab{position:fixed;left:8px;right:8px;bottom:8px;z-index:10;padding:12px;border-radius:16px;background:#08192de8;color:white;font:13px system-ui;backdrop-filter:blur(12px)}.lab label{display:inline-flex;align-items:center;gap:5px;margin:5px 8px 5px 0}.lab input{width:auto;margin:0}.lab small{display:block;opacity:.75}.backyard-scene{z-index:-1!important}body{min-height:100dvh}
+</style></head><body>
+<div id="backyardScene" class="backyard-scene" aria-hidden="true"><div class="scene-water pool-water"></div><div class="scene-water spa-water"></div><div class="scene-effect slide-flow"></div><div class="scene-effect spillway-flow"></div><div class="scene-effect jets-bubbles"></div><div class="scene-effect pool-glow"></div></div>
+<div class="lab"><strong>Scene Motion Lab (offline, no HA connection)</strong><div id="toggles"></div><small>Local visual testing only. No equipment commands, API, cookies, or PIN.</small></div>
+<script>
+const labels={slide:"slide-running",spillway:"spillway-running",jets:"jets-running",pool:"pool-running",spa:"spa-running",light:"light-running"};
+const scene=document.getElementById("backyardScene"),root=document.getElementById("toggles");
+for(const [name,cls] of Object.entries(labels)){const label=document.createElement("label"),input=document.createElement("input");input.type="checkbox";input.addEventListener("change",()=>scene.classList.toggle(cls,input.checked));label.append(input,document.createTextNode(name));root.append(label)}
+</script></body></html>
