@@ -318,6 +318,13 @@ class RPMGuardian:
                         and not self.data["restoration_pending"]):
                     self.data["restoration_pending"] = True
                     self.data["session"] = self.data["session"] or str(uuid4())
+                    self.data["intent"] = {
+                        "session": self.data["session"], "epoch": self.data["epoch"],
+                        "program": "p0102", "normal": self.data["applied"]["pool"],
+                        "temporary": self.data["applied"]["outage"],
+                        "target": self.data["applied"]["pool"], "observed": actual["pool"],
+                        "phase": "discovered", "attempted": False, "verified": False,
+                        "at": timestamp()}
                     self.data["state"] = "RECOVERY_REQUIRED"
                     self.data["failure"] = "Unjournaled outage-speed Pool preset; verified restoration required"
                     await self.persist()

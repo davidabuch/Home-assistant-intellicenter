@@ -230,6 +230,8 @@ class FinalRecoveryTests(unittest.IsolatedAsyncioTestCase):
         self.assert_held()
         self.assertFalse(self.writes)
         self.assertIn('Recovery pending',self.g.data['failure'])
+        self.assertEqual(self.saved[-1]['intent']['program'],'p0102')
+        self.assertFalse(self.saved[-1]['intent']['attempted'])
         await self.g.enable(True,running_pool_approved=True)
         await self.run_policy()
         self.assert_restored()
