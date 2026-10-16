@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/checkout@v4
         with:
           repository: davidabuch/Family_Home
@@ -46,7 +48,7 @@ jobs:
       - name: Install browser for PR 124 visual acceptance capture
         run: |
           npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
       - name: Capture iPhone-class PR 124 composition
         env:
           PORT: "8765"
@@ -65,4 +67,14 @@ jobs:
         with:
           name: pr124-iphone-visual
           path: standalone/visual-acceptance-pr124.png
+          if-no-files-found: error
+      - name: Verify background-only iPhone UI preservation in Chromium and WebKit
+        env:
+          VISUAL_BROWSERS: chromium,webkit
+        run: node standalone/scripts/test_lawn_visual.cjs
+      - name: Upload baseline and candidate iPhone screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: photographic-lawn-iphone-comparison
+          path: standalone/visual-lawn/
           if-no-files-found: error
