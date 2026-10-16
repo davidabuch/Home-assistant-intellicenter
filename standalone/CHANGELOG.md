@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.31
+
+- Replace failed lawn overlays with the user-approved finished sunset pool/lawn photograph.
+- Preserve all control geometry, glass styling, state handling, authentication and equipment behavior.
+- Retire obsolete grass textures and refresh the PWA shell cache; verify Chromium/WebKit UI preservation.
+
 ## 0.1.11
 
 - Crop approved originals to full-bleed squares without borders, padding, pre-rounded corners or distortion.
