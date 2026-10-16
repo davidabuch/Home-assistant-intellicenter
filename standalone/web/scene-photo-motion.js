@@ -9,7 +9,9 @@ canvas.className="photo-motion";canvas.width=651;canvas.height=1199;
 canvas.setAttribute("aria-hidden","true");plane.append(canvas);
 const ctx=canvas.getContext("2d",{alpha:true});
 const image=new Image();image.src="./backyard-off.jpg";
-let ready=false;image.onload=()=>{ready=true};image.onerror=()=>{console.warn("Photo motion: missing backyard-off.jpg")};
+const diagnostic=document.getElementById("motionStatus");
+function report(message){if(diagnostic)diagnostic.textContent=message;}
+let ready=false;image.onload=()=>{ready=true;report("Photo loaded · motion engine ready")};image.onerror=()=>{report("ERROR: photo did not load");console.warn("Photo motion: missing backyard-off.jpg")};
 const reduced=matchMedia("(prefers-reduced-motion: reduce)");
 const shapes={
  pool:[[0,425],[88,394],[225,387],[332,410],[437,442],[520,466],[651,498],[651,1110],[110,1199],[0,950]],
@@ -17,11 +19,11 @@ const shapes={
 };
 function mask(poly){ctx.beginPath();ctx.moveTo(poly[0][0],poly[0][1]);for(let i=1;i<poly.length;i++)ctx.lineTo(poly[i][0],poly[i][1]);ctx.closePath();ctx.clip()}
 function region(name,t){
- ctx.save();mask(shapes[name]);ctx.globalAlpha=name==="pool"?.48:.65;
+ ctx.save();mask(shapes[name]);ctx.globalAlpha=name==="pool"?.9:.95;
  const y0=name==="pool"?385:430,y1=name==="pool"?1199:560;
  for(let y=y0;y<y1;y+=3){
    const dy=Math.min(3,y1-y);
-   const shift=reduced.matches?0:(Math.sin(y*.052+t*.0011)*1.65+Math.sin(y*.023-t*.0008)*.85);
+   const shift=reduced.matches?0:(Math.sin(y*.052+t*.0011)*8+Math.sin(y*.023-t*.0008)*4);
    ctx.drawImage(image,0,y,651,dy,shift,y,651,dy);
  }
  ctx.restore();
@@ -31,6 +33,10 @@ function frame(t){
  if(ready&&!document.hidden){
   if(scene.classList.contains("pool-running"))region("pool",t);
   if(scene.classList.contains("spa-running"))region("spa",t);
+ }
+ if(diagnostic&&Math.floor(t/500)!==Math.floor((t-17)/500)){
+  const on=["pool","spa"].filter(k=>scene.classList.contains(k+"-running"));
+  report("Photo loaded · frame "+Math.floor(t/500)+" · active: "+(on.join(", ")||"none")+(reduced.matches?" · reduced motion":""));
  }
  requestAnimationFrame(frame);
 }
