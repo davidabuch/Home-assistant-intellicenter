@@ -603,3 +603,6 @@ main{position:relative;z-index:1}
  background:#f28b1b!important;border-color:#ffbc63!important;color:#fff!important;
  text-shadow:none!important;box-shadow:inset 0 1px rgba(255,255,255,.55),0 0 18px rgba(255,136,22,.67)!important;
 }
+
+/* Natural textured lawn asset replaces the former diagonal-stripe CSS grass. */
+body::after{background:url('/lawn-foreground.svg') center bottom / 100% 100% no-repeat!important;height:clamp(155px,26dvh,300px)!important}
