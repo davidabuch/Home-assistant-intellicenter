@@ -1,3 +1,15 @@
+# Current direction — static before/after photographic states (2026-10-16)
+
+**User decision:** Stop attempting water animations. The pool/spa photographic displacement visibly moved but looked unnatural; slide/spillway/jets never had working photographic animation. Do not restart animation experiments without explicit request.
+
+**Release status: BLOCKED.** PR #120 remains draft. CSS now suppresses all legacy animated water shapes and supports independent `.photo-on-layer[data-feature]` static overlays driven by the existing confirmed-state classes. No matching ON-state transparent image assets have been approved or committed, so ON imagery is **not yet implemented**. Do not present a blank overlay as completed functionality.
+
+**Asset requirement:** One clean OFF photograph and six pixel-aligned transparent ON overlays: slide water, spillway water, jets bubbles, pool circulation, spa circulation, and pool light. All must have exactly the same framing, geometry and aspect ratio as `backyard-off.jpg` (651 x 1199). No baked-in UI or whole-photo swaps. Independent combinations must not alter landscaping or the glass controls.
+
+**Acceptance:** For each feature, OFF shows no active water and ON shows the approved still photographic effect only after confirmed HA state. Test simultaneous ON combinations, unknown/unavailable, PIN lock, iPhone portrait crop, PWA cache, and existing PIN/permissions/RPM Guardian before merge. Static images should not move, pulse or shimmer.
+
+---
+
 # Pool & Spa photographic scene — release acceptance
 
 Status: **IN PROGRESS** — clean OFF candidate uploaded and wired on development branch; geometric calibration and physical-state confirmation still pending.
