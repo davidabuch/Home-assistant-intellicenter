@@ -25,3 +25,18 @@ def test_reduced_motion_and_hidden_tab_pause():
     js = (ROOT / "web/app.js").read_text()
     assert "prefers-reduced-motion:reduce" in css
     assert "scene-paused" in css and "document.hidden" in js
+
+def test_approved_photo_is_present_and_jpeg():
+    photo = ROOT / "web/backyard-final.jpg"
+    assert photo.is_file()
+    assert photo.stat().st_size > 100_000
+    assert photo.read_bytes()[:3] == bytes.fromhex("ffd8ff")
+    server = (ROOT / "server.py").read_text()
+    assert '"/backyard-final.jpg": ("web/backyard-final.jpg", "image/jpeg")' in server
+
+def test_scene_is_not_control_endpoint():
+    html = (ROOT / "web/index.html").read_text()
+    js = (ROOT / "web/app.js").read_text()
+    assert 'id="backyardScene"' in html
+    assert 'state={};updateScene()' in js
+    assert 'scene-paused' in js
