@@ -104,3 +104,16 @@ def test_scene_layers_share_photo_cover_coordinate_space():
     assert ".scene-art .slide-flow" in css
     assert ".scene-art .spillway-flow" in css
     assert "clip-path:polygon" in css
+
+
+def test_offline_photo_motion_is_isolated_and_uses_real_pixels():
+    lab=(ROOT / "web/scene-lab.html").read_text()
+    script=(ROOT / "web/scene-photo-motion.js").read_text()
+    server=(ROOT / "server.py").read_text()
+    assert 'src="./scene-photo-motion.js"' in lab
+    assert "scene-photo-motion.js" not in server
+    assert "backyard-off.jpg" in script
+    assert "drawImage(image" in script and "ctx.clip()" in script
+    assert 'scene.classList.contains("pool-running")' in script
+    assert 'scene.classList.contains("spa-running")' in script
+    assert 'fetch(' not in script and 'api(' not in script
