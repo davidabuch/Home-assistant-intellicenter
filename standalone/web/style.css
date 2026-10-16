@@ -50,3 +50,12 @@ main{max-width:510px;padding:22px 16px 56px}header{margin-bottom:16px}.eyebrow{f
 
 /* Final portrait photo first; vector illustration remains a graceful fallback. */
 .backyard-scene{background-image:url('/backyard-final.jpg'),url('/backyard-scene.svg');background-position:center center;background-size:cover}
+
+/* Correct stacking: fixed scene must be above body paint, below controls. */
+body{background:transparent!important;isolation:isolate}
+.backyard-scene{z-index:-1!important;inset:0;transform:translateZ(0)}
+body::before{z-index:0!important}
+main{z-index:1}
+/* Ensure the glass surface shows the actual backdrop without opaque tiles. */
+#pinLogin,.pool-light,.feature,.sanitation-tile{background-color:transparent!important}
+@media(prefers-reduced-transparency:reduce){.panel,#pool,#spa{background:#152c40e8!important}button{background:#284761e8!important}}
