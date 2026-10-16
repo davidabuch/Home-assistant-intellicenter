@@ -327,3 +327,15 @@ main{z-index:1}
 .backyard-scene .scene-art:has(.photo-on-layer:not([hidden])){aspect-ratio:412 / 408;width:max(100vw,calc(100dvh * 412 / 408));background-image:url('/backyard-static-off.jpg'),url('/backyard-off.jpg');background-size:100% 100%}
 .backyard-scene .scene-art .photo-on-layer[hidden]{display:none!important}
 .backyard-scene .scene-art .photo-on-layer{z-index:2}
+
+/* Photo compositing contract: one light switch illuminates BOTH bodies.
+   Foreground water features must paint above the broad pool circulation layer.
+   This fixes the waterslide splash disappearing when spa is selected. */
+.backyard-scene.light-running .photo-on-layer[data-feature="spa-light"]{opacity:1;visibility:visible}
+.backyard-scene .scene-art .photo-on-layer[data-feature="pool"]{z-index:3}
+.backyard-scene .scene-art .photo-on-layer[data-feature="spa"]{z-index:4}
+.backyard-scene .scene-art .photo-on-layer[data-feature="light"]{z-index:5}
+.backyard-scene .scene-art .photo-on-layer[data-feature="spa-light"]{z-index:6}
+.backyard-scene .scene-art .photo-on-layer[data-feature="jets"]{z-index:7}
+.backyard-scene .scene-art .photo-on-layer[data-feature="spillway"]{z-index:8}
+.backyard-scene .scene-art .photo-on-layer[data-feature="slide"]{z-index:9}
