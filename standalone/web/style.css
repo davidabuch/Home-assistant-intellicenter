@@ -359,3 +359,18 @@ main{z-index:1}
 }
 
 .scene-caption{font-size:11px;line-height:1.4;color:rgba(240,247,255,.78);margin:4px 0 10px;text-align:center}
+
+
+/* Recovery baseline — one composited decorative photograph, never equipment state.
+   This deliberately overrides the retired photographic-layer experiments. */
+.backyard-scene{
+  background:#0a2840 url('/backyard-final.jpg') center center / cover no-repeat!important;
+}
+.backyard-scene .scene-art,
+.backyard-scene .scene-water,
+.backyard-scene .scene-effect,
+.backyard-scene .photo-on-layer,
+.backyard-scene .photo-motion{
+  display:none!important;
+  animation:none!important;
+}
