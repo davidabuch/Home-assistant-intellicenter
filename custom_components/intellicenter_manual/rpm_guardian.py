@@ -309,8 +309,22 @@ class RPMGuardian:
                 for key in PROGRAMS:
                     if actual[key] == desired[key]:
                         self.data["last_verified"][key] = timestamp()
+                # Native persistent state wins over a clean/missing journal.
+                # A stranded outage preset must not be treated as harmless
+                # running drift while normal heating/start authority is released.
+                if (sample.qualified is False and sample.raw_outage is False
+                        and actual["pool"] == self.data["applied"]["outage"]
+                        and actual["pool"] != self.data["applied"]["pool"]
+                        and not self.data["restoration_pending"]):
+                    self.data["restoration_pending"] = True
+                    self.data["session"] = self.data["session"] or str(uuid4())
+                    self.data["state"] = "RECOVERY_REQUIRED"
+                    self.data["failure"] = "Unjournaled outage-speed Pool preset; verified restoration required"
+                    await self.persist()
                 if not self.data["enabled"]:
-                    self.data["failure"] = "Commissioning write gate disabled"
+                    self.data["failure"] = (
+                        "Recovery pending; authorize guarded restoration before normal control"
+                        if self.data["restoration_pending"] else "Commissioning write gate disabled")
                     await self.persist()
                     return deepcopy(self.data)
                 if not sample.known:
