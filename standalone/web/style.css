@@ -303,3 +303,22 @@ main{z-index:1}
 .backyard-scene.slide-running .slide-flow{opacity:.72}
 .backyard-scene.spillway-running .spillway-flow{opacity:.75}
 @keyframes scene-subtle-current{0%,100%{background-position:0 0,0 0;transform:translate(0,0)}50%{background-position:0 0,15px 8px;transform:translate(0,1px)}}
+
+/* Static photographic before/after mode (animation experiment retired).
+   ON overlays are intentionally absent until approved, pixel-aligned images exist.
+   Never fabricate a running feature with gradients, stripes or distorted pixels. */
+.backyard-scene .scene-water,
+.backyard-scene .scene-effect,
+.backyard-scene .photo-motion{display:none!important;animation:none!important}
+.backyard-scene .scene-art .photo-on-layer{
+ position:absolute;inset:0;width:100%;height:100%;object-fit:fill;
+ pointer-events:none;opacity:0;visibility:hidden;transition:none;
+}
+.backyard-scene.slide-running .photo-on-layer[data-feature="slide"],
+.backyard-scene.spillway-running .photo-on-layer[data-feature="spillway"],
+.backyard-scene.jets-running .photo-on-layer[data-feature="jets"],
+.backyard-scene.pool-running .photo-on-layer[data-feature="pool"],
+.backyard-scene.spa-running .photo-on-layer[data-feature="spa"],
+.backyard-scene.light-running .photo-on-layer[data-feature="light"]{
+ opacity:1;visibility:visible;
+}
