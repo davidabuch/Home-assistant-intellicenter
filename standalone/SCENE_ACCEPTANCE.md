@@ -1,3 +1,9 @@
+# Refined waterslide checkpoint — 2026-10-16
+
+- `9ea277f` replaces only `standalone/web/scene-on-slide.png` with a less luminous, more translucent slide-water treatment.
+- All three GitHub Actions workflows completed successfully on this exact commit: Family Pool Spa PWA, Pool Family PIN Security, Validate integration scaffold.
+- This proves CI and asset scope, **not** final iPhone photographic acceptance or physical deployment. Keep PR #120 draft until the refined slide is visually accepted in the offline lab and release validation completes.
+
 # Latest static-photo checkpoint — 2026-10-16
 
 - Asset commit: 7a407eb (OFF JPEG plus seven ON PNG layers).
