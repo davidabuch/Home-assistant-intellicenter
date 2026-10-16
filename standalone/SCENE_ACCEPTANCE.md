@@ -1,10 +1,18 @@
+# Latest static-photo checkpoint — 2026-10-16
+
+- Asset commit: 7a407eb (OFF JPEG plus seven ON PNG layers).
+- Shared light illuminates pool and spa; foreground slide/spillway layers stack above pool/spa surfaces.
+- User visually approved the corrected light and spa+slide preview.
+- Remaining gates: automated tests for static assets, current CI, independent combination preview, iPhone viewport, installed PWA state mapping, PIN/RPM Guardian, and mergeability.
+- Do not treat older motion-era sections below as current acceptance requirements; they remain historical incident records.
+
 # Current direction — static before/after photographic states (2026-10-16)
 
 **User decision:** Stop attempting water animations. The pool/spa photographic displacement visibly moved but looked unnatural; slide/spillway/jets never had working photographic animation. Do not restart animation experiments without explicit request.
 
-**Release status: BLOCKED.** PR #120 remains draft. CSS now suppresses all legacy animated water shapes and supports independent `.photo-on-layer[data-feature]` static overlays driven by the existing confirmed-state classes. No matching ON-state transparent image assets have been approved or committed, so ON imagery is **not yet implemented**. Do not present a blank overlay as completed functionality.
+**Release status: STATIC ASSETS COMMITTED, PRE-DEPLOYMENT ACCEPTANCE PENDING.** PR #120 is draft. The OFF image and seven ON PNG overlays were committed by the operator at 7a407eb; GitHub CI passed at 8943835. The offline preview has operator feedback that the shared pool+spa light and spa+slide layering corrections look good. Do not claim complete visual or runtime acceptance: other combinations, real iPhone crop, state-driven behavior, and deployed add-on remain unverified. No animations are permitted.
 
-**Asset requirement:** One clean OFF photograph and six pixel-aligned transparent ON overlays: slide water, spillway water, jets bubbles, pool circulation, spa circulation, and pool light. All must have exactly the same framing, geometry and aspect ratio as `backyard-off.jpg` (651 x 1199). No baked-in UI or whole-photo swaps. Independent combinations must not alter landscaping or the glass controls.
+**Asset requirement:** One clean OFF photograph and six pixel-aligned transparent ON overlays: slide water, spillway water, jets bubbles, pool circulation, spa circulation, and pool light. Current static storyboard assets use a 412:408 image plane, separate from the earlier 651:1199 candidate. Verify no clipping or jumping at iPhone viewport sizes. No baked-in UI or whole-photo swaps. Independent combinations must not alter landscaping or the glass controls.
 
 **Acceptance:** For each feature, OFF shows no active water and ON shows the approved still photographic effect only after confirmed HA state. Test simultaneous ON combinations, unknown/unavailable, PIN lock, iPhone portrait crop, PWA cache, and existing PIN/permissions/RPM Guardian before merge. Static images should not move, pulse or shimmer.
 
