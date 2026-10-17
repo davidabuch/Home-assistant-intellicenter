@@ -1,0 +1,759 @@
+{
+  "id": "1792009120003",
+  "alias": "Sanitation Sessions - Pool and Spa (3 Hour Limit)",
+  "description": "Exclusive pool/spa FTR02 sanitation, 3-hour limit, no heat. Spa circulation via climate Heat with native heat source Off. Timer duration provisionally accepted; automated session commissioning in progress. Preserve operator Automatic Ownership through all sanitation paths. Existing sanitation session/native-switch gates preempt ordinary control. Restart cleanup runs only for an outstanding sanitation session, native switch or timer.",
+  "triggers": [
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.pool_sanitation_session",
+      "to": "on",
+      "id": "pool_start"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.spa_sanitation_session",
+      "to": "on",
+      "id": "spa_start"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.pool_sanitation_session",
+      "to": "off",
+      "id": "pool_stop"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.spa_sanitation_session",
+      "to": "off",
+      "id": "spa_stop"
+    },
+    {
+      "trigger": "event",
+      "event_type": "timer.finished",
+      "event_data": {
+        "entity_id": "timer.sanitation_session_limit"
+      },
+      "id": "timeout"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.grid_outage_active",
+      "to": "on",
+      "id": "outage"
+    },
+    {
+      "trigger": "homeassistant",
+      "event": "start",
+      "id": "restart"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "select.hot_tub_heat_source",
+      "from": "Off",
+      "id": "spa_heat_changed"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "select.pool_heat_source",
+      "from": "Off",
+      "id": "pool_heat_changed"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "binary_sensor.gas_heater_active",
+      "to": "on",
+      "id": "heater_active"
+    }
+  ],
+  "actions": [
+    {
+      "choose": [
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "pool_start"
+            }
+          ],
+          "sequence": [
+            {
+              "choose": [
+                {
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.spa_sanitation_session",
+                      "state": "off"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "off"
+                    }
+                  ],
+                  "sequence": [
+                    {
+                      "action": "select.select_option",
+                      "target": {
+                        "entity_id": "select.pool_heat_source"
+                      },
+                      "data": {
+                        "option": "Off"
+                      }
+                    },
+                    {
+                      "action": "climate.set_hvac_mode",
+                      "target": {
+                        "entity_id": "climate.pool_thermostat"
+                      },
+                      "data": {
+                        "hvac_mode": "heat"
+                      }
+                    },
+                    {
+                      "wait_template": "{{ is_state('climate.pool_thermostat', 'heat') }}",
+                      "timeout": "00:00:30",
+                      "continue_on_timeout": true
+                    },
+                    {
+                      "if": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ not wait.completed }}"
+                        }
+                      ],
+                      "then": [
+                        {
+                          "action": "input_boolean.turn_off",
+                          "target": {
+                            "entity_id": "input_boolean.pool_sanitation_session"
+                          }
+                        },
+                        {
+                          "stop": "Pool circulation failed to start",
+                          "error": true
+                        }
+                      ]
+                    },
+                    {
+                      "action": "select.select_option",
+                      "target": {
+                        "entity_id": "select.pool_heat_source"
+                      },
+                      "data": {
+                        "option": "Off"
+                      }
+                    },
+                    {
+                      "delay": "00:00:03"
+                    },
+                    {
+                      "if": [
+                        {
+                          "condition": "not",
+                          "conditions": [
+                            {
+                              "condition": "state",
+                              "entity_id": "select.pool_heat_source",
+                              "state": "Off"
+                            }
+                          ]
+                        }
+                      ],
+                      "then": [
+                        {
+                          "action": "input_boolean.turn_off",
+                          "target": {
+                            "entity_id": "input_boolean.pool_sanitation_session"
+                          }
+                        },
+                        {
+                          "stop": "Pool heat source not Off",
+                          "error": true
+                        }
+                      ]
+                    },
+                    {
+                      "action": "timer.start",
+                      "target": {
+                        "entity_id": "timer.sanitation_session_limit"
+                      },
+                      "data": {
+                        "duration": "03:00:00"
+                      }
+                    },
+                    {
+                      "action": "switch.turn_on",
+                      "target": {
+                        "entity_id": "switch.sanitation"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "default": [
+                {
+                  "action": "input_boolean.turn_off",
+                  "target": {
+                    "entity_id": "input_boolean.pool_sanitation_session"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "spa_start"
+            }
+          ],
+          "sequence": [
+            {
+              "choose": [
+                {
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "off"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.pool_sanitation_session",
+                      "state": "off"
+                    }
+                  ],
+                  "sequence": [
+                    {
+                      "action": "select.select_option",
+                      "target": {
+                        "entity_id": "select.hot_tub_heat_source"
+                      },
+                      "data": {
+                        "option": "Off"
+                      }
+                    },
+                    {
+                      "wait_template": "{{ is_state('select.hot_tub_heat_source', 'Off') }}",
+                      "timeout": "00:00:15",
+                      "continue_on_timeout": true
+                    },
+                    {
+                      "if": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ not wait.completed }}"
+                        }
+                      ],
+                      "then": [
+                        {
+                          "action": "input_boolean.turn_off",
+                          "target": {
+                            "entity_id": "input_boolean.spa_sanitation_session"
+                          }
+                        },
+                        {
+                          "stop": "Spa activation failed: no active circulation",
+                          "error": true
+                        }
+                      ]
+                    },
+                    {
+                      "action": "climate.set_hvac_mode",
+                      "target": {
+                        "entity_id": "climate.hot_tub_thermostat"
+                      },
+                      "data": {
+                        "hvac_mode": "heat"
+                      }
+                    },
+                    {
+                      "wait_template": "{{ is_state('binary_sensor.spa_active', 'on') }}",
+                      "timeout": "00:00:30",
+                      "continue_on_timeout": true
+                    },
+                    {
+                      "if": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ not wait.completed }}"
+                        }
+                      ],
+                      "then": [
+                        {
+                          "action": "input_boolean.turn_off",
+                          "target": {
+                            "entity_id": "input_boolean.spa_sanitation_session"
+                          }
+                        },
+                        {
+                          "stop": "Spa body did not activate",
+                          "error": true
+                        }
+                      ]
+                    },
+                    {
+                      "action": "select.select_option",
+                      "target": {
+                        "entity_id": "select.hot_tub_heat_source"
+                      },
+                      "data": {
+                        "option": "Off"
+                      }
+                    },
+                    {
+                      "delay": "00:00:03"
+                    },
+                    {
+                      "if": [
+                        {
+                          "condition": "not",
+                          "conditions": [
+                            {
+                              "condition": "state",
+                              "entity_id": "select.hot_tub_heat_source",
+                              "state": "Off"
+                            }
+                          ]
+                        }
+                      ],
+                      "then": [
+                        {
+                          "action": "switch.turn_off",
+                          "target": {
+                            "entity_id": "switch.sanitation"
+                          }
+                        },
+                        {
+                          "action": "climate.set_hvac_mode",
+                          "target": {
+                            "entity_id": "climate.hot_tub_thermostat"
+                          },
+                          "data": {
+                            "hvac_mode": "off"
+                          }
+                        },
+                        {
+                          "action": "timer.cancel",
+                          "target": {
+                            "entity_id": "timer.sanitation_session_limit"
+                          }
+                        },
+                        {
+                          "action": "input_boolean.turn_off",
+                          "target": {
+                            "entity_id": "input_boolean.pool_sanitation_session"
+                          }
+                        },
+                        {
+                          "action": "input_boolean.turn_off",
+                          "target": {
+                            "entity_id": "input_boolean.spa_sanitation_session"
+                          }
+                        },
+                        {
+                          "action": "automation.trigger",
+                          "target": {
+                            "entity_id": "automation.pool_and_hot_tub_heating_preference_controller"
+                          }
+                        }
+                      ],
+                      "else": [
+                        {
+                          "action": "timer.start",
+                          "target": {
+                            "entity_id": "timer.sanitation_session_limit"
+                          },
+                          "data": {
+                            "duration": "03:00:00"
+                          }
+                        },
+                        {
+                          "action": "switch.turn_on",
+                          "target": {
+                            "entity_id": "switch.sanitation"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "default": [
+                {
+                  "action": "input_boolean.turn_off",
+                  "target": {
+                    "entity_id": "input_boolean.spa_sanitation_session"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": [
+                "pool_stop",
+                "spa_stop"
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_sanitation_session",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.spa_sanitation_session",
+              "state": "off"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "switch.turn_off",
+              "target": {
+                "entity_id": "switch.sanitation"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.hot_tub_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "timer.cancel",
+              "target": {
+                "entity_id": "timer.sanitation_session_limit"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_sanitation_session"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.spa_sanitation_session"
+              }
+            },
+            {
+              "action": "automation.trigger",
+              "target": {
+                "entity_id": "automation.pool_and_hot_tub_heating_preference_controller"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": [
+                "timeout",
+                "outage",
+                "restart"
+              ]
+            },
+            {
+              "condition": "or",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_sanitation_session",
+                  "state": "on"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "input_boolean.spa_sanitation_session",
+                  "state": "on"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "switch.sanitation",
+                  "state": "on"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "timer.sanitation_session_limit",
+                  "state": [
+                    "active",
+                    "paused"
+                  ]
+                }
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "action": "switch.turn_off",
+              "target": {
+                "entity_id": "switch.sanitation"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.hot_tub_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "timer.cancel",
+              "target": {
+                "entity_id": "timer.sanitation_session_limit"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_sanitation_session"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.spa_sanitation_session"
+              }
+            },
+            {
+              "action": "automation.trigger",
+              "target": {
+                "entity_id": "automation.pool_and_hot_tub_heating_preference_controller"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "spa_heat_changed"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.spa_sanitation_session",
+              "state": "on"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "switch.turn_off",
+              "target": {
+                "entity_id": "switch.sanitation"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.hot_tub_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "timer.cancel",
+              "target": {
+                "entity_id": "timer.sanitation_session_limit"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_sanitation_session"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.spa_sanitation_session"
+              }
+            },
+            {
+              "action": "automation.trigger",
+              "target": {
+                "entity_id": "automation.pool_and_hot_tub_heating_preference_controller"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "pool_heat_changed"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_sanitation_session",
+              "state": "on"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "switch.turn_off",
+              "target": {
+                "entity_id": "switch.sanitation"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.hot_tub_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "timer.cancel",
+              "target": {
+                "entity_id": "timer.sanitation_session_limit"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_sanitation_session"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.spa_sanitation_session"
+              }
+            },
+            {
+              "action": "automation.trigger",
+              "target": {
+                "entity_id": "automation.pool_and_hot_tub_heating_preference_controller"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "heater_active"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.spa_sanitation_session",
+              "state": "on"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "switch.turn_off",
+              "target": {
+                "entity_id": "switch.sanitation"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.hot_tub_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "timer.cancel",
+              "target": {
+                "entity_id": "timer.sanitation_session_limit"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_sanitation_session"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.spa_sanitation_session"
+              }
+            },
+            {
+              "action": "automation.trigger",
+              "target": {
+                "entity_id": "automation.pool_and_hot_tub_heating_preference_controller"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "heater_active"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_sanitation_session",
+              "state": "on"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "switch.turn_off",
+              "target": {
+                "entity_id": "switch.sanitation"
+              }
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.hot_tub_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "timer.cancel",
+              "target": {
+                "entity_id": "timer.sanitation_session_limit"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_sanitation_session"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.spa_sanitation_session"
+              }
+            },
+            {
+              "action": "automation.trigger",
+              "target": {
+                "entity_id": "automation.pool_and_hot_tub_heating_preference_controller"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mode": "queued",
+  "max": 10
+}

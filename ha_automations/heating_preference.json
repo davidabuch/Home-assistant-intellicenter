@@ -1,7 +1,7 @@
 {
   "id": "1791649697448",
   "alias": "Pool and Hot Tub - Heating Preference Controller",
-  "description": "Maps HA Off/Gas/Solar/Eco Heat preference to native IntelliCenter heat source independently per body. Eco Heat uses roof >=90F pool and >=130F spa, otherwise Gas. Two-minute stabilized roof changes. Does not start/stop equipment or set RPM. Native source can also be controlled externally; preference reapplies at activation or roof change.",
+  "description": "Maps HA Off/Gas/Solar/Eco Heat preference to native IntelliCenter heat source independently per body. Eco Heat uses roof >=90F pool and >=130F spa, otherwise Gas. Two-minute stabilized roof changes. Does not start/stop equipment or set RPM. Native source can also be controlled externally; preference reapplies at activation or roof change. Pool source writes require Automatic Ownership ON, including a check immediately before each write. Manual Pool source is preserved; Spa policy is independent.",
   "triggers": [
     {
       "trigger": "state",
@@ -29,6 +29,13 @@
     {
       "trigger": "event",
       "event_type": "intellicenter_rpm_guardian_restored"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.pool_automatic_ownership",
+      "from": "off",
+      "to": "on",
+      "id": "ownership_resumed"
     }
   ],
   "conditions": [
@@ -66,6 +73,11 @@
   "actions": [
     {
       "if": [
+        {
+          "condition": "state",
+          "entity_id": "input_boolean.pool_automatic_ownership",
+          "state": "on"
+        },
         {
           "condition": "state",
           "entity_id": "input_boolean.pool_sanitation_session",
@@ -110,6 +122,11 @@
               ],
               "sequence": [
                 {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_automatic_ownership",
+                  "state": "on"
+                },
+                {
                   "action": "select.select_option",
                   "target": {
                     "entity_id": "select.pool_heat_source"
@@ -130,6 +147,11 @@
               ],
               "sequence": [
                 {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_automatic_ownership",
+                  "state": "on"
+                },
+                {
                   "action": "select.select_option",
                   "target": {
                     "entity_id": "select.pool_heat_source"
@@ -149,6 +171,11 @@
                 }
               ],
               "sequence": [
+                {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_automatic_ownership",
+                  "state": "on"
+                },
                 {
                   "action": "select.select_option",
                   "target": {
@@ -175,6 +202,11 @@
               ],
               "sequence": [
                 {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_automatic_ownership",
+                  "state": "on"
+                },
+                {
                   "action": "select.select_option",
                   "target": {
                     "entity_id": "select.pool_heat_source"
@@ -194,6 +226,11 @@
                 }
               ],
               "sequence": [
+                {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_automatic_ownership",
+                  "state": "on"
+                },
                 {
                   "action": "select.select_option",
                   "target": {
@@ -215,6 +252,15 @@
           "condition": "state",
           "entity_id": "input_boolean.spa_sanitation_session",
           "state": "off"
+        },
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "ownership_resumed"
+            }
+          ]
         }
       ],
       "then": [

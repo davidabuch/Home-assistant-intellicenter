@@ -1,0 +1,136 @@
+{
+  "states": {
+    "input_boolean.grid_outage_active": {
+      "state": "off",
+      "attributes": {
+        "editable": true,
+        "icon": "mdi:transmission-tower-off",
+        "friendly_name": "Grid Outage Active"
+      },
+      "last_changed": "2026-10-16T15:22:27.378063-07:00"
+    },
+    "input_boolean.pool_automatic_ownership": {
+      "state": "on",
+      "attributes": {
+        "editable": true,
+        "icon": "mdi:shield-check",
+        "friendly_name": "Pool Automatic Ownership"
+      },
+      "last_changed": "2026-10-16T15:22:27.378336-07:00"
+    },
+    "counter.pool_simple_filtration_minutes": {
+      "state": "485",
+      "attributes": {
+        "editable": true,
+        "initial": 0,
+        "step": 1,
+        "minimum": 0,
+        "maximum": 720,
+        "friendly_name": "Pool Simple Filtration Minutes"
+      },
+      "last_changed": "2026-10-17T07:17:00.110218-07:00"
+    },
+    "input_boolean.pool_simple_schedule_owns_pool": {
+      "state": "off",
+      "attributes": {
+        "editable": true,
+        "icon": "mdi:pool",
+        "friendly_name": "Pool Simple Schedule Owns Pool"
+      },
+      "last_changed": "2026-10-17T07:17:20.337029-07:00"
+    },
+    "input_boolean.grid_outage_protection": {
+      "state": "on",
+      "attributes": {
+        "editable": true,
+        "icon": "mdi:transmission-tower-off",
+        "friendly_name": "Grid Outage Protection"
+      },
+      "last_changed": "2026-10-16T15:22:27.377997-07:00"
+    },
+    "input_boolean.grid_outage_operator_bypass_latch": {
+      "state": "off",
+      "attributes": {
+        "editable": true,
+        "icon": "mdi:shield-off",
+        "friendly_name": "Grid Outage Operator Bypass Latch"
+      },
+      "last_changed": "2026-10-17T03:52:00.424450-07:00"
+    },
+    "input_boolean.pool_sanitation_session": {
+      "state": "off",
+      "attributes": {
+        "editable": true,
+        "icon": "mdi:pool",
+        "friendly_name": "Pool Sanitation Session"
+      },
+      "last_changed": "2026-10-16T15:22:27.378544-07:00"
+    },
+    "input_boolean.spa_sanitation_session": {
+      "state": "off",
+      "attributes": {
+        "editable": true,
+        "icon": "mdi:hot-tub",
+        "friendly_name": "Spa Sanitation Session"
+      },
+      "last_changed": "2026-10-16T15:22:27.378609-07:00"
+    },
+    "input_select.pool_heating_preference": {
+      "state": "Eco Heat",
+      "attributes": {
+        "options": [
+          "Off",
+          "Gas",
+          "Solar",
+          "Eco Heat"
+        ],
+        "editable": true,
+        "friendly_name": "Pool Heating Preference"
+      },
+      "last_changed": "2026-10-16T20:43:35.976360-07:00"
+    },
+    "input_select.hot_tub_heating_preference": {
+      "state": "Eco Heat",
+      "attributes": {
+        "options": [
+          "Off",
+          "Gas",
+          "Solar",
+          "Eco Heat"
+        ],
+        "editable": true,
+        "friendly_name": "Hot Tub Heating Preference"
+      },
+      "last_changed": "2026-10-16T15:22:27.379441-07:00"
+    },
+    "timer.sanitation_session_limit": {
+      "state": "idle",
+      "attributes": {
+        "duration": "3:00:00",
+        "editable": true,
+        "last_transition": "cancelled",
+        "restore": true,
+        "friendly_name": "Sanitation Session Limit"
+      },
+      "last_changed": "2026-10-16T15:22:27.379189-07:00"
+    }
+  },
+  "configurations": {
+    "pool_automatic_ownership": {
+      "id": "pool_automatic_ownership",
+      "name": "Pool Automatic Ownership",
+      "icon": "mdi:shield-check"
+    },
+    "pool_simple_schedule_owns_pool": {
+      "id": "pool_simple_schedule_owns_pool",
+      "name": "Pool Simple Schedule Owns Pool",
+      "icon": "mdi:pool"
+    },
+    "sanitation_session_limit": {
+      "id": "sanitation_session_limit",
+      "name": "Sanitation Session Limit",
+      "restore": true,
+      "duration": "3:00:00"
+    }
+  }
+}
