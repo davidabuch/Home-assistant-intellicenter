@@ -1,0 +1,23 @@
+{
+  "github_main": "5dbb2f10c229c9ffba6c3536ccbbdac86e1a7bd3",
+  "recovery_tag": "recovery/manual-pool-ownership-20261017",
+  "recovery_tag_object": "9c05a29e959281e9e52cb31d6923cb5908c03917",
+  "ha_backup_id": "a3c40859",
+  "automations": {
+    "automation.pool_simple_solar_and_filtration_commissioning": {
+      "file": "pool_simple_solar_and_filtration.json",
+      "ha_config_hash": "33ada334cb3b5dde",
+      "export_sha256": "17a6dce46e0f6cb409e8bd3bf6a00550de2202de582bf69995617a519c611c00"
+    },
+    "automation.pool_and_hot_tub_heating_preference_controller": {
+      "file": "heating_preference.json",
+      "ha_config_hash": "271dfe036cf6856f",
+      "export_sha256": "d32a54840090b18cf5c6ea4e3ae68e8465eb07838613e6c08ba62bfc9c3f2c44"
+    },
+    "automation.sanitation_sessions_pool_and_spa_3_hour_limit": {
+      "file": "sanitation_sessions.json",
+      "ha_config_hash": "91bf0cb2cbf9f881",
+      "export_sha256": "673c43d1f1dd8bdebcc87a989eed60c7f617e7aaf7d7461a9379e3e4f829c3b1"
+    }
+  }
+}
