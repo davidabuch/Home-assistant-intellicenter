@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from test_lightweight_schedule import Replay, Halt, POOL, OWNS, TARGET
+from test_lightweight_schedule import Replay, Halt, POOL, OWNS, TARGET, MASTER
 from test_transport_lifecycle_faults import transport_module as native
 
 
@@ -79,7 +79,7 @@ class ScheduleGatewayTests(unittest.IsolatedAsyncioTestCase):
             if entity == POOL:
                 await self.transport.set_body_active('B1101', value == 'heat')
             elif entity == 'select.pool_heat_source':
-                await self.transport.set_heat_source('B1101', {'Solar':'H0002'}[value])
+                await self.transport.set_heat_source('B1101', {'Off':'00000', 'Gas':'H0001', 'Solar':'H0002'}[value])
             else:
                 raise AssertionError('Unrepresented equipment path: '+entity)
 
@@ -139,6 +139,28 @@ class ScheduleGatewayTests(unittest.IsolatedAsyncioTestCase):
             await self.dispatch(self.replay.run('thermal_change'))
         self.assertEqual(self.reads, 3)
         self.assertFalse(self.actual_active)
+
+    async def test_manual_ownership_blocks_actual_schedule_protocol_delivery(self):
+        self.replay.states[MASTER] = 'off'
+        for trigger in ['thermal_change','tick','midnight','reset','solar_down','solar_up','ownership_resumed','grid_restored']:
+            await self.dispatch(self.replay.run(trigger,'03:57:00'))
+        self.assertEqual(self.delivered, [])
+        self.assertTrue(self.actual_active)
+        # The operator's OFF remains a valid production transport command.
+        await self.transport.set_body_active('B1101', False)
+        self.assertEqual(self.delivered, [('B1101', {native.STATUS_ATTR:native.STATUS_OFF})])
+
+    async def test_manual_ownership_blocks_actual_preference_protocol_delivery(self):
+        import json
+        path = Path(native.__file__).resolve().parents[2] / 'ha_automations/heating_preference.json'
+        config = json.loads(path.read_text())
+        # Suppress only independent Spa preference in this Pool gateway fixture.
+        self.replay = Replay(config, **{MASTER:'off','input_boolean.spa_sanitation_session':'on'})
+        await self.awaited_run()
+        self.assertEqual(self.delivered, [])
+        self.replay.states[MASTER] = 'on'
+        await self.awaited_run()
+        self.assertEqual(self.delivered, [('B1101', {native.HEATER_ATTR:'H0002'})])
 
     async def test_matching_old_observation_does_not_verify_off(self):
         self.hold_old_receipt = True

@@ -1,7 +1,7 @@
 {
   "id": "1791536051066",
   "alias": "Pool Simple Solar and Filtration - Commissioning",
-  "description": "Lightweight HA controller; IntelliCenter Manual Bridge owns native writes. Solar starts/adoption require valid pool temperature below target and Solar/Eco Heat preference. End owned target-satisfied daytime sessions unless nighttime debt or independent circulation/safety authority applies. Five-minute Solar-loss trigger and Eco Heat recovery policy retained. Filtration credits verified Pool pump-running minute ticks, independent of equipment ownership; sole ledger rollover at 08:00. Automatic Ownership OFF yields equipment authority. Spa, sanitation, freeze, service mode and outage protection preempt schedule equipment commands. No RPM or persistent preset writes. Minute reconciliation recovers after HA reload/restart without blind startup replay.",
+  "description": "Lightweight HA controller; IntelliCenter Manual Bridge owns native writes. Solar starts/adoption require valid pool temperature below target and Solar/Eco Heat preference. End owned target-satisfied daytime sessions unless nighttime debt or independent circulation/safety authority applies. Five-minute Solar-loss trigger and Eco Heat recovery policy retained. Filtration credits verified Pool pump-running minute ticks, independent of equipment ownership; sole ledger rollover at 08:00. Automatic Ownership OFF yields equipment authority. Spa, sanitation, freeze, service mode and outage protection preempt schedule equipment commands. No RPM or persistent preset writes. Minute reconciliation recovers after HA reload/restart without blind startup replay. Manual ownership releases the schedule claim without equipment commands; delayed claims recheck current authority.",
   "triggers": [
     {
       "trigger": "numeric_state",
@@ -66,6 +66,13 @@
       "trigger": "event",
       "event_type": "intellicenter_rpm_guardian_restored",
       "id": "grid_restored"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.pool_automatic_ownership",
+      "from": "on",
+      "to": "off",
+      "id": "ownership_released"
     }
   ],
   "conditions": [],
@@ -126,6 +133,28 @@
         {
           "condition": "state",
           "entity_id": "climate.pool_thermostat",
+          "state": "off"
+        },
+        {
+          "condition": "state",
+          "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+          "state": "on"
+        }
+      ],
+      "then": [
+        {
+          "action": "input_boolean.turn_off",
+          "target": {
+            "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+          }
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "state",
+          "entity_id": "input_boolean.pool_automatic_ownership",
           "state": "off"
         },
         {
@@ -920,6 +949,11 @@
                       }
                     },
                     {
+                      "condition": "state",
+                      "entity_id": "input_boolean.pool_automatic_ownership",
+                      "state": "on"
+                    },
+                    {
                       "action": "input_boolean.turn_on",
                       "target": {
                         "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
@@ -1199,6 +1233,11 @@
               }
             },
             {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
+            },
+            {
               "action": "input_boolean.turn_on",
               "target": {
                 "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
@@ -1293,6 +1332,11 @@
             }
           ],
           "sequence": [
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
+            },
             {
               "action": "input_boolean.turn_on",
               "target": {
@@ -1582,6 +1626,11 @@
               }
             },
             {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
+            },
+            {
               "action": "input_boolean.turn_on",
               "target": {
                 "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
@@ -1818,6 +1867,11 @@
             }
           ],
           "sequence": [
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
+            },
             {
               "action": "input_boolean.turn_on",
               "target": {
@@ -2505,6 +2559,11 @@
             },
             {
               "delay": "00:00:05"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
             },
             {
               "action": "input_boolean.turn_on",
