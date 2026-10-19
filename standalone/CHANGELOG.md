@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.32
+
+- Add administrator-only Pool/Hot Tub long-press heating preference selector (Solar, Gas, Eco Heat, Off).
+- Server enforces administrator session and validates Home Assistant helper options; heating Off does not stop circulation.
+- Preserve existing controls and pass browser visual/security regression checks.
+
+
 ## 0.1.31
 
 - Replace failed lawn overlays with the user-approved finished sunset pool/lawn photograph.
