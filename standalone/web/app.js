@@ -27,7 +27,8 @@ function showHeatDialog(key){
  overlay.append(panel);document.body.append(overlay);heatDialog=overlay;panel.tabIndex=-1;panel.focus();
 }
 function attachHeatLongPress(root,key){
- if(!permissions.pool_control)return;
+ if(!permissions.pool_control||root.dataset.heatLongPressBound)return;
+ root.dataset.heatLongPressBound="true";
  let startX=0,startY=0,timer=null;
  const cancel=()=>{clearTimeout(timer);timer=null};
  root.addEventListener("pointerdown",e=>{if(e.target.closest("button")||e.button!==0||!e.isPrimary)return;startX=e.clientX;startY=e.clientY;cancel();timer=setTimeout(()=>{timer=null;showHeatDialog(key)},800)});
