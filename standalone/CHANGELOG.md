@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.33
+
+- Prevent native iOS text selection and callouts during administrator heat-preference long press.
+- Register one long-press handler per persistent Pool/Hot Tub tile to avoid duplicate timers.
+
+
 ## 0.1.32
 
 - Add administrator-only Pool/Hot Tub long-press heating preference selector (Solar, Gas, Eco Heat, Off).
