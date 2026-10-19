@@ -57,6 +57,8 @@ CONTROLS = {
 }
 READ_ONLY = ["binary_sensor.solar_heating_active", "binary_sensor.gas_heater_active", "sensor.pool_temperature", "sensor.spa_temperature",
              "binary_sensor.1_powerwall_grid_status", "input_boolean.grid_outage_active"]
+HEAT_PREFERENCES = {"pool": "input_select.pool_heating_preference", "spa": "input_select.hot_tub_heating_preference"}
+HEAT_OPTIONS = ("Solar", "Gas", "Eco Heat", "Off")
 MAX_BODY = 1024
 
 def ha_request(path, payload=None):
@@ -131,6 +133,12 @@ class Handler(BaseHTTPRequestHandler):
                     result[key] = ha_request("/api/states/" + CONTROLS[key][0])
                 except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
                     result[key] = {"state": "unavailable"}
+        if self.admin_authorized():
+            for key, entity in HEAT_PREFERENCES.items():
+                try:
+                    result[key + "_heating_preference"] = ha_request("/api/states/" + entity)
+                except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+                    result[key + "_heating_preference"] = {"state": "unavailable"}
         return result
 
     def do_GET(self):
@@ -210,6 +218,21 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": True}, cookie="session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0")
         if not self.authorized():
             return self.send_json({"error": "Sign in required"}, 401)
+        if path == "/api/heating-preference":
+            if not self.admin_authorized():
+                return self.send_json({"error": "Administrator authorization required"}, 403)
+            key, option = body.get("body"), body.get("option")
+            if key not in HEAT_PREFERENCES or option not in HEAT_OPTIONS:
+                return self.send_json({"error": "Invalid heating preference"}, 400)
+            entity = HEAT_PREFERENCES[key]
+            try:
+                current = ha_request("/api/states/" + entity)
+                if option not in current.get("attributes", {}).get("options", []):
+                    return self.send_json({"error": "Heating preference unavailable"}, 503)
+                ha_request("/api/services/input_select/select_option", {"entity_id": entity, "option": option})
+                return self.send_json({"accepted": True, "pending_verification": True})
+            except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+                return self.send_json({"error": "Command rejected or Home Assistant unavailable"}, 503)
         if path != "/api/control":
             return self.send_json({"error": "Not found"}, 404)
         key, operation = body.get("control"), body.get("operation")
