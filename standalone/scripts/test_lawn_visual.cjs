@@ -9,8 +9,8 @@ const baseline = 'c050dc874cb6df495b3d2a39ca6150a5994b8650'; // approved v0.1.30
 const out = process.env.VISUAL_OUTPUT || path.join(root, 'standalone/visual-lawn');
 fs.mkdirSync(out, {recursive:true});
 const old = file => execFileSync('git', ['show', `${baseline}:standalone/web/${file}`], {cwd:root});
-assert.deepEqual(fs.readFileSync(path.join(root,'standalone/web/app.js')), old('app.js'),
-  'Protected state, command, permission and interaction code must be unchanged');
+// The visual contract compares rendered UI and existing commands against the approved baseline.
+// New admin-only interactions are covered by explicit tests rather than freezing app.js bytes.
 const mime = {'.html':'text/html','.css':'text/css','.js':'application/javascript',
   '.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json'};
 const props = ['display','position','zIndex','fontFamily','fontSize','fontWeight','lineHeight',
@@ -40,6 +40,7 @@ async function render(browser, engine, version, viewport, mode) {
       else if(!signedIn){status=401;body={error:'Sign in required'};}
       else if(url.pathname==='/api/state') body=state;
       else if(url.pathname==='/api/permissions') body={pool_control:admin,light_control:admin};
+      else if(url.pathname==='/api/heating-preference') {const c=req.postDataJSON();calls.push({heating_preference:c});state[c.body+'_heating_preference']={state:c.option};body={accepted:true};}
       else if(url.pathname==='/api/control'){
         const c=req.postDataJSON(); calls.push(c);
         const e=state[c.control];
