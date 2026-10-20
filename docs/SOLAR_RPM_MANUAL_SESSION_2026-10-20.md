@@ -18,7 +18,7 @@ Exact live definitions, including IDs and config hashes, are preserved in
 | Live component | Hash at inspection | Source disposition |
 |---|---|---|
 |Pool schedule|`f1897c0d1e1ab60e`|Start from live sanitation-release handling; replace provisional cold-only branches with the tested policy below|
-|Guardian reconciliation|`4560b9a2ae1bbc77`|Preserve live ID and Solar transition trigger; fix reason classification in integration|
+|Guardian reconciliation|`4560b9a2ae1bbc77`|Preserve live ID; use independent Solar-delivery signal for the transition and fix reason classification in integration|
 |Sanitation sessions|`c74d5d703ca076d1`|Sync exact live cleanup/release-event behavior, unchanged; do not overwrite it with the October 17 version|
 |Heating preference|`b67810629de5881f`|Unchanged|
 
@@ -88,6 +88,14 @@ independently read X0052 or use HTSRC as delivery attribution. The existing
 sensor's name therefore must not be taken as proof of the virtual circuit's
 state or hydraulic delivery. Its commissioned behavior is left unchanged.
 
+A new read-only `binary_sensor.solar_delivery_confirmed` requires both fresh
+native X0052 ON and native body-heating/source evidence. Missing/unknown X0052
+makes it unavailable; selection or the legacy sensor alone cannot assert ON.
+The existing Solar-active sensor is unchanged. The Solar reconciliation trigger
+and adopted-session promotion use this stronger signal. It confirms native
+indications, not hydraulic flow. Verify its actual entity registry ID and native
+circuit availability before enabling the candidate automation.
+
 The new read-only `pump_demand` Guardian attributes expose:
 
 * Every PMP01 assignment, including extra/unknown RPM or GPM assignments;
@@ -148,7 +156,7 @@ forced on reload: HA restores the marker, while a new helper defaults OFF.
    no eligible thermal Solar demand, and all existing safety/auxiliary guards.
    OFF is awaited before releasing both ownership and the passive marker.
    A command/receipt failure retains the markers for recovery.
-5. Actual Solar-active plus native Pool source Solar promotes an adopted session
+5. Confirmed native Solar delivery plus native Pool source Solar promotes an adopted session
    to existing Solar handling by clearing only the passive marker. The existing
    five-minute Solar-loss / Eco Heat policy, target-satisfied shutdown, recovery,
    and legitimate Solar heating beyond filtration quota then remain in force.
@@ -174,14 +182,15 @@ requires conservative operator review and is not claimed physically commissioned
 
 ## Changes and validation
 
-Code: `pump_demand.py`, read-only transport evidence/subscriptions, HA adapter and
+Code: `pump_demand.py`, independent read-only Solar delivery observation/sensor,
+transport evidence/subscriptions, HA adapter and
 Guardian sensor attributes; add Solar transition reason to routine event set.
 Automations: source sync of live Solar trigger and sanitation release behavior;
 schedule changes above; one helper-creation argument artifact. No native writer,
 command allowlist, RPM floors, durable transaction phases, running permission,
 outage/restoration protocol or PMPCIRC identity gate is weakened.
 
-273 controller tests pass (22 additional tests grouped across the requested
+276 controller tests pass (25 additional tests grouped across the requested
 25-case matrix), plus 46 PWA Python tests and 4 frontend tests. All existing
 controller tests remain passing. JSON parsing, Python compilation and diff checks
 pass. PWA, number/button/select interfaces and configured target RPMs are unchanged.
@@ -215,7 +224,8 @@ reset an already existing active marker. Deploy the reviewed integration build
 through the established installation process only when authorized; any required
 HA integration reload/Core restart needs explicit approval. Startup reconciliation
 can actuate through existing policy when safe: this is not a read-only deployment.
-Then install the reviewed Guardian and schedule definitions with hash locking,
+Verify `binary_sensor.solar_delivery_confirmed` is present with trustworthy X0052
+evidence before installing the reviewed Guardian and schedule definitions with hash locking,
 compare parsed readbacks, health and normal traces after each. Sanitation is
 already live at the captured definition; verify and skip a redundant save.
 

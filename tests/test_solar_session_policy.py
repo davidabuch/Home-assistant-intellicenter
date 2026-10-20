@@ -13,6 +13,7 @@ import test_rpm_guardian as harness
 
 M = 'input_boolean.pool_simple_manual_circulation'
 SOLAR = 'binary_sensor.solar_heating_active'
+DELIVERY = 'binary_sensor.solar_delivery_confirmed'
 SOURCE = 'select.pool_heat_source'
 demand = importlib.import_module(harness.native.__package__ + '.pump_demand')
 
@@ -25,6 +26,21 @@ def rows(pool=2600, heater=False, solar=True):
 
 
 class DemandDiagnosticsTests(unittest.TestCase):
+    def test_confirmed_delivery_needs_native_circuit_and_heating_not_selection(self):
+        from datetime import datetime, timezone
+        observation=importlib.import_module(harness.native.__package__+'.observation')
+        def sample(heating, circuit=True, connected=True):
+            return observation.ReadObservation(connected,datetime.now(timezone.utc),(
+                observation.BodyObservation('B1101',True,heating,79,90,'H0002'),
+                observation.BodyObservation('B1202',False,False,79,97,'00000')),
+                () if circuit is None else (observation.CircuitObservation('X0052',circuit),))
+        self.assertFalse(sample(False).solar_delivery_confirmed())
+        self.assertFalse(sample(True,False).solar_delivery_confirmed())
+        self.assertTrue(sample(True).solar_delivery_confirmed())
+        self.assertIsNone(sample(True,None).solar_delivery_confirmed())
+        self.assertIsNone(sample(True,connected=False).solar_delivery_confirmed())
+        self.assertIsNone(sample(None).solar_delivery_confirmed())
+
     def report(self, programs=None, **kw):
         defaults=dict(fresh=True,solar_delivery=True,actual_rpm=2900,settled=True,
             freeze_off=True,automatic_mode=True,desired_solar=2900)
@@ -121,6 +137,13 @@ class SolarEventGatewayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.actual('solar'),2900)
         self.assertFalse(self.g.blocks_normal)
 
+    async def test_virtual_demand_observation_does_not_expand_actuator_allowlist(self):
+        for circuit in ['X0051','X0052']:
+            for active in [True,False]:
+                with self.assertRaises(ValueError):
+                    await self.t.set_circuit(circuit,active)
+        self.assertFalse(self.writes)
+
     async def test_native_timeout_retains_correction_without_claiming_success(self):
         self.drift('solar',2960); self.mode='timeout'
         r=await self.run_policy('solar_delivery_started')
@@ -169,17 +192,23 @@ class ManualServiceSessionTests(unittest.TestCase):
 
     def test_14_15_actual_solar_promotes_then_original_five_minute_loss(self):
         r=self.run_manual();r.run()
-        r.states.update({SOLAR:'on',SOURCE:'Solar',ROOF:'120'})
+        r.states.update({SOLAR:'on',DELIVERY:'on',SOURCE:'Solar',ROOF:'120'})
         self.assertEqual(r.run('solar_delivery'),[])
         self.assertEqual(r.states[M],'off')
         r.states[COUNT]='480'
         self.assertEqual(r.run(),[]) # Heating can continue after filtration quota.
         r.states.update({SOLAR:'off',ROOF:'89'})
         self.assertEqual(r.run(),[(POOL,'off')]) # Existing quota-complete loss rule.
-        r=self.run_manual();r.run();r.states.update({SOLAR:'on',ROOF:'120'})
+        r=self.run_manual();r.run();r.states.update({SOLAR:'on',DELIVERY:'on',ROOF:'120'})
         r.run('solar_delivery');r.states.update({SOLAR:'off',ROOF:'89'})
         self.assertEqual(r.run(),[]) # Brief loss with debt remains protected.
         self.assertEqual(r.run('solar_down'),[(POOL,'off')])
+
+    def test_selected_or_legacy_solar_without_x0052_does_not_promote(self):
+        r=self.run_manual();r.run()
+        r.states.update({SOLAR:'on',SOURCE:'Solar',ROOF:'120',DELIVERY:'off'})
+        self.assertEqual(r.run('solar_delivery'),[])
+        self.assertEqual(r.states[M],'on')
 
     def test_16_manual_authority_off_no_takeover_or_stop(self):
         r=self.run_manual(**{MASTER:'off',COUNT:'480'})
@@ -219,7 +248,7 @@ class ManualServiceSessionTests(unittest.TestCase):
         self.assertEqual(r.run(),[])
 
     def test_23_thermal_shutdown_preserved_after_confirmed_solar_promotion(self):
-        r=self.run_manual();r.run();r.states.update({SOLAR:'on',SOURCE:'Solar',ROOF:'120'})
+        r=self.run_manual();r.run();r.states.update({SOLAR:'on',DELIVERY:'on',SOURCE:'Solar',ROOF:'120'})
         r.run('solar_delivery');r.states[TARGET]='71'
         self.assertEqual(r.run('thermal_change'),[(POOL,'off')])
 

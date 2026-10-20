@@ -81,7 +81,7 @@
     },
     {
       "trigger": "state",
-      "entity_id": "binary_sensor.solar_heating_active",
+      "entity_id": "binary_sensor.solar_delivery_confirmed",
       "to": "on",
       "id": "solar_delivery"
     }
@@ -356,7 +356,7 @@
             },
             {
               "condition": "state",
-              "entity_id": "binary_sensor.solar_heating_active",
+              "entity_id": "binary_sensor.solar_delivery_confirmed",
               "state": "on"
             },
             {

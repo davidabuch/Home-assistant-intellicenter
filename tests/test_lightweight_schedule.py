@@ -43,6 +43,7 @@ class Replay:
             'binary_sensor.rpm_guardian_blocks_normal_control':'off',
             'input_boolean.pool_simple_manual_circulation':'off',
             'binary_sensor.solar_heating_active':'off',
+            'binary_sensor.solar_delivery_confirmed':'off',
             'sensor.native_observation_age':'1',
         }
         self.states.update(changes)

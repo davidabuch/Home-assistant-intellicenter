@@ -229,7 +229,9 @@ class IntelliCenterManualTransport:
                 ))
             sanitation_id = self.sanitation_circuit_id()
             for obj in self.model.get_by_type(CIRCUIT_TYPE):
-                if str(obj.objnam) not in CIRCUIT_IDS and str(obj.objnam) != sanitation_id:
+                # These extra demand circuits are observation-only; do not add
+                # them to CIRCUIT_IDS (the commissioned actuator allowlist).
+                if str(obj.objnam) not in (CIRCUIT_IDS | {'C0001','C0006','X0051','X0052'}) and str(obj.objnam) != sanitation_id:
                     continue
                 status = obj.properties.get(STATUS_ATTR)
                 active = _native_status(status)
