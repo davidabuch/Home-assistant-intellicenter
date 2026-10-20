@@ -37,6 +37,20 @@ class ReadObservation:
     telemetry: tuple[TelemetryObservation, ...] = ()
     freeze_active: bool | None = None
 
+    def solar_delivery_confirmed(self) -> bool | None:
+        """Require independent native X0052 state as well as body heating.
+
+        This confirms native indications, not physical flow or valve position.
+        Selection alone, a missing circuit or stale observation never proves ON.
+        """
+        if not self.connected:
+            return None
+        circuit = self.circuit('X0052')
+        activity = self.heating_source_active('H0002')
+        if circuit is None or type(circuit.active) is not bool or activity is None:
+            return None
+        return circuit.active and activity
+
     def heating_source_active(self, heater_id: str) -> bool | None:
         """Report actual native heating source; never equate selection with firing."""
         if not self.connected or heater_id not in {"H0001", "H0002"}:
@@ -106,7 +120,7 @@ def adapt_snapshot(snapshot: Any, *, now: datetime | None = None) -> ReadObserva
     circuits = []
     for item in getattr(snapshot, 'circuits', ()):
         native_id = str(getattr(item, 'id', ''))
-        if native_id not in {'C0002', 'C0003', 'C0004', 'FTR01'} and native_id != getattr(snapshot, 'sanitation_circuit_id', None):
+        if native_id not in {'C0001', 'C0006', 'X0051', 'X0052', 'C0002', 'C0003', 'C0004', 'FTR01'} and native_id != getattr(snapshot, 'sanitation_circuit_id', None):
             continue
         raw_effect = getattr(item, 'effect_code', None)
         effect_code = raw_effect if isinstance(raw_effect, str) and raw_effect else None

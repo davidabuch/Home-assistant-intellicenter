@@ -12,6 +12,7 @@ DESCRIPTIONS = (
     ("spa_heating_active", "Spa Heating Active", "body_heating", "B1202"),
     ("gas_heater_active", "Gas Heater Active", "heat_source", "H0001"),
     ("solar_heating_active", "Solar Heating Active", "heat_source", "H0002"),
+    ("solar_delivery_confirmed", "Solar Delivery Confirmed", "confirmed_solar", "X0052"),
     ("pool_light_active", "Pool Light Active", "circuit", "C0002"),
     ("jets_active", "Jets Active", "circuit", "C0003"),
     ("slide_active", "Slide Active", "circuit", "C0004"),
@@ -55,6 +56,8 @@ class NativeStatus(BinarySensorEntity):
             return None
         if self._kind == "freeze":
             return self._observation.freeze_active
+        if self._kind == "confirmed_solar":
+            return self._observation.solar_delivery_confirmed()
         if self._kind == "heat_source":
             return self._observation.heating_source_active(self._native_id)
         item = (self._observation.body(self._native_id)

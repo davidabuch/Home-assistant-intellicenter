@@ -59,6 +59,7 @@ class _DiscoveryPoolModel(PoolModel):
         self._attribute_map[BODY_TYPE] = {
             SNAME_ATTR, HEATER_ATTR, HITMP_ATTR, HTMODE_ATTR, LOTMP_ATTR,
             LSTTMP_ATTR, MODE_ATTR, STATUS_ATTR, VOL_ATTR,
+            "HTSRC", "MANUAL", "MANHT", SPEED_ATTR,
         }
         # Feature circuits (FTRxx) must subscribe to STATUS explicitly.
         # Discovery by SNAME alone can create an entity with no ON/OFF telemetry.
@@ -228,7 +229,9 @@ class IntelliCenterManualTransport:
                 ))
             sanitation_id = self.sanitation_circuit_id()
             for obj in self.model.get_by_type(CIRCUIT_TYPE):
-                if str(obj.objnam) not in CIRCUIT_IDS and str(obj.objnam) != sanitation_id:
+                # These extra demand circuits are observation-only; do not add
+                # them to CIRCUIT_IDS (the commissioned actuator allowlist).
+                if str(obj.objnam) not in (CIRCUIT_IDS | {'C0001','C0006','X0051','X0052'}) and str(obj.objnam) != sanitation_id:
                     continue
                 status = obj.properties.get(STATUS_ATTR)
                 active = _native_status(status)
@@ -290,6 +293,39 @@ class IntelliCenterManualTransport:
             sanitation_circuit_id=self.sanitation_circuit_id(), telemetry=telemetry,
             freeze_active=freeze_active,
         ))
+
+    def pump_demand_evidence(self):
+        """Inspect cached native circuit status; never request or toggle a circuit.
+
+        Include extra assignments: five expected programs alone cannot exclude
+        an unknown higher flow demand. Identity/readback errors stay unknown.
+        X0051/X0052 status is independent of selected heater and HTMODE.
+        """
+        from .rpm_guardian import PROGRAMS
+        observation = self.read_observation()
+        rows = []
+        seen = set()
+        for obj in self.model.get_by_type(PMPCIRC_TYPE):
+            if str(obj.properties.get(PARENT_ATTR) or '') != 'PMP01':
+                continue
+            object_id = str(obj.objnam)
+            seen.add(object_id)
+            circuit_id = str(obj.properties.get(CIRCUIT_ATTR) or '')
+            circuit = self.model[circuit_id] if circuit_id else None
+            active = _native_status(circuit.properties.get(STATUS_ATTR)) if circuit else None
+            row = dict(id=object_id, circuit_id=circuit_id,
+                mode=str(obj.properties.get(SELECT_ATTR) or '').upper(),
+                rpm=obj.properties.get(SPEED_ATTR),
+                active=active if observation.connected else None)
+            if object_id in {p[0] for p in PROGRAMS.values()}:
+                if self._verified_pump_program(object_id) is None:
+                    row.update(active=None, rpm=None)
+            rows.append(row)
+        for object_id, circuit_id in PROGRAMS.values():
+            if object_id not in seen:
+                rows.append(dict(id=object_id, circuit_id=circuit_id,
+                    mode=None, rpm=None, active=None))
+        return rows
 
     def commission_abort_own_tcp(self) -> None:
         """One-shot diagnostic: abort ONLY this integration's TCP transport.

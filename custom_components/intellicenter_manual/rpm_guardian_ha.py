@@ -108,6 +108,31 @@ class GuardianHA:
             self.hass.bus.async_fire("intellicenter_rpm_guardian_restored")
         return result
 
+    def demand_diagnostics(self):
+        """Fresh display evidence only; neither a second writer nor a control gate."""
+        from .pump_demand import explain
+        observation = self.transport.read_observation()
+        sample = self.conditions()
+        try:
+            report = explain(self.transport.pump_demand_evidence(),
+                fresh=sample.fresh,
+                solar_delivery=observation.heating_source_active('H0002'),
+                actual_rpm=sample.actual_rpm, settled=sample.settled,
+                freeze_off=sample.freeze_off, automatic_mode=sample.automatic_mode,
+                desired_solar=self.core.data['applied']['solar'])
+            report['observed_at'] = observation.observed_at.isoformat()
+            # Raw body fields expose the difference between selected source and
+            # protocol delivery evidence without changing commissioned sensors.
+            report['body_evidence'] = {}
+            for body_id in ('B1101', 'B1202'):
+                body = self.transport.model[body_id]
+                report['body_evidence'][body_id] = ({key: body.properties.get(key)
+                    for key in ('STATUS','HEATER','HTMODE','HTSRC','MANUAL','MANHT','SPEED')}
+                    if body is not None and sample.fresh else None)
+            return report
+        except Exception as exc:
+            return {'status':'NATIVE_DEMAND_UNAVAILABLE', 'error':str(exc), 'runtime_write':False}
+
     async def preflight(self, key):
         await self.reconcile(f"{key}_requested")
         observed = self.read(key)

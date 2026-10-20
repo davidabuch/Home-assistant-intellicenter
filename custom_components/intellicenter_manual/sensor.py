@@ -216,6 +216,8 @@ class GuardianStatus(SensorEntity):
             if value != data['applied'][key]}
         data['blocks_normal_control'] = self._guardian.core.blocks_normal
         data['installed_commit'] = self._guardian.revision
+        data['runtime_status_scope'] = 'outage_only; not normal Solar verification'
+        data['pump_demand'] = self._guardian.demand_diagnostics()
         return data
 
     async def async_added_to_hass(self):

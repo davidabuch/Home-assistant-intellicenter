@@ -41,10 +41,16 @@ class Replay:
             'sensor.system_mode':'AUTO', 'input_select.pool_heating_preference':'Solar',
             'select.pool_heat_source':'Solar',
             'binary_sensor.rpm_guardian_blocks_normal_control':'off',
+            'input_boolean.pool_simple_manual_circulation':'off',
+            'binary_sensor.solar_heating_active':'off',
+            'binary_sensor.solar_delivery_confirmed':'off',
+            'sensor.native_observation_age':'1',
         }
         self.states.update(changes)
         self.commands = []
         self.before_command = None
+        self.ages = {}
+        self.events = []
 
     def numeric(self, value):
         try:
@@ -59,7 +65,11 @@ class Replay:
             return self.trigger in (c['id'] if isinstance(c['id'], list) else [c['id']])
         if t == 'state':
             wanted = c['state'] if isinstance(c['state'], list) else [c['state']]
-            return self.states.get(c['entity_id']) in wanted
+            matches = self.states.get(c['entity_id']) in wanted
+            if 'for' in c:
+                h,m,s = map(int,c['for'].split(':'))
+                matches = matches and self.ages.get(c['entity_id'],3600) >= h*3600+m*60+s
+            return matches
         if t == 'numeric_state':
             v = self.numeric(c['entity_id'])
             if v is None: return False
@@ -119,6 +129,7 @@ class Replay:
                 else: raise AssertionError('Unsupported action '+service)
                 if self.before_command: self.before_command(self,a)
             elif 'delay' in a: pass
+            elif 'event' in a: self.events.append(a['event'])
             else: raise AssertionError('Unsupported action '+str(a))
 
     def run(self, trigger='tick', time='12:32:00'):
@@ -212,10 +223,12 @@ class LightweightScheduleTests(unittest.TestCase):
         for trigger in ['tick','thermal_change','solar_up','reset','midnight']:
             self.assertEqual(r.run(trigger),[])
         r=Replay(**{OWNS:'off',TARGET:'71'})
+        r.ages[POOL]=0 # New unowned service session is protected during grace.
         self.assertEqual(r.run(),[]) # do not cancel unclaimed external session
         self.assertEqual(r.states[OWNS],'off')
         # Automatic Ownership ON intentionally re-adopts external eligible heat.
         r.states[TARGET]='90'
+        r.ages[POOL]=600
         r.run()
         self.assertEqual(r.states[OWNS],'on')
 
