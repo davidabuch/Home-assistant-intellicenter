@@ -1,7 +1,7 @@
 {
   "id": "1791536051066",
   "alias": "Pool Simple Solar and Filtration - Commissioning",
-  "description": "Lightweight HA controller; IntelliCenter Manual Bridge owns native writes. Solar starts/adoption require valid pool temperature below target and Solar/Eco Heat preference. End owned target-satisfied daytime sessions unless nighttime debt or independent circulation/safety authority applies. Five-minute Solar-loss trigger and Eco Heat recovery policy retained. Filtration credits verified Pool pump-running minute ticks, independent of equipment ownership; sole ledger rollover at 08:00. Automatic Ownership OFF yields equipment authority. Spa, sanitation, freeze, service mode and outage protection preempt schedule equipment commands. No RPM or persistent preset writes. Minute reconciliation recovers after HA reload/restart without blind startup replay. Manual ownership releases the schedule claim without equipment commands; delayed claims recheck current authority.",
+  "description": "Lightweight HA controller; IntelliCenter Manual Bridge owns native writes. Solar starts/adoption require valid pool temperature below target and Solar/Eco Heat preference. End owned target-satisfied daytime sessions unless nighttime debt or independent circulation/safety authority applies. Five-minute Solar-loss trigger and Eco Heat recovery policy retained. Filtration credits verified Pool pump-running minute ticks, independent of equipment ownership; sole ledger rollover at 08:00. Automatic Ownership OFF yields equipment authority. Spa, sanitation, freeze, service mode and outage protection preempt schedule equipment commands. No RPM or persistent preset writes. Minute reconciliation recovers after HA reload/restart without blind startup replay. Manual ownership releases the schedule claim without equipment commands; delayed claims recheck current authority. Sanitation release event immediately reconciles normal pool authority without changing Automatic Ownership. Cold-weather manual Pool circulation is adopted for remaining filtration debt; when debt is already satisfied, preserve ten-minute manual service grace then release. Unowned native Pool starts receive ten minutes of service grace before ordinary commands. One restored manual-circulation marker distinguishes adopted filtration from Solar so debt, not roof/calendar or target satisfaction, terminates filtration-only circulation. Confirmed Solar promotion restores existing five-minute loss/thermal shutdown rules. Master OFF and all safety priorities remain authoritative.",
   "triggers": [
     {
       "trigger": "numeric_state",
@@ -73,6 +73,17 @@
       "from": "on",
       "to": "off",
       "id": "ownership_released"
+    },
+    {
+      "trigger": "event",
+      "event_type": "intellicenter_sanitation_released",
+      "id": "sanitation_released"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "binary_sensor.solar_heating_active",
+      "to": "on",
+      "id": "solar_delivery"
     }
   ],
   "conditions": [],
@@ -98,6 +109,18 @@
         {
           "condition": "trigger",
           "id": "tick"
+        },
+        {
+          "condition": "numeric_state",
+          "entity_id": "counter.pool_simple_filtration_minutes",
+          "above": -1,
+          "below": 1441
+        },
+        {
+          "condition": "numeric_state",
+          "entity_id": "sensor.pool_daily_filtration_target",
+          "above": 0,
+          "below": 1441
         },
         {
           "condition": "state",
@@ -173,6 +196,38 @@
       ]
     },
     {
+      "if": [
+        {
+          "condition": "or",
+          "conditions": [
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "off"
+            }
+          ]
+        },
+        {
+          "condition": "state",
+          "entity_id": "input_boolean.pool_simple_manual_circulation",
+          "state": "on"
+        }
+      ],
+      "then": [
+        {
+          "action": "input_boolean.turn_off",
+          "target": {
+            "entity_id": "input_boolean.pool_simple_manual_circulation"
+          }
+        }
+      ]
+    },
+    {
       "condition": "state",
       "entity_id": "input_boolean.pool_automatic_ownership",
       "state": "on"
@@ -238,12 +293,793 @@
       "state": "off"
     },
     {
+      "condition": "state",
+      "entity_id": "input_boolean.pool_simple_manual_circulation",
+      "state": [
+        "on",
+        "off"
+      ]
+    },
+    {
+      "condition": "or",
+      "conditions": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            }
+          ]
+        },
+        {
+          "condition": "state",
+          "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+          "state": "on"
+        },
+        {
+          "condition": "state",
+          "entity_id": "climate.pool_thermostat",
+          "state": "heat",
+          "for": "00:10:00"
+        }
+      ]
+    },
+    {
+      "condition": "numeric_state",
+      "entity_id": "counter.pool_simple_filtration_minutes",
+      "above": -1,
+      "below": 1441
+    },
+    {
+      "condition": "numeric_state",
+      "entity_id": "sensor.pool_daily_filtration_target",
+      "above": 0,
+      "below": 1441
+    },
+    {
+      "condition": "numeric_state",
+      "entity_id": "sensor.native_observation_age",
+      "above": -0.001,
+      "below": 120
+    },
+    {
       "choose": [
+        {
+          "alias": "Promote adopted circulation on confirmed Solar delivery",
+          "conditions": [
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_manual_circulation",
+              "state": "on"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.solar_heating_active",
+              "state": "on"
+            },
+            {
+              "condition": "state",
+              "entity_id": "select.pool_heat_source",
+              "state": "Solar"
+            }
+          ],
+          "sequence": [
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.freeze_protection_active",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "sensor.system_mode",
+              "state": "AUTO"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_sanitation_session",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.spa_sanitation_session",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.sanitation",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.rpm_guardian_blocks_normal_control",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.water_slide",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.spillway",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.jets_bubbles",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.native_observation_age",
+              "above": -0.001,
+              "below": 120
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_manual_circulation"
+              }
+            }
+          ]
+        },
+        {
+          "alias": "End adopted or unowned circulation after debt and service grace",
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": [
+                "tick",
+                "thermal_change",
+                "ownership_resumed",
+                "sanitation_released",
+                "grid_restored",
+                "reset",
+                "midnight",
+                "solar_up",
+                "solar_down",
+                "solar_delivery"
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "or",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+                  "state": "off"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_simple_manual_circulation",
+                  "state": "on"
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat",
+              "for": "00:10:00"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "counter.pool_simple_filtration_minutes",
+              "above": -1,
+              "below": 1441
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pool_daily_filtration_target",
+              "above": 0,
+              "below": 1441
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "numeric_state",
+                  "entity_id": "counter.pool_simple_filtration_minutes",
+                  "below": "sensor.pool_daily_filtration_target"
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.solar_heating_active",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.solar_temperature",
+              "above": -40,
+              "below": 250
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pool_temperature",
+              "above": 31,
+              "below": 121
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pool_target_temperature",
+              "above": 39,
+              "below": 105
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_select.pool_heating_preference",
+              "state": [
+                "Off",
+                "Gas",
+                "Solar",
+                "Eco Heat"
+              ]
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.solar_temperature",
+                      "above": 89.999
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_select.pool_heating_preference",
+                      "state": [
+                        "Solar",
+                        "Eco Heat"
+                      ]
+                    },
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.pool_temperature",
+                      "above": 31,
+                      "below": 121
+                    },
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.pool_target_temperature",
+                      "above": 39,
+                      "below": 105
+                    },
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.pool_temperature",
+                      "below": "sensor.pool_target_temperature"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "sequence": [
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.freeze_protection_active",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "sensor.system_mode",
+              "state": "AUTO"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_sanitation_session",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.spa_sanitation_session",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.sanitation",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.rpm_guardian_blocks_normal_control",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.water_slide",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.spillway",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.jets_bubbles",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.native_observation_age",
+              "above": -0.001,
+              "below": 120
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "or",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+                  "state": "off"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "input_boolean.pool_simple_manual_circulation",
+                  "state": "on"
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat",
+              "for": "00:10:00"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "counter.pool_simple_filtration_minutes",
+              "above": -1,
+              "below": 1441
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pool_daily_filtration_target",
+              "above": 0,
+              "below": 1441
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "numeric_state",
+                  "entity_id": "counter.pool_simple_filtration_minutes",
+                  "below": "sensor.pool_daily_filtration_target"
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.solar_heating_active",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.solar_temperature",
+              "above": -40,
+              "below": 250
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pool_temperature",
+              "above": 31,
+              "below": 121
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pool_target_temperature",
+              "above": 39,
+              "below": 105
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_select.pool_heating_preference",
+              "state": [
+                "Off",
+                "Gas",
+                "Solar",
+                "Eco Heat"
+              ]
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.solar_temperature",
+                      "above": 89.999
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_select.pool_heating_preference",
+                      "state": [
+                        "Solar",
+                        "Eco Heat"
+                      ]
+                    },
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.pool_temperature",
+                      "above": 31,
+                      "below": 121
+                    },
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.pool_target_temperature",
+                      "above": 39,
+                      "below": 105
+                    },
+                    {
+                      "condition": "numeric_state",
+                      "entity_id": "sensor.pool_temperature",
+                      "below": "sensor.pool_target_temperature"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "action": "climate.set_hvac_mode",
+              "target": {
+                "entity_id": "climate.pool_thermostat"
+              },
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            },
+            {
+              "action": "input_boolean.turn_off",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_manual_circulation"
+              }
+            }
+          ]
+        },
+        {
+          "alias": "Adopt manual circulation for filtration after service grace",
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": [
+                "tick",
+                "thermal_change",
+                "ownership_resumed",
+                "sanitation_released",
+                "grid_restored",
+                "reset",
+                "midnight",
+                "solar_up",
+                "solar_down",
+                "solar_delivery"
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_manual_circulation",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat",
+              "for": "00:10:00"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.solar_heating_active",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "counter.pool_simple_filtration_minutes",
+              "above": -1,
+              "below": 1441
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pool_daily_filtration_target",
+              "above": 0,
+              "below": 1441
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "counter.pool_simple_filtration_minutes",
+              "below": "sensor.pool_daily_filtration_target"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pump_rpm",
+              "above": 500
+            }
+          ],
+          "sequence": [
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
+            },
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_active",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_protection",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.hot_tub_thermostat",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.freeze_protection_active",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "sensor.system_mode",
+              "state": "AUTO"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_sanitation_session",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.spa_sanitation_session",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.sanitation",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.rpm_guardian_blocks_normal_control",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.water_slide",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.spillway",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "switch.jets_bubbles",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.native_observation_age",
+              "above": -0.001,
+              "below": 120
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_schedule_owns_pool",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_manual_circulation",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat",
+              "for": "00:10:00"
+            },
+            {
+              "condition": "state",
+              "entity_id": "binary_sensor.solar_heating_active",
+              "state": "off"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "counter.pool_simple_filtration_minutes",
+              "above": -1,
+              "below": 1441
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pool_daily_filtration_target",
+              "above": 0,
+              "below": 1441
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "counter.pool_simple_filtration_minutes",
+              "below": "sensor.pool_daily_filtration_target"
+            },
+            {
+              "condition": "numeric_state",
+              "entity_id": "sensor.pump_rpm",
+              "above": 500
+            },
+            {
+              "action": "input_boolean.turn_on",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_manual_circulation"
+              }
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_automatic_ownership",
+              "state": "on"
+            },
+            {
+              "condition": "state",
+              "entity_id": "climate.pool_thermostat",
+              "state": "heat"
+            },
+            {
+              "action": "input_boolean.turn_on",
+              "target": {
+                "entity_id": "input_boolean.pool_simple_schedule_owns_pool"
+              }
+            }
+          ]
+        },
         {
           "conditions": [
             {
               "condition": "trigger",
-              "id": "ownership_resumed"
+              "id": [
+                "ownership_resumed",
+                "sanitation_released"
+              ]
             },
             {
               "condition": "state",
@@ -388,6 +1224,11 @@
               "state": "off"
             },
             {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_manual_circulation",
+              "state": "off"
+            },
+            {
               "action": "climate.set_hvac_mode",
               "target": {
                 "entity_id": "climate.pool_thermostat"
@@ -436,7 +1277,8 @@
                 "tick",
                 "thermal_change",
                 "ownership_resumed",
-                "grid_restored"
+                "grid_restored",
+                "sanitation_released"
               ]
             },
             {
@@ -599,6 +1441,11 @@
               "state": "off"
             },
             {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_manual_circulation",
+              "state": "off"
+            },
+            {
               "action": "climate.set_hvac_mode",
               "target": {
                 "entity_id": "climate.pool_thermostat"
@@ -757,6 +1604,11 @@
                     {
                       "condition": "state",
                       "entity_id": "switch.jets_bubbles",
+                      "state": "off"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "input_boolean.pool_simple_manual_circulation",
                       "state": "off"
                     },
                     {
@@ -970,7 +1822,10 @@
           "conditions": [
             {
               "condition": "trigger",
-              "id": "solar_up"
+              "id": [
+                "solar_up",
+                "sanitation_released"
+              ]
             },
             {
               "condition": "state",
@@ -1783,6 +2638,11 @@
               "state": "off"
             },
             {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_manual_circulation",
+              "state": "off"
+            },
+            {
               "action": "climate.set_hvac_mode",
               "target": {
                 "entity_id": "climate.pool_thermostat"
@@ -2158,6 +3018,11 @@
               "state": "off"
             },
             {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_manual_circulation",
+              "state": "off"
+            },
+            {
               "action": "climate.set_hvac_mode",
               "target": {
                 "entity_id": "climate.pool_thermostat"
@@ -2360,6 +3225,11 @@
             {
               "condition": "state",
               "entity_id": "switch.jets_bubbles",
+              "state": "off"
+            },
+            {
+              "condition": "state",
+              "entity_id": "input_boolean.pool_simple_manual_circulation",
               "state": "off"
             },
             {

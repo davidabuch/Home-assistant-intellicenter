@@ -1,0 +1,6 @@
+{
+  "helper_type": "input_boolean",
+  "helper_id": "pool_simple_manual_circulation",
+  "name": "Pool Simple Manual Circulation",
+  "icon": "mdi:account-wrench"
+}

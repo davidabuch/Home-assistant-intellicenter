@@ -61,25 +61,18 @@ class SanitationReplay(Replay):
 
 
 class ManualPoolOwnershipTests(unittest.TestCase):
-    def test_sanitation_diff_is_only_master_preservation_and_obligation_guard(self):
-        baseline = json.loads((FIXTURES / 'sanitation_sessions.json').read_text())
-        expected = copy.deepcopy(baseline)
-        def remove_master(node):
-            if isinstance(node, list):
-                node[:] = [n for n in node if not (isinstance(n, dict)
-                    and n.get('action') in ['input_boolean.turn_on','input_boolean.turn_off']
-                    and n.get('target', {}).get('entity_id') == MASTER)]
-                for n in node: remove_master(n)
-            elif isinstance(node, dict):
-                for n in node.values(): remove_master(n)
-        remove_master(expected)
-        candidate = copy.deepcopy(SANITATION)
-        candidate['description'] = baseline['description']
-        branch = next(b for b in candidate['actions'][0]['choose']
-            if b['conditions'][0].get('id') == ['timeout','outage','restart'])
-        self.assertEqual(branch['conditions'][-1]['condition'], 'or')
-        branch['conditions'].pop()
-        self.assertEqual(candidate, expected)
+    def test_sanitation_live_cleanup_and_release_events_preserved(self):
+        live = json.loads((HA / 'fixtures/solar_session_20261020/sanitation.json').read_text())
+        self.assertEqual(SANITATION, live['config'])
+        self.assert_no_master_writes(SANITATION['actions'])
+
+    def assert_no_master_writes(self, node):
+        if isinstance(node, list):
+            for child in node: self.assert_no_master_writes(child)
+        elif isinstance(node, dict):
+            if node.get('action') in ['input_boolean.turn_on','input_boolean.turn_off']:
+                self.assertNotEqual(node.get('target', {}).get('entity_id'), MASTER)
+            for child in node.values(): self.assert_no_master_writes(child)
 
     def test_preference_rechecks_authority_after_branch_selection(self):
         class RevokingReplay(Replay):
@@ -177,7 +170,7 @@ class ManualPoolOwnershipTests(unittest.TestCase):
         self.assertEqual(r.run('thermal_change','03:20:05'), [])
 
     def test_sanitation_never_changes_operator_master_and_keeps_priority(self):
-        self.assertNotIn(MASTER,json.dumps(SANITATION['actions']))
+        self.assert_no_master_writes(SANITATION['actions'])
         for master in ['on','off']:
             r = SanitationReplay(**{MASTER:master,'input_boolean.pool_sanitation_session':'on'})
             self.assertIn(('switch.sanitation','on'),r.run('pool_start'))

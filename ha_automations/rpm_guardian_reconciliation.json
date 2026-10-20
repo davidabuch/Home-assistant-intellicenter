@@ -1,7 +1,7 @@
 {
-  "id": "intellicenter_rpm_guardian_reconciliation",
+  "id": "1792102863523",
   "alias": "IntelliCenter RPM Guardian - Reconciliation",
-  "description": "Event-driven ordinary anti-drift; minute heartbeat services durable pending work and safety recovery only. Startup scan waits for fresh initialization. Single guarded writer; no equipment ON/OFF decisions.",
+  "description": "Event-driven ordinary anti-drift; minute heartbeat services durable pending work and safety recovery only. Startup scan waits for fresh initialization. Single guarded writer; no equipment ON/OFF decisions. Active Solar delivery transition also triggers RPM reconciliation; minute heartbeat retains existing manual RPM protections.",
   "triggers": [
     {
       "trigger": "time",
@@ -49,6 +49,12 @@
       ],
       "to": "on",
       "id": "sanitation_request"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "binary_sensor.solar_heating_active",
+      "to": "on",
+      "id": "solar_delivery_started"
     }
   ],
   "conditions": [],

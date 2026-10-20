@@ -1,0 +1,411 @@
+{
+  "success": true,
+  "action": "get",
+  "automation_id": "automation.pool_and_hot_tub_heating_preference_controller",
+  "config": {
+    "id": "1791649697448",
+    "alias": "Pool and Hot Tub - Heating Preference Controller",
+    "description": "Maps HA Off/Gas/Solar/Eco Heat preference to native IntelliCenter heat source independently per body. Eco Heat uses roof >=90F pool and >=130F spa, otherwise Gas. Two-minute stabilized roof changes. Does not start/stop equipment or set RPM. Native source can also be controlled externally; preference reapplies at activation or roof change. Pool source writes require Automatic Ownership ON, including a check immediately before each write. Manual Pool source is preserved; Spa policy is independent.",
+    "triggers": [
+      {
+        "trigger": "state",
+        "entity_id": "input_select.pool_heating_preference"
+      },
+      {
+        "trigger": "state",
+        "entity_id": "input_select.hot_tub_heating_preference"
+      },
+      {
+        "trigger": "state",
+        "entity_id": "sensor.solar_temperature",
+        "for": "00:02:00"
+      },
+      {
+        "trigger": "state",
+        "entity_id": "climate.pool_thermostat",
+        "to": "heat"
+      },
+      {
+        "trigger": "state",
+        "entity_id": "climate.hot_tub_thermostat",
+        "to": "heat"
+      },
+      {
+        "trigger": "event",
+        "event_type": "intellicenter_rpm_guardian_restored"
+      },
+      {
+        "trigger": "state",
+        "entity_id": "input_boolean.pool_automatic_ownership",
+        "from": "off",
+        "to": "on",
+        "id": "ownership_resumed"
+      }
+    ],
+    "conditions": [
+      {
+        "condition": "not",
+        "conditions": [
+          {
+            "condition": "and",
+            "conditions": [
+              {
+                "condition": "state",
+                "entity_id": "input_boolean.grid_outage_active",
+                "state": "on"
+              },
+              {
+                "condition": "state",
+                "entity_id": "input_boolean.grid_outage_protection",
+                "state": "on"
+              },
+              {
+                "condition": "state",
+                "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                "state": "off"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "condition": "state",
+        "entity_id": "binary_sensor.rpm_guardian_blocks_normal_control",
+        "state": "off"
+      }
+    ],
+    "actions": [
+      {
+        "if": [
+          {
+            "condition": "state",
+            "entity_id": "input_boolean.pool_automatic_ownership",
+            "state": "on"
+          },
+          {
+            "condition": "state",
+            "entity_id": "input_boolean.pool_sanitation_session",
+            "state": "off"
+          }
+        ],
+        "then": [
+          {
+            "condition": "not",
+            "conditions": [
+              {
+                "condition": "and",
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.grid_outage_active",
+                    "state": "on"
+                  },
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.grid_outage_protection",
+                    "state": "on"
+                  },
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                    "state": "off"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "choose": [
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.pool_heating_preference",
+                    "state": "Off"
+                  }
+                ],
+                "sequence": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.pool_automatic_ownership",
+                    "state": "on"
+                  },
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.pool_heat_source"
+                    },
+                    "data": {
+                      "option": "Off"
+                    }
+                  }
+                ]
+              },
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.pool_heating_preference",
+                    "state": "Gas"
+                  }
+                ],
+                "sequence": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.pool_automatic_ownership",
+                    "state": "on"
+                  },
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.pool_heat_source"
+                    },
+                    "data": {
+                      "option": "Gas"
+                    }
+                  }
+                ]
+              },
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.pool_heating_preference",
+                    "state": "Solar"
+                  }
+                ],
+                "sequence": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.pool_automatic_ownership",
+                    "state": "on"
+                  },
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.pool_heat_source"
+                    },
+                    "data": {
+                      "option": "Solar"
+                    }
+                  }
+                ]
+              },
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.pool_heating_preference",
+                    "state": "Eco Heat"
+                  },
+                  {
+                    "condition": "numeric_state",
+                    "entity_id": "sensor.solar_temperature",
+                    "above": 89.999
+                  }
+                ],
+                "sequence": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.pool_automatic_ownership",
+                    "state": "on"
+                  },
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.pool_heat_source"
+                    },
+                    "data": {
+                      "option": "Solar"
+                    }
+                  }
+                ]
+              },
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.pool_heating_preference",
+                    "state": "Eco Heat"
+                  }
+                ],
+                "sequence": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.pool_automatic_ownership",
+                    "state": "on"
+                  },
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.pool_heat_source"
+                    },
+                    "data": {
+                      "option": "Gas"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "if": [
+          {
+            "condition": "state",
+            "entity_id": "input_boolean.spa_sanitation_session",
+            "state": "off"
+          },
+          {
+            "condition": "not",
+            "conditions": [
+              {
+                "condition": "trigger",
+                "id": "ownership_resumed"
+              }
+            ]
+          }
+        ],
+        "then": [
+          {
+            "condition": "not",
+            "conditions": [
+              {
+                "condition": "and",
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.grid_outage_active",
+                    "state": "on"
+                  },
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.grid_outage_protection",
+                    "state": "on"
+                  },
+                  {
+                    "condition": "state",
+                    "entity_id": "input_boolean.grid_outage_operator_bypass_latch",
+                    "state": "off"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "choose": [
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.hot_tub_heating_preference",
+                    "state": "Off"
+                  }
+                ],
+                "sequence": [
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.hot_tub_heat_source"
+                    },
+                    "data": {
+                      "option": "Off"
+                    }
+                  }
+                ]
+              },
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.hot_tub_heating_preference",
+                    "state": "Gas"
+                  }
+                ],
+                "sequence": [
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.hot_tub_heat_source"
+                    },
+                    "data": {
+                      "option": "Gas"
+                    }
+                  }
+                ]
+              },
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.hot_tub_heating_preference",
+                    "state": "Solar"
+                  }
+                ],
+                "sequence": [
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.hot_tub_heat_source"
+                    },
+                    "data": {
+                      "option": "Solar"
+                    }
+                  }
+                ]
+              },
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.hot_tub_heating_preference",
+                    "state": "Eco Heat"
+                  },
+                  {
+                    "condition": "numeric_state",
+                    "entity_id": "sensor.solar_temperature",
+                    "above": 129.999
+                  }
+                ],
+                "sequence": [
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.hot_tub_heat_source"
+                    },
+                    "data": {
+                      "option": "Solar"
+                    }
+                  }
+                ]
+              },
+              {
+                "conditions": [
+                  {
+                    "condition": "state",
+                    "entity_id": "input_select.hot_tub_heating_preference",
+                    "state": "Eco Heat"
+                  }
+                ],
+                "sequence": [
+                  {
+                    "action": "select.select_option",
+                    "target": {
+                      "entity_id": "select.hot_tub_heat_source"
+                    },
+                    "data": {
+                      "option": "Gas"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "mode": "restart"
+  },
+  "config_hash": "b67810629de5881f"
+}
