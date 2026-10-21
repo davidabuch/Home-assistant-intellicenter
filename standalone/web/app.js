@@ -65,11 +65,11 @@ function sanitationRemaining(){
  return null;
 }
 function renderSanitation(){
- const root=$("sanitation"),allowed=permissions.pool_control===true;root.hidden=!allowed;root.replaceChildren();if(!allowed)return;
+ const root=$("sanitation"),allowed=permissions.pool_control===true;root.hidden=false;root.replaceChildren();
  const pool=state.pool_sanitation?.state==="on",spa=state.spa_sanitation?.state==="on",active=pool||spa;
- const tile=document.createElement("div");tile.className="sanitation-combined"+(active?" active":"");tile.setAttribute("role","button");tile.setAttribute("tabindex","0");tile.setAttribute("aria-label",active?"Sanitation "+(spa?"Hot Tub":"Pool")+" running; hold for options":"Sanitation off; hold to choose Pool or Hot Tub");
+ const tile=document.createElement("div");tile.className="sanitation-combined"+(active?" active":"");tile.setAttribute("role","button");tile.setAttribute("tabindex","0");tile.setAttribute("aria-label",active?"Sanitation "+(spa?"Hot Tub":"Pool")+" running"+(allowed?"; hold for options":""):allowed?"Sanitation off; hold to choose Pool or Hot Tub":"Sanitation off");
  const icon=document.createElement("span");icon.className="sanitation-glyph";icon.textContent="✧";
- const details=document.createElement("div");details.className="sanitation-copy";const title=document.createElement("strong");title.textContent="Sanitation";const status=document.createElement("span");status.textContent=active?(spa?"Hot Tub running":"Pool running"):"Hold to choose Pool or Hot Tub";
+ const details=document.createElement("div");details.className="sanitation-copy";const title=document.createElement("strong");title.textContent="Sanitation";const status=document.createElement("span");status.textContent=active?(spa?"Hot Tub running":"Pool running"):allowed?"Hold to choose Pool or Hot Tub":"Off";
  const remaining=document.createElement("small");remaining.className="sanitation-remaining";const seconds=sanitationRemaining();remaining.textContent=active?(seconds===null?"Timer unavailable":Math.floor(seconds/3600)+"h "+String(Math.floor(seconds%3600/60)).padStart(2,"0")+"m remaining"):"";
  details.append(title,status,remaining);tile.append(icon,details);
  const open=()=>openPoolDialog("Sanitation",active?[
@@ -79,19 +79,19 @@ function renderSanitation(){
  {label:"Start Pool sanitation · 3 hours",disabled:busy||state.pool_sanitation?.state!=="off"||state.spa_sanitation?.state!=="off",action:()=>send("pool_sanitation","on")},
  {label:"Start Hot Tub sanitation · 3 hours",disabled:busy||state.pool_sanitation?.state!=="off"||state.spa_sanitation?.state!=="off",action:()=>send("spa_sanitation","on")}
  ]);
- attachHold(tile,open);tile.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}});root.append(tile);
+ if(allowed){attachHold(tile,open);tile.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})}else{tile.removeAttribute("role");tile.removeAttribute("tabindex");tile.setAttribute("aria-label","Sanitation "+(active?(spa?"Hot Tub":"Pool")+" running":"off"))}root.append(tile);
 }
 function renderLight(){
- const root=$("poolLight"),allowed=permissions.light_control===true;root.hidden=!allowed;if(!allowed){root.replaceChildren();return}
+ const root=$("poolLight"),allowed=permissions.light_control===true;root.hidden=false;
  const e=state.light||{},a=e.attributes||{},on=e.state==="on",available=["on","off"].includes(e.state);
  root.replaceChildren();root.classList.toggle("light-active",on);
  const details=document.createElement("div");details.className="compact-light-copy";const title=document.createElement("strong");title.textContent="Pool Light";const effect=document.createElement("span");effect.textContent=available?(e.selected_effect||a.effect||"No scene selected"):"Unavailable";details.append(title,effect);
  const power=button("",()=>send("light",on?"off":"on"),on);power.classList.add("power-button","compact-light-power");power.setAttribute("aria-label",on?"Turn pool light off":"Turn pool light on");const glyph=document.createElement("span");glyph.className="power-symbol";glyph.textContent="⏻";power.append(glyph);power.disabled=busy||!available;
- root.append(details,power);
+ root.append(details);if(allowed)root.append(power);
  const show=()=>openPoolDialog("Pool Light Scene",(Array.isArray(a.effect_list)?a.effect_list:[]).map(name=>({label:name+((e.selected_effect||a.effect)===name?" ✓":""),action:()=>send("light","effect",name)})));
- attachHold(root,show);
+ if(allowed){attachHold(root,show);
  details.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();show()}});
- details.tabIndex=0;details.setAttribute("role","button");details.setAttribute("aria-label","Hold to choose pool light scene");
+ details.tabIndex=0;details.setAttribute("role","button");details.setAttribute("aria-label","Hold to choose pool light scene")}
 }
 
 async function refresh(){try{state=await api("state");try{permissions=await api("permissions")}catch(e){permissions={pool_control:false,light_control:false}}$("controls").hidden=false;$("pinLogin").hidden=true;render();say("Live status · updated "+new Date().toLocaleTimeString())}catch(e){if(e.message==="Sign in required"){$("controls").hidden=true;$("pinLogin").hidden=false;state={};updateScene();say("Enter your device PIN to continue.")}else say(e.message)}}refresh();setInterval(()=>{if(!busy&&!document.hidden)refresh()},4000);document.addEventListener("visibilitychange",()=>{document.body.classList.toggle("scene-paused",document.hidden);if(!document.hidden)refresh()});
