@@ -610,3 +610,58 @@ main{z-index:101!important}
 
 /* iOS long-press must not select text or display editing handles. */
 #pool,#spa,.heat-overlay,.heat-dialog,.heat-dialog *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+
+/* Compact Pool & Spa controls: explicit light power and one sanitation session tile. */
+#controls #poolLight{
+ width:calc(50% - 5px)!important;max-width:calc(50% - 5px)!important;
+ min-height:94px!important;height:94px!important;
+ display:flex!important;align-items:center!important;justify-content:space-between!important;
+ gap:6px!important;padding:12px!important;border-radius:23px!important;
+ position:relative!important;box-sizing:border-box!important;
+ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+}
+#controls #poolLight[hidden]{display:none!important}
+#controls #poolLight .compact-light-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+#controls #poolLight .compact-light-copy strong{font-size:16px;color:#fff;line-height:1.15}
+#controls #poolLight .compact-light-copy span{font-size:12px;color:#d7eaff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#controls #poolLight .compact-light-power{
+ width:53px!important;height:53px!important;min-width:53px!important;min-height:53px!important;
+ flex:0 0 53px!important;border-radius:50%!important;padding:0!important;
+ display:grid!important;place-items:center!important;background:#30465d!important;
+ border:1px solid #698ba6!important;color:#b5c4d2!important;
+ box-shadow:inset 0 1px #ffffff28!important;
+}
+#controls #poolLight .compact-light-power .power-symbol{font-size:36px;line-height:1}
+#controls #poolLight.light-active{
+ background:linear-gradient(130deg,rgba(42,192,255,.77),rgba(0,95,224,.69),rgba(255,196,66,.29))!important;
+ border:2px solid rgba(184,244,255,.98)!important;
+ box-shadow:inset 0 1px #fff9,0 0 26px rgba(35,185,255,.85),0 0 10px #fff7!important;
+}
+#controls #poolLight.light-active .compact-light-power{
+ background:#fff!important;border-color:#fff!important;color:#b8bdc4!important;
+ box-shadow:0 0 15px #fff9!important;
+}
+#controls #sanitation:not([hidden]){display:block!important}
+#controls #sanitation .sanitation-combined{
+ display:flex;align-items:center;gap:12px;width:100%;min-height:80px;
+ border:1px solid rgba(236,252,255,.79);border-radius:23px;
+ padding:12px 18px;box-sizing:border-box;color:white;
+ background:linear-gradient(138deg,rgba(255,255,255,.20),rgba(93,165,239,.13),rgba(25,63,111,.27));
+ backdrop-filter:blur(19px) saturate(165%);
+ -webkit-backdrop-filter:blur(19px) saturate(165%);
+ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+}
+#controls #sanitation .sanitation-combined.active{
+ background:linear-gradient(135deg,rgba(63,214,161,.69),rgba(10,111,129,.72))!important;
+ border:2px solid #b7ffdf!important;
+ box-shadow:inset 0 1px #fff9,0 0 23px rgba(54,239,177,.64)!important;
+}
+#controls #sanitation .sanitation-glyph{font-size:33px;color:#c5f5ff;filter:drop-shadow(0 0 7px #2aa9ff)}
+#controls #sanitation .sanitation-combined.active .sanitation-glyph{color:#afffd7;filter:drop-shadow(0 0 10px #65ffbc)}
+#controls #sanitation .sanitation-copy{display:flex;flex-direction:column;gap:3px}
+#controls #sanitation .sanitation-copy strong{font-size:17px}
+#controls #sanitation .sanitation-copy span{font-size:13px;color:#e1f4ff}
+#controls #sanitation .sanitation-remaining{font-size:13px;color:#d7ffe9}
+.pool-choice-overlay .heat-option:disabled{opacity:.45}
+@media(max-width:700px){#controls #poolLight{min-height:85px!important;height:85px!important}#controls #poolLight .compact-light-power{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;flex-basis:48px!important}}
