@@ -113,7 +113,13 @@ async function render(browser, engine, version, viewport, mode) {
     assert.deepEqual(calls.at(-1),{control:'light',operation:'effect',value:'Light Show'});
     }
     admin=false; await page.reload(); await page.waitForSelector('#controls:not([hidden])');
-    assert.equal(await page.locator('#sanitation').isVisible(),false);
+    assert.equal(await page.locator('#sanitation').isVisible(),version==='after');
+    if(version==='after'){
+      assert.equal(await page.locator('#poolLight').isVisible(),true);
+      assert.equal(await page.locator('#poolLight .compact-light-power').count(),0);
+      assert.equal(await page.locator('#sanitation .sanitation-combined').getAttribute('role'),null);
+      assert.equal(await page.locator('#sanitation .sanitation-combined').textContent().then(t=>t.includes('Sanitation')),true);
+    }
     assert.equal(await page.locator('#pool .power-button').isDisabled(),true);
     signedIn=false; await page.reload(); await page.waitForSelector('#pinLogin:not([hidden])');
     await page.locator('#pinInput').fill('0000'); await page.locator('#pinForm button').tap();
