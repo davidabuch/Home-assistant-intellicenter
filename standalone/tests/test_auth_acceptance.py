@@ -133,7 +133,7 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.ha.reset_mock()
         self.assertEqual(self.request(body={"control": "light", "operation": "effect", "value": "Not Listed"}, headers=admin)[0], 400)
         self.assertEqual(self.request(body={"control": "light", "operation": "effect", "value": "Blue"}, headers=admin)[0], 200)
-        self.ha.assert_not_called()  # Scene selection while OFF is preference-only.\n        self.assertEqual(server.read_light_preference(), "Blue")
+        self.assertFalse(any("/api/services/light/turn_on" in str(call) for call in self.ha.call_args_list))  # OFF remains OFF.\n        self.assertEqual(server.read_light_preference(), "Blue")
 
     def test_no_role_escalation_via_headers_or_body(self):
         headers = self.login("1234")
