@@ -4,6 +4,7 @@ import ipaddress
 import json
 import os
 import secrets
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -44,6 +45,23 @@ ADMIN_PIN = setting("ADMIN_PIN")
 SESSION_FILE = Path(os.environ.get("SESSION_FILE", "/data/role_sessions.json"))
 SESSIONS = DeviceSessions(SESSION_FILE, FAMILY_PIN, ADMIN_PIN)
 LOGIN_ATTEMPTS = {}
+LIGHT_PREF_FILE = Path(os.environ.get("LIGHT_PREF_FILE", "/data/pool_light_scene.json"))
+LIGHT_PREF_LOCK = threading.Lock()
+
+def read_light_preference():
+    with LIGHT_PREF_LOCK:
+        try:
+            value = json.loads(LIGHT_PREF_FILE.read_text()).get("effect")
+            return value if isinstance(value, str) else None
+        except (OSError, ValueError, AttributeError):
+            return None
+
+def save_light_preference(effect):
+    with LIGHT_PREF_LOCK:
+        LIGHT_PREF_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temporary = LIGHT_PREF_FILE.with_suffix(".tmp")
+        temporary.write_text(json.dumps({"effect": effect}))
+        os.replace(temporary, LIGHT_PREF_FILE)
 
 CONTROLS = {
     "pool": ("climate.pool_thermostat", "climate"),
@@ -126,6 +144,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.admin_authorized():
             try:
                 result["light"] = ha_request("/api/states/" + CONTROLS["light"][0])
+                result["light"]["selected_effect"] = read_light_preference()
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
                 result["light"] = {"state": "unavailable", "attributes": {"effect_list": []}}
             try:
@@ -255,6 +274,12 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 service = "turn_on" if operation == "on" else "turn_off"
                 payload = {"entity_id": entity}
+                if key == "light" and operation == "on":
+                    selected = read_light_preference()
+                    if selected:
+                        current = ha_request("/api/states/" + entity)
+                        if selected in current.get("attributes", {}).get("effect_list", []):
+                            payload["effect"] = selected
         elif operation == "effect" and key == "light":
             value = body.get("value")
             if not isinstance(value, str):
@@ -265,6 +290,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": "Pool light unavailable"}, 503)
             if value not in current.get("attributes", {}).get("effect_list", []):
                 return self.send_json({"error": "Unsupported light effect"}, 400)
+            # Selecting a scene while the light is OFF must never energize it.
+            # Persist the preference; apply it on the next explicit power ON.
+            try:
+                save_light_preference(value)
+            except OSError:
+                return self.send_json({"error": "Could not save scene preference"}, 503)
+            if current.get("state") != "on":
+                return self.send_json({"accepted": True, "selected_effect": value})
             service, payload = "turn_on", {"entity_id": entity, "effect": value}
         elif operation == "temperature" and domain == "climate":
             value = body.get("value")
