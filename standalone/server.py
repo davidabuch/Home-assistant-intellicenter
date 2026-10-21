@@ -113,8 +113,6 @@ def ha_request(path, payload=None):
 def snapshot():
     result = {}
     for key, (entity, _) in CONTROLS.items():
-        if key in ("light", "pool_sanitation", "spa_sanitation"):
-            continue  # Light state and effect choices are administrator-only.
         result[key] = ha_request("/api/states/" + entity)
     for entity in READ_ONLY:
         try:
@@ -162,10 +160,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def admin_snapshot(self):
         result = snapshot()
-        if self.admin_authorized():
+        if True:
             try:
                 result["light"] = ha_request("/api/states/" + CONTROLS["light"][0])
-                result["light"]["selected_effect"] = read_light_preference()
+                if self.admin_authorized():
+                    result["light"]["selected_effect"] = read_light_preference()
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
                 result["light"] = {"state": "unavailable", "attributes": {"effect_list": []}}
             try:
