@@ -123,7 +123,7 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.ha.assert_not_called()
         status, data, _ = self.request("/api/state", headers=family, method="GET")
         self.assertEqual(status, 200)
-        self.assertNotIn("light", data)
+        self.assertIn("light", data)\n        self.assertNotIn("selected_effect", data["light"])
         self.ha.reset_mock()
         admin = self.login("9876")
         self.ha.return_value = {"state": "off", "attributes": {"effect_list": ["Blue", "Party Mode"]}}
@@ -197,14 +197,18 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.assertEqual(self.request("/api/state", headers=headers, method="GET")[0], 200)
         self.assertEqual([call.args[0] for call in self.ha.call_args_list],
                          ["/api/states/" + entity for key, (entity, _) in server.CONTROLS.items() if key not in ("light", "pool_sanitation", "spa_sanitation")] +
-                         ["/api/states/" + entity for entity in server.READ_ONLY])
+                         ["/api/states/" + entity for entity in server.READ_ONLY] +
+                         ["/api/states/light.pool_light", "/api/states/timer.sanitation_session_limit",
+                          "/api/states/input_boolean.pool_sanitation_session",
+                          "/api/states/input_boolean.spa_sanitation_session"])
 
     def test_sanitation_is_admin_only(self):
         family = self.login("1234")
         status, state, _ = self.request("/api/state", headers=family, method="GET")
         self.assertEqual(status, 200)
+        self.assertIn("sanitation_timer", state)
         for key in ("pool_sanitation", "spa_sanitation"):
-            self.assertNotIn(key, state)
+            self.assertIn(key, state)
             for operation in ("on", "off"):
                 self.ha.reset_mock()
                 self.assertEqual(self.request(body={"control": key, "operation": operation}, headers=family)[0], 403)
@@ -232,7 +236,9 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.assertIn('id="pinInput"', html)
         self.assertIn('api("login"', script)
         self.assertIn('key==="pool"&&!permissions.pool_control', script)
-        for name in ("pool", "spa", "features", "controls"):
+        self.assertIn("if(allowed){attachHold(tile,open)", script)
+        self.assertIn("if(allowed){attachHold(root,show)", script)
+        for name in ("pool", "spa", "features", "controls", "poolLight", "sanitation"):
             self.assertIn(f'id="{name}"', html)
 
     def test_request_logs_hide_query_secrets(self):
