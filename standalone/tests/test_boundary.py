@@ -61,7 +61,7 @@ class BoundaryTests(unittest.TestCase):
         js = (ROOT / "web" / "app.js").read_text()
         self.assertIn('class="water-bodies"', html)
         self.assertIn('.water-bodies{display:grid', css)
-        self.assertIn('root.hidden=!allowed', js)
+        self.assertIn('root.hidden=false', js)\n        self.assertIn('if(allowed){attachHold(root,show)', js)
         self.assertIn('send("light","effect",name)', js)
         self.assertIn("sanitationRemaining()", js)
         self.assertNotIn("Other Features", html)
