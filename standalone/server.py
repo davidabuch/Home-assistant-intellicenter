@@ -128,6 +128,10 @@ class Handler(BaseHTTPRequestHandler):
                 result["light"] = ha_request("/api/states/" + CONTROLS["light"][0])
             except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
                 result["light"] = {"state": "unavailable", "attributes": {"effect_list": []}}
+            try:
+                result["sanitation_timer"] = ha_request("/api/states/timer.sanitation_session_limit")
+            except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+                result["sanitation_timer"] = {"state": "unavailable", "attributes": {}}
             for key in ("pool_sanitation", "spa_sanitation"):
                 try:
                     result[key] = ha_request("/api/states/" + CONTROLS[key][0])
