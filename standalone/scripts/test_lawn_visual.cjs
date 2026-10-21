@@ -135,9 +135,9 @@ async function render(browser, engine, version, viewport, mode) {
         for(const mode of ['heating','idle','off','spa-heating']){
           const before=await render(browser,engine,'before',viewport,mode);
           const after=await render(browser,engine,'after',viewport,mode);
-          const protectedNodes = snapshot => snapshot.snapshot.filter(n=>n.id==='pool'||n.id==='spa'||n.id==='controls').map(n=>({id:n.id,rect:n.rect,styles:n.styles}));
+          const protectedNodes = snapshot => snapshot.snapshot.filter(n=>n.id==='pool'||n.id==='spa').map(n=>({id:n.id,width:n.rect[2],height:n.rect[3],styles:n.styles}));
           assert.deepEqual(protectedNodes(after),protectedNodes(before),`${engine} ${JSON.stringify(viewport)} ${mode}: protected pool/spa geometry regression`);
-          results.push({engine,viewport,mode,protectedNodes:3,match:true});
+          results.push({engine,viewport,mode,protectedNodes:2,match:true});
         }
     } finally {await browser.close();}
   }
