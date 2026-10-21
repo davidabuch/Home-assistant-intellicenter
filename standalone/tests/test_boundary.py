@@ -62,7 +62,7 @@ class BoundaryTests(unittest.TestCase):
         self.assertIn('class="water-bodies"', html)
         self.assertIn('.water-bodies{display:grid', css)
         self.assertIn('root.hidden=!allowed', js)
-        self.assertIn('send("light","effect",effect)', js)
+        self.assertIn('send("light","effect",name)', js)\n        self.assertIn("sanitationRemaining()", js)
         self.assertNotIn("Other Features", html)
 
     def test_no_startup_actuation(self):
