@@ -48,19 +48,40 @@ LOGIN_ATTEMPTS = {}
 LIGHT_PREF_FILE = Path(os.environ.get("LIGHT_PREF_FILE", "/data/pool_light_scene.json"))
 LIGHT_PREF_LOCK = threading.Lock()
 
-def read_light_preference():
+def light_preference_record():
     with LIGHT_PREF_LOCK:
         try:
-            value = json.loads(LIGHT_PREF_FILE.read_text()).get("effect")
-            return value if isinstance(value, str) else None
-        except (OSError, ValueError, AttributeError):
-            return None
+            record = json.loads(LIGHT_PREF_FILE.read_text())
+            return record if isinstance(record, dict) else {}
+        except (OSError, ValueError):
+            return {}
+
+def read_light_preference():
+    value = light_preference_record().get("effect")
+    return value if isinstance(value, str) else None
+
+def manual_scene_outranks_holiday():
+    record = light_preference_record()
+    if not record.get("effect"):
+        return False
+    try:
+        holiday = ha_request("/api/states/input_boolean.pool_light_holiday_override_active")
+    except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+        return False  # Fail closed: do not override an unknown holiday owner.
+    if holiday.get("state") != "on":
+        return True
+    from datetime import datetime
+    try:
+        activated = datetime.fromisoformat(holiday["last_changed"].replace("Z", "+00:00")).timestamp()
+        return float(record.get("selected_at", 0)) > activated
+    except (KeyError, TypeError, ValueError):
+        return False
 
 def save_light_preference(effect):
     with LIGHT_PREF_LOCK:
         LIGHT_PREF_FILE.parent.mkdir(parents=True, exist_ok=True)
         temporary = LIGHT_PREF_FILE.with_suffix(".tmp")
-        temporary.write_text(json.dumps({"effect": effect}))
+        temporary.write_text(json.dumps({"effect": effect, "selected_at": time.time()}))
         os.replace(temporary, LIGHT_PREF_FILE)
 
 CONTROLS = {
@@ -278,7 +299,7 @@ class Handler(BaseHTTPRequestHandler):
                     selected = read_light_preference()
                     if selected:
                         current = ha_request("/api/states/" + entity)
-                        if selected in current.get("attributes", {}).get("effect_list", []):
+                        if selected in current.get("attributes", {}).get("effect_list", []) and manual_scene_outranks_holiday():
                             payload["effect"] = selected
         elif operation == "effect" and key == "light":
             value = body.get("value")
