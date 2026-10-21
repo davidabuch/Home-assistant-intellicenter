@@ -665,3 +665,35 @@ main{z-index:101!important}
 #controls #sanitation .sanitation-remaining{font-size:13px;color:#d7ffe9}
 .pool-choice-overlay .heat-option:disabled{opacity:.45}
 @media(max-width:700px){#controls #poolLight{min-height:85px!important;height:85px!important}#controls #poolLight .compact-light-power{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;flex-basis:48px!important}}
+
+/* Pool Light and Sanitation are equal-width bottom-row companions. */
+#controls #auxControls{
+ display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+ align-items:stretch!important;gap:12px!important;width:100%!important;
+ margin-top:12px!important;
+}
+#controls #auxControls #poolLight,
+#controls #auxControls #sanitation{
+ width:100%!important;max-width:none!important;min-width:0!important;
+ height:94px!important;min-height:94px!important;margin:0!important;
+ box-sizing:border-box!important;
+}
+#controls #auxControls #sanitation .sanitation-combined{
+ height:100%!important;min-height:0!important;padding:12px!important;
+ gap:7px!important;overflow:hidden!important;
+}
+#controls #auxControls #sanitation .sanitation-glyph{font-size:24px!important;flex:0 0 auto}
+#controls #auxControls #sanitation .sanitation-copy{min-width:0!important;flex:1!important}
+#controls #auxControls #sanitation .sanitation-copy strong{font-size:16px!important}
+#controls #auxControls #sanitation .sanitation-copy span{
+ font-size:11px!important;line-height:1.25!important;
+ overflow-wrap:anywhere!important;
+}
+#controls #auxControls #sanitation .sanitation-remaining{font-size:11px!important}
+#controls #auxControls #poolLight[hidden],
+#controls #auxControls #sanitation[hidden]{display:none!important}
+@media(max-width:700px){
+ #controls #auxControls #poolLight,
+ #controls #auxControls #sanitation{height:94px!important;min-height:94px!important}
+ #controls #auxControls{gap:10px!important}
+}
