@@ -23,7 +23,8 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.sessions = server.DeviceSessions(Path(directory.name) / "sessions.json", "1234", "9876")
         self.settings = patch.multiple(server, SESSIONS=self.sessions, PUBLIC_ORIGIN=ORIGIN,
-                                       REMOTE_PUBLIC_ORIGIN=REMOTE, LOGIN_ATTEMPTS={})
+                                       REMOTE_PUBLIC_ORIGIN=REMOTE, LOGIN_ATTEMPTS={},
+                                       LIGHT_PREF_FILE=Path(directory.name) / "pool_light_scene.json")
         self.settings.start()
         self.addCleanup(self.settings.stop)
         self.ha_patch = patch.object(server, "ha_request", return_value={"state": "off"})
@@ -132,7 +133,8 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.ha.reset_mock()
         self.assertEqual(self.request(body={"control": "light", "operation": "effect", "value": "Not Listed"}, headers=admin)[0], 400)
         self.assertEqual(self.request(body={"control": "light", "operation": "effect", "value": "Blue"}, headers=admin)[0], 200)
-        self.ha.assert_called_with("/api/services/light/turn_on", {"entity_id": "light.pool_light", "effect": "Blue"})
+        self.assertFalse(any("/api/services/light/turn_on" in str(call) for call in self.ha.call_args_list))  # OFF remains OFF.
+        self.assertEqual(server.read_light_preference(), "Blue")
 
     def test_no_role_escalation_via_headers_or_body(self):
         headers = self.login("1234")

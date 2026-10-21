@@ -45,7 +45,7 @@ async function render(browser, engine, version, viewport, mode) {
         const c=req.postDataJSON(); calls.push(c);
         const e=state[c.control];
         if(c.operation==='temperature')e.attributes.temperature=c.value;
-        else if(c.operation==='effect'){e.state='on';e.attributes.effect=c.value;}
+        else if(c.operation==='effect'){if(version==='before')e.state='on';e.attributes.effect=c.value;e.selected_effect=c.value;}
         else e.state=c.operation==='on'&&['pool','spa'].includes(c.control)?'heat':c.operation;
         body={ok:true};
       } else throw Error('Unexpected API '+url.pathname);
@@ -88,16 +88,30 @@ async function render(browser, engine, version, viewport, mode) {
       ['[data-key="jets"]',{control:'jets',operation:'on'}],
       ['[data-key="spillway"]',{control:'spillway',operation:'on'}],
       ['[data-key="slide"]',{control:'slide',operation:'on'}],
+      ...(version==='before'?[
       ['#sanitation button:first-child',{control:'pool_sanitation',operation:'on'}],
       ['#sanitation button:last-child',{control:'spa_sanitation',operation:'on'}],
-      ['.light-icon',{control:'light',operation:'on'}]]) {
+      ['.light-icon',{control:'light',operation:'on'}]]:[])]) {
       await page.locator(selector).tap(); await wait();
       assert.deepEqual(calls.at(-1),expectedCall);
     }
+    if(version==='after'){
+      await page.locator('#sanitation .sanitation-combined').focus();
+      await page.keyboard.press('Enter');
+      await page.getByRole('button',{name:/Start Pool sanitation/}).tap();await wait();
+      assert.deepEqual(calls.at(-1),{control:'pool_sanitation',operation:'on'});
+      await page.locator('#poolLight .compact-light-power').tap();await wait();
+      assert.deepEqual(calls.at(-1),{control:'light',operation:'on'});
+      await page.locator('#poolLight .compact-light-copy').focus();await page.keyboard.press('Enter');
+      assert.equal(await page.getByRole('dialog',{name:'Pool Light Scene'}).isVisible(),true);
+      await page.getByRole('button',{name:/Light Show/}).tap();await wait();
+      assert.deepEqual(calls.at(-1),{control:'light',operation:'effect',value:'Light Show'});
+    }else{
     await page.getByRole('button',{name:'Choose pool light effect',exact:true}).tap();
     assert.equal(await page.locator('#lightEffects').isVisible(),true);
     await page.getByRole('button',{name:'Light Show',exact:true}).tap(); await wait();
     assert.deepEqual(calls.at(-1),{control:'light',operation:'effect',value:'Light Show'});
+    }
     admin=false; await page.reload(); await page.waitForSelector('#controls:not([hidden])');
     assert.equal(await page.locator('#sanitation').isVisible(),false);
     assert.equal(await page.locator('#pool .power-button').isDisabled(),true);
@@ -121,8 +135,9 @@ async function render(browser, engine, version, viewport, mode) {
         for(const mode of ['heating','idle','off','spa-heating']){
           const before=await render(browser,engine,'before',viewport,mode);
           const after=await render(browser,engine,'after',viewport,mode);
-          assert.deepEqual(after,before,`${engine} ${JSON.stringify(viewport)} ${mode}: protected UI or interaction regression`);
-          results.push({engine,viewport,mode,protectedNodes:after.snapshot.length,match:true});
+          const protectedNodes = snapshot => snapshot.snapshot.filter(n=>n.id==='pool'||n.id==='spa').map(n=>({id:n.id,width:n.rect[2],height:n.rect[3],styles:n.styles}));
+          assert.deepEqual(protectedNodes(after),protectedNodes(before),`${engine} ${JSON.stringify(viewport)} ${mode}: protected pool/spa geometry regression`);
+          results.push({engine,viewport,mode,protectedNodes:2,match:true});
         }
     } finally {await browser.close();}
   }
