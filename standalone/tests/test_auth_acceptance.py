@@ -123,7 +123,8 @@ class AuthenticationAcceptance(unittest.TestCase):
         self.ha.assert_not_called()
         status, data, _ = self.request("/api/state", headers=family, method="GET")
         self.assertEqual(status, 200)
-        self.assertIn("light", data)\n        self.assertNotIn("selected_effect", data["light"])
+        self.assertIn("light", data)
+        self.assertNotIn("selected_effect", data["light"])
         self.ha.reset_mock()
         admin = self.login("9876")
         self.ha.return_value = {"state": "off", "attributes": {"effect_list": ["Blue", "Party Mode"]}}
