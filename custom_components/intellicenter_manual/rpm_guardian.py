@@ -20,7 +20,7 @@ PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
 ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
     "before_filtration", "accounting_rollover", "spa_session", "sanitation_request",
     "spa_requested", "sanitation_requested", "heater_requested", "solar_requested",
-    "solar_delivery_started", "08:00", "23:59"})
+    "solar_delivery_started", "cleaning_released", "08:00", "23:59"})
 
 DEFAULTS = {"pool": 2600, "spa": 2600, "sanitation": 3200,
             "heater": 3000, "solar": 2900, "outage": 1500}
