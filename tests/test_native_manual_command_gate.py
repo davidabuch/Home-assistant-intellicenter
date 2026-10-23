@@ -92,6 +92,18 @@ class NativeManualCommandGateTests(unittest.TestCase):
         self.assertIn("input_boolean.grid_outage_operator_bypass_latch", setup)
         self.assertIn('bypass.state == "off"', setup)
 
+    def test_pool_cleaning_switch_is_unique_and_native_verified(self):
+        source = SOURCE.read_text()
+        switches = (SOURCE.parent / "switch.py").read_text()
+        self.assertIn("self.pool_cleaning_circuit_id()", source)
+        self.assertIn("async def set_pool_cleaning(self, active: bool)", source)
+        self.assertIn("Native Pool Cleaning status unconfirmed", source)
+        self.assertIn("observed.observed_at > dispatched_at", source)
+        self.assertIn("class PoolCleaningSwitch(ManualAccessory):", switches)
+        self.assertIn('runtime, "pool_cleaning", "Pool Cleaning", circuit_id', switches)
+        self.assertIn("transport.set_pool_cleaning(True)", switches)
+        self.assertIn("transport.set_pool_cleaning(False)", switches)
+
     def test_no_poolos_dependency(self):
         source = SOURCE.read_text()
         self.assertNotIn("from poolos", source)
