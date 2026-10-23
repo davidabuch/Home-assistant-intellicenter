@@ -68,6 +68,7 @@ class Conditions:
     actual_rpm: float | None = None
     minimum: int = 600
     maximum: int = 3450
+    cleaning_active: bool | None = None
 
     @property
     def protected(self):
@@ -226,7 +227,8 @@ class RPMGuardian:
         sample = self.conditions()
         if (object_id != PROGRAMS[key][0] or target != expected
                 or epoch != self.data["epoch"] or generation != self._generation
-                or not sample.known or not sample.safe):
+                or not sample.known or not sample.safe
+                 or (phase == 'normal' and sample.cleaning_active is not False)):
             return False
         floor_key = "outage" if phase == "outage" else key
         try: speed(target, max(sample.minimum, self.data["floors"][floor_key]), sample.maximum)
