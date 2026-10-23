@@ -20,7 +20,7 @@ PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
 ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
     "before_filtration", "accounting_rollover", "spa_session", "sanitation_request",
     "spa_requested", "sanitation_requested", "heater_requested", "solar_requested",
-    "solar_delivery_started", "08:00", "23:59"})
+    "solar_delivery_started", "cleaning_released", "08:00", "23:59"})
 
 DEFAULTS = {"pool": 2600, "spa": 2600, "sanitation": 3200,
             "heater": 3000, "solar": 2900, "outage": 1500}
@@ -68,6 +68,7 @@ class Conditions:
     actual_rpm: float | None = None
     minimum: int = 600
     maximum: int = 3450
+    cleaning_active: bool | None = None
 
     @property
     def protected(self):
@@ -226,7 +227,8 @@ class RPMGuardian:
         sample = self.conditions()
         if (object_id != PROGRAMS[key][0] or target != expected
                 or epoch != self.data["epoch"] or generation != self._generation
-                or not sample.known or not sample.safe):
+                or not sample.known or not sample.safe
+                 or (phase == 'normal' and sample.cleaning_active is not False)):
             return False
         floor_key = "outage" if phase == "outage" else key
         try: speed(target, max(sample.minimum, self.data["floors"][floor_key]), sample.maximum)

@@ -90,6 +90,9 @@ class GuardianHA:
             settled=stable, actual_rpm=observation.measurement('pump_rpm') if observation.connected else None,
             minimum=int(minimum) if minimum is not None else 3450,
             maximum=int(maximum) if maximum is not None else 600,
+            cleaning_active=(None if not observation.connected or not self.transport.pool_cleaning_circuit_id()
+                             else (observation.circuit(self.transport.pool_cleaning_circuit_id()).active
+                                   if observation.circuit(self.transport.pool_cleaning_circuit_id()) is not None else None)),
         )
 
     def read(self, key):
