@@ -194,6 +194,15 @@ class IntelliCenterManualTransport:
         if self._on_observation is not None:
             self._on_observation()
 
+    def pool_cleaning_circuit_id(self):
+        """Identify a unique native Pool Cleaning circuit by its configured name.
+
+        Discovery is read-only; it does not extend the actuator allowlist.
+        """
+        candidates = [str(obj.objnam) for obj in self.model.get_by_type(CIRCUIT_TYPE)
+                      if str(obj.properties.get(SNAME_ATTR) or "").strip().casefold() == "pool cleaning"]
+        return candidates[0] if len(candidates) == 1 else None
+
     def sanitation_circuit_id(self):
         candidates = _sanitation_candidates(self.model)
         return candidates[0] if len(candidates) == 1 else None
@@ -231,7 +240,7 @@ class IntelliCenterManualTransport:
             for obj in self.model.get_by_type(CIRCUIT_TYPE):
                 # These extra demand circuits are observation-only; do not add
                 # them to CIRCUIT_IDS (the commissioned actuator allowlist).
-                if str(obj.objnam) not in (CIRCUIT_IDS | {'C0001','C0006','X0051','X0052'}) and str(obj.objnam) != sanitation_id:
+                if str(obj.objnam) not in (CIRCUIT_IDS | {'C0001','C0006','X0051','X0052'}) and str(obj.objnam) not in {sanitation_id, self.pool_cleaning_circuit_id()}:
                     continue
                 status = obj.properties.get(STATUS_ATTR)
                 active = _native_status(status)
@@ -290,7 +299,7 @@ class IntelliCenterManualTransport:
         return adapt_snapshot(SimpleNamespace(
             connected=self.connected, observed_at=self._observed_at,
             bodies=bodies, circuits=circuits,
-            sanitation_circuit_id=self.sanitation_circuit_id(), telemetry=telemetry,
+            sanitation_circuit_id=self.sanitation_circuit_id(), pool_cleaning_circuit_id=self.pool_cleaning_circuit_id(), telemetry=telemetry,
             freeze_active=freeze_active,
         ))
 
