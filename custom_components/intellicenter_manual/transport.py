@@ -418,7 +418,7 @@ class IntelliCenterManualTransport:
                 and args[1][SPEED_ATTR].isdigit()
                 and 600 <= int(args[1][SPEED_ATTR]) <= 3450)
             or (method == "set_circuit_state" and len(args) == 2
-                and args[0] in (CIRCUIT_IDS | {self.sanitation_circuit_id()}) and type(args[1]) is bool)
+                and args[0] in (CIRCUIT_IDS | {self.sanitation_circuit_id(), self.pool_cleaning_circuit_id()}) and type(args[1]) is bool)
             or (method == "set_light_effect" and len(args) == 2
                 and args[0] == "C0002" and args[1] in LIGHT_EFFECTS)
             or (method == "set_chlorinator_output" and len(args) in (2, 3)
@@ -542,9 +542,31 @@ class IntelliCenterManualTransport:
         await self._send("request_changes", body_id, {HEATER_ATTR: heater_id})
 
     async def set_circuit(self, circuit_id: str, active: bool) -> None:
-        if circuit_id not in (CIRCUIT_IDS | {self.sanitation_circuit_id()}) or type(active) is not bool:
+        if circuit_id not in (CIRCUIT_IDS | {self.sanitation_circuit_id(), self.pool_cleaning_circuit_id()}) or type(active) is not bool:
             raise ValueError("invalid circuit or state")
         await self._send("set_circuit_state", circuit_id, active)
+
+    async def set_pool_cleaning(self, active: bool) -> None:
+        """Manual-only native Pool Cleaning; never create a schedule or timer."""
+        circuit_id = self.pool_cleaning_circuit_id()
+        if circuit_id is None or type(active) is not bool:
+            raise ManualCommandError("Unique native Pool Cleaning circuit unavailable")
+        observation = self.read_observation()
+        circuit = observation.circuit(circuit_id) if observation.connected else None
+        if circuit is None or circuit.active is None:
+            raise ManualCommandError("Native Pool Cleaning status unconfirmed")
+        if circuit.active is active:
+            return
+        dispatched_at = await self._send("set_circuit_state", circuit_id, active)
+        deadline = asyncio.get_running_loop().time() + 25.0
+        while asyncio.get_running_loop().time() < deadline:
+            observed = self.read_observation()
+            native = observed.circuit(circuit_id) if observed.connected else None
+            if (native is not None and observed.observed_at > dispatched_at
+                    and native.active is active):
+                return
+            await asyncio.sleep(0.5)
+        raise ManualCommandError("Pool Cleaning command not confirmed by new native observation")
 
     async def set_light_effect(self, effect_code: str) -> None:
         from pyintellicenter import LIGHT_EFFECTS
