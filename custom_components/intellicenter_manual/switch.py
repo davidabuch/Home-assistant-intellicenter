@@ -53,6 +53,16 @@ class ManualAccessory(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         await self._runtime.transport.set_circuit(self._circuit_id, False)
 
+class PoolCleaningSwitch(ManualAccessory):
+    """Native AUX 9 command, only when the exclusive manual gateway is armed."""
+
+    async def async_turn_on(self, **kwargs):
+        await self._runtime.transport.set_pool_cleaning(True)
+
+    async def async_turn_off(self, **kwargs):
+        await self._runtime.transport.set_pool_cleaning(False)
+
+
 async def async_setup_entry(hass, entry, async_add_entities):
     runtime = entry.runtime_data
     async_add_entities(ManualAccessory(entry, runtime, *row) for row in ACCESSORIES)
@@ -68,6 +78,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
             entry, runtime, f"sanitation_{circuit_id.lower()}",
             "Sanitation", circuit_id,
         )])
+
+    def discover_cleaning(_observation):
+        circuit_id = runtime.transport.pool_cleaning_circuit_id()
+        if circuit_id is None or circuit_id in discovered:
+            return
+        discovered.add(circuit_id)
+        async_add_entities([PoolCleaningSwitch(
+            entry, runtime, "pool_cleaning", "Pool Cleaning", circuit_id,
+        )])
+
+    cleaning_unsubscribe = runtime.observation_fanout.subscribe(discover_cleaning)
+    entry.async_on_unload(cleaning_unsubscribe)
+    discover_cleaning(runtime.transport.read_observation())
 
     unsubscribe = runtime.observation_fanout.subscribe(discover_sanitation)
     entry.async_on_unload(unsubscribe)
