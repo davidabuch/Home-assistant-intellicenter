@@ -78,6 +78,22 @@ class NativeStatus(BinarySensorEntity):
 async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(NativeStatus(entry, entry.runtime_data, *description)
                        for description in DESCRIPTIONS)
+    discovered = set()
+
+    def discover_pool_cleaning(observation):
+        circuit_id = entry.runtime_data.transport.pool_cleaning_circuit_id()
+        if circuit_id is None or circuit_id in discovered or observation.circuit(circuit_id) is None:
+            return
+        discovered.add(circuit_id)
+        # Native status only. Never expose an actuator for this new circuit.
+        async_add_entities([NativeStatus(
+            entry, entry.runtime_data, "pool_cleaning_active",
+            "Pool Cleaning Active", "circuit", circuit_id,
+        )])
+
+    unsubscribe = entry.runtime_data.observation_fanout.subscribe(discover_pool_cleaning)
+    entry.async_on_unload(unsubscribe)
+    discover_pool_cleaning(entry.runtime_data.transport.read_observation())
     async_add_entities([GuardianInterlock(entry)])
 
 
