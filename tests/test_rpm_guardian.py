@@ -20,7 +20,7 @@ REAL_SLEEP = asyncio.sleep
 
 class GuardianTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.sample = policy.Conditions(fresh=True, qualified=False, raw_outage=False,
+        self.sample = policy.Conditions(cleaning_active=False, fresh=True, qualified=False, raw_outage=False,
             restored=True, protection=True, bypass=False, authority=True,
             freeze_off=True, automatic_mode=True, pool=False, spa_off=True,
             sanitation_off=True, heat_off=True, sources_off=True, accessories_off=True,
@@ -87,6 +87,26 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         await self.g.load(old)
         self.t.set_preset_policy_check(self.g.permitted)
         self.t.set_control_policy_check(self.g.ordinary_command_allowed)
+
+    async def test_cleaning_active_defers_ordinary_preset_correction(self):
+        self.drift('pool', 2400)
+        self.change(cleaning_active=True)
+        result = await self.run_policy('manual_button')
+        self.assertFalse(self.writes)
+        self.assertEqual(self.actual(), 2400)
+        self.assertIn('pool', result['pending_routine'])
+        self.change(cleaning_active=False)
+        await self.run_policy('cleaning_released')
+        self.assertEqual(self.actual(), 2600)
+
+    async def test_cleaning_unknown_fails_closed(self):
+        self.drift('solar', 2800)
+        self.change(cleaning_active=None)
+        await self.run_policy('manual_button')
+        self.assertFalse(self.writes)
+        self.change(cleaning_active=False)
+        await self.run_policy('cleaning_released')
+        self.assertEqual(self.actual('solar'), 2900)
 
     async def test_01_correct_presets_no_writes(self):
         r=await self.run_policy(); self.assertFalse(self.writes)
