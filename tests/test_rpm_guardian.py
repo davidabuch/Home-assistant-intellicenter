@@ -33,7 +33,7 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.rows = {obj: SimpleNamespace(objnam=obj, properties={
             native.PARENT_ATTR:'PMP01', native.SELECT_ATTR:'RPM', native.CIRCUIT_ATTR:circuit,
             native.SPEED_ATTR:str(policy.DEFAULTS[key])})
-            for key, (obj, circuit) in policy.PROGRAMS.items()}
+            for key, (obj, circuit) in policy.BASE_PROGRAMS.items()}
         self.t.model = SimpleNamespace(get_by_type=lambda kind: list(self.rows.values())
             if kind == native.PMPCIRC_TYPE else [])
         self.t.read_observation = lambda: SimpleNamespace(connected=self.sample.fresh)
@@ -185,7 +185,7 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.outage(); await self.run_policy(); self.assertEqual(self.actual(),1500)
     async def test_13_running_pool_outage(self):
         self.outage(); r=await self.run_policy()
-        self.assertEqual(r['state'],'OUTAGE_ACTIVE'); self.assertTrue(r['restoration_pending'])
+        self.assertEqual(r['state'],'OUTAGE_ACTIVE', r.get('failure')); self.assertTrue(r['restoration_pending'])
     async def test_14_pool_off_never_started(self):
         self.outage(); self.change(pool=False,actual_rpm=0); await self.run_policy()
         self.assertFalse(self.writes); self.assertEqual(self.actual(),2600)
@@ -271,7 +271,8 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.outage(); self.native_authority=False; r=await self.run_policy()
         self.assertFalse(self.writes); self.assertTrue(r['restoration_pending'])
     async def test_41_removed_grid_program_excluded(self):
-        self.assertNotIn('p0106',[obj for obj,_ in policy.PROGRAMS.values()])
+        self.assertNotIn('p0106',[obj for obj,_ in policy.BASE_PROGRAMS.values()])
+        self.assertIn('p0106',[obj for obj,_ in policy.PROGRAMS.values()])
         with self.assertRaises(native.ManualCommandError): await self.t.set_configured_pump_program_rpm('p0106',1500)
         self.assertFalse(self.writes)
     async def test_42_stale_observation(self):

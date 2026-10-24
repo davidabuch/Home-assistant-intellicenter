@@ -21,7 +21,7 @@ demand = importlib.import_module(harness.native.__package__ + '.pump_demand')
 def rows(pool=2600, heater=False, solar=True):
     return [dict(id=obj,circuit_id=circuit,mode='RPM',rpm=harness.policy.DEFAULTS[key],
         active={'pool':True,'spa':False,'sanitation':False,'heater':heater,'solar':solar}[key])
-        for key,(obj,circuit) in harness.policy.PROGRAMS.items()
+        for key,(obj,circuit) in harness.policy.BASE_PROGRAMS.items()
         if key != 'pool'] + [dict(id='p0102',circuit_id='C0006',mode='RPM',rpm=pool,active=True)]
 
 

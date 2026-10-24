@@ -12,9 +12,12 @@ from datetime import datetime, timezone, timedelta
 import math
 from uuid import uuid4
 
-PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
+BASE_PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
             "sanitation": ("p0105", "FTR02"), "heater": ("p0103", "X0051"),
             "solar": ("p0104", "X0052")}
+POOL_CLEANING_PROGRAM = ("p0106", "FTR03")
+PROGRAMS = dict(BASE_PROGRAMS)
+PROGRAMS["pool_cleaning"] = POOL_CLEANING_PROGRAM
 # Only named operator/schedule/session requests discover ordinary drift.
 # Unknown/legacy requests fail closed to recovery servicing, never broad scans.
 ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
@@ -23,7 +26,7 @@ ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
     "solar_delivery_started", "cleaning_released", "08:00", "23:59"})
 
 DEFAULTS = {"pool": 2600, "spa": 2600, "sanitation": 3200,
-            "heater": 3000, "solar": 2900, "outage": 1500}
+            "heater": 3000, "solar": 2900, "pool_cleaning": 3040, "outage": 1500}
 # Conservative change floors from the commissioned configuration, not a claim
 # that these are manufacturer-certified minimum flows. Lowering a floor is a
 # separate supervised equipment-flow decision, never inferred from motor RPM.
@@ -116,6 +119,7 @@ class RPMGuardian:
             "last_failure": None,
             "runtime_wait_until": None,
             "routine_scan_pending": False, "pending_routine": {},
+            "pool_cleaning_commissioned": False, "pool_cleaning_requested": False,
         }
 
     @property
@@ -146,7 +150,11 @@ class RPMGuardian:
                     raise ValueError("Unrecognized recovery version")
                 for field in ("draft", "applied", "floors"):
                     if set(stored[field]) != set(DEFAULTS):
-                        raise ValueError("Incomplete RPM policy")
+                        # Add the newly commissioned Pool Cleaning program to
+                        # legacy records without losing outage recovery state.
+                        if set(stored[field]) != set(DEFAULTS) - {"pool_cleaning"}:
+                            raise ValueError("Incomplete RPM policy")
+                        stored[field]["pool_cleaning"] = DEFAULTS["pool_cleaning"]
                     for value in stored[field].values(): speed(value)
                 if stored.get("intent") is not None:
                     intent = stored["intent"]
@@ -169,6 +177,8 @@ class RPMGuardian:
                     if value != stored["applied"][key]:
                         raise ValueError("Pending routine target differs from applied policy")
                 self.data.update(deepcopy(stored))
+                self.data.setdefault("pool_cleaning_commissioned", False)
+                self.data.setdefault("pool_cleaning_requested", False)
                 if self.data["intent"] or self.data["restoration_pending"]:
                     self.data["restoration_pending"] = True
                     self.data["state"] = "RECOVERY_REQUIRED"
@@ -197,6 +207,8 @@ class RPMGuardian:
         value = speed(value)
         async with self.lock:
             self.data["draft"][key] = value
+            if key == "pool_cleaning":
+                self.data["pool_cleaning_requested"] = True
             await self.persist()  # editing is never a native write
 
     async def apply(self):
@@ -206,6 +218,10 @@ class RPMGuardian:
             for key, value in self.data["draft"].items():
                 speed(value, max(sample.minimum, self.data["floors"][key]), sample.maximum)
             self.data["applied"] = dict(self.data["draft"])
+            # Explicit Apply is the commissioning boundary for the new preset.
+            if self.data["pool_cleaning_requested"]:
+                self.data["pool_cleaning_commissioned"] = True
+                self.data["pool_cleaning_requested"] = False
             # Supersede old approved corrections atomically with the new policy.
             self.data["pending_routine"] = {}
             self.data["routine_scan_pending"] = True
@@ -348,7 +364,9 @@ class RPMGuardian:
                     raise RuntimeError("Fresh native observations required")
                 # Identity validation is in read(), never skipped for a match.
                 actual = {}
-                for key in PROGRAMS:
+                active_programs = [key for key in PROGRAMS
+                    if key != "pool_cleaning" or self.data["pool_cleaning_commissioned"]]
+                for key in active_programs:
                     try: actual[key] = self.read(key)
                     except Exception as exc:
                         self.data['results'][key] = f'FAILED: {exc}'
@@ -359,16 +377,18 @@ class RPMGuardian:
                 # values. An explicit operator request may repair confirmed
                 # configured-circuit drift, but only through the existing
                 # fresh-identity, safety, serialized-write and readback gates.
-                explicit_repair = reason in {"manual", "manual_button"}
+                explicit_repair = reason in {"manual", "manual_button", "apply"}
                 if (not explicit_repair and not sample.protected
                         and not self.data["restoration_pending"]
                         and self.data["session"] is None
                         and any(actual[k] != desired[k] and actual[k] % 10 != 0
-                                for k in PROGRAMS)):
+                                for k in active_programs)):
                     self.data["results"] = {
                         k: ("MATCH" if actual[k] == desired[k]
                             else f"READBACK_DISCREPANCY: native={actual[k]} expected={desired[k]}")
-                        for k in PROGRAMS}
+                        for k in active_programs}
+                    if not self.data["pool_cleaning_commissioned"]:
+                        self.data["results"]["pool_cleaning"] = "NOT_COMMISSIONED"
                     self.data["pending_routine"] = {}
                     self.data["routine_scan_pending"] = True
                     self.data["state"] = "DEGRADED"
@@ -378,8 +398,8 @@ class RPMGuardian:
                 if sample.protected:
                     desired["pool"] = desired["outage"]
                 self.data["results"] = {key: "MATCH" if actual[key] == desired[key]
-                    else "PENDING" for key in PROGRAMS}
-                for key in PROGRAMS:
+                    else "PENDING" for key in active_programs}
+                for key in active_programs:
                     if actual[key] == desired[key]:
                         self.data["last_verified"][key] = timestamp()
                 # Native persistent state wins over a clean/missing journal.
@@ -403,7 +423,7 @@ class RPMGuardian:
                     await self.persist()
                 pending = self.data["pending_routine"]
                 if self.data["routine_scan_pending"]:
-                    for key in PROGRAMS:
+                    for key in active_programs:
                         # A protected Pool target belongs to safety recovery,
                         # not an ordinary correction to normal during outage.
                         if key == "pool" and sample.protected:
@@ -414,7 +434,7 @@ class RPMGuardian:
                 for key in list(pending):
                     if actual[key] == pending[key]:
                         del pending[key]  # uncertain ACK/external correction: read first
-                for key in PROGRAMS:
+                for key in active_programs:
                     if (actual[key] != desired[key] and key not in pending
                             and not (key == "pool" and (sample.protected or self.blocks_normal))):
                         self.data["results"][key] = "DRIFT: awaiting routine event"
@@ -487,7 +507,7 @@ class RPMGuardian:
                 if (explicit_repair and self.data["state"] == "DEGRADED"
                         and not self.data["restoration_pending"]
                         and not self.data["pending_routine"]
-                        and all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values())):
+                        and all(v in {"MATCH", "VERIFIED", "NOT_COMMISSIONED"} for v in self.data["results"].values())):
                     self.data["state"] = "NORMAL"
                     self.data["failure"] = None
                 if all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values()):
