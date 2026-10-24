@@ -66,7 +66,14 @@ class DemandDiagnosticsTests(unittest.TestCase):
             self.assertEqual(r['effective_rpm'],3000)
 
     def test_05_selected_solar_is_not_active_virtual_circuit(self):
-        self.assertEqual(self.report(rows(solar=False))['status'],'SOLAR_CIRCUIT_UNCONFIRMED')
+        r=self.report(rows(solar=False))
+        self.assertEqual(r['status'],'SOLAR_DELIVERY_RPM_MATCH_CIRCUIT_UNCONFIRMED')
+        self.assertTrue(r['solar_runtime_rpm_matches'])
+        self.assertIsNone(r['effective_rpm'])
+        self.assertFalse(r['solar_circuit_active'])
+        r=self.report(rows(solar=False),actual_rpm=2600)
+        self.assertEqual(r['status'],'SOLAR_CIRCUIT_UNCONFIRMED')
+        self.assertFalse(r['solar_runtime_rpm_matches'])
         r=rows();next(row for row in r if row['circuit_id']=='X0052')['active']=None
         self.assertEqual(self.report(r)['status'],'INCOMPLETE_NATIVE_DEMAND')
 
