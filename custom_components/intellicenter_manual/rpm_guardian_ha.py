@@ -99,6 +99,21 @@ class GuardianHA:
         obj = self.transport._verified_pump_program(PROGRAMS[key][0])
         return native_speed(float(obj.properties.get("SPEED")))
 
+    async def refresh_native_speed_diagnostics(self):
+        """Read-only direct GetParamList comparison; never correct presets."""
+        report = {}
+        for key, (object_id, circuit_id) in PROGRAMS.items():
+            before = self.read(key)
+            fresh = await self.transport.controller.refresh_pump_circuit_speed(object_id)
+            after = self.read(key)
+            report[key] = {
+                "program": object_id, "circuit": circuit_id,
+                "cached_before": before, "direct_response": fresh,
+                "cached_after": after, "expected": self.core.data["applied"][key],
+                "matches_expected": fresh == self.core.data["applied"][key],
+            }
+        return report
+
     async def write(self, object_id, value, permit):
         await self.transport.set_configured_pump_program_rpm(object_id, value, authority=permit)
 
@@ -177,6 +192,14 @@ class GuardianHA:
             require_entry(call)
             await self.reconcile(str(call.data.get("reason", "manual")))
 
+        async def inspect_native(call):
+            require_entry(call)
+            if not self.conditions().fresh:
+                raise RuntimeError("Fresh native observation required")
+            report = await self.refresh_native_speed_diagnostics()
+            self.hass.bus.async_fire("intellicenter_native_rpm_readback_diagnostic",
+                                     {"programs": report})
+
         async def apply(call):
             require_entry(call)
             await self.core.apply()
@@ -202,6 +225,7 @@ class GuardianHA:
                 running_pool_approved=call.data.get("approve_running_pool_write") is True)
 
         for name, handler in (("reconcile_pump_speeds", reconcile),
+                              ("inspect_native_rpm_readback", inspect_native),
                               ("apply_rpm_configuration", apply),
                               ("configure_rpm_guardian", configure)):
             self.hass.services.async_register(DOMAIN, name, handler)
