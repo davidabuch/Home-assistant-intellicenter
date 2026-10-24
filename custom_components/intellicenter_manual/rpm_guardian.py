@@ -351,7 +351,7 @@ class RPMGuardian:
                 await self.persist()
             sample = self.conditions()
             try:
-                self.data['results'] = {key: 'UNKNOWN' for key in active_programs}
+                self.data['results'] = {key: 'UNKNOWN' for key in PROGRAMS}
                 if not sample.fresh:
                     raise RuntimeError("Fresh native observations required")
                 # Identity validation is in read(), never skipped for a match.
@@ -415,7 +415,7 @@ class RPMGuardian:
                     await self.persist()
                 pending = self.data["pending_routine"]
                 if self.data["routine_scan_pending"]:
-                    for key in PROGRAMS:
+                    for key in active_programs:
                         # A protected Pool target belongs to safety recovery,
                         # not an ordinary correction to normal during outage.
                         if key == "pool" and sample.protected:
@@ -426,7 +426,7 @@ class RPMGuardian:
                 for key in list(pending):
                     if actual[key] == pending[key]:
                         del pending[key]  # uncertain ACK/external correction: read first
-                for key in PROGRAMS:
+                for key in active_programs:
                     if (actual[key] != desired[key] and key not in pending
                             and not (key == "pool" and (sample.protected or self.blocks_normal))):
                         self.data["results"][key] = "DRIFT: awaiting routine event"
