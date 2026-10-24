@@ -352,7 +352,8 @@ class RPMGuardian:
                 # uncertain observations, never as permission for routine writes.
                 if (not sample.protected and not self.data["restoration_pending"]
                         and self.data["session"] is None
-                        and any(actual[k] != desired[k] for k in PROGRAMS)):
+                        and any(actual[k] != desired[k] and actual[k] % 10 != 0
+                                for k in PROGRAMS)):
                     self.data["results"] = {
                         k: ("MATCH" if actual[k] == desired[k]
                             else f"READBACK_DISCREPANCY: native={actual[k]} expected={desired[k]}")
