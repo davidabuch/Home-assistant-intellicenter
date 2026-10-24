@@ -13,8 +13,8 @@ import math
 from uuid import uuid4
 
 PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
-            "sanitation": ("p0103", "FTR02"), "heater": ("p0104", "X0051"),
-            "solar": ("p0105", "X0052")}
+            "sanitation": ("p0105", "FTR02"), "heater": ("p0103", "X0051"),
+            "solar": ("p0104", "X0052")}
 # Only named operator/schedule/session requests discover ordinary drift.
 # Unknown/legacy requests fail closed to recovery servicing, never broad scans.
 ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
