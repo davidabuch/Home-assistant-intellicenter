@@ -88,6 +88,19 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.t.set_preset_policy_check(self.g.permitted)
         self.t.set_control_policy_check(self.g.ordinary_command_allowed)
 
+    async def test_nonstep_native_readback_holds_all_routine_writes(self):
+        self.drift('solar', 2816)
+        self.drift('pool', 2560)
+        result = await self.run_policy('manual')
+        self.assertEqual(result['state'], 'DEGRADED')
+        self.assertTrue(result['results']['solar'].startswith('READBACK_DISCREPANCY'))
+        self.assertEqual(result['pending_routine'], {})
+        self.assertTrue(result['routine_scan_pending'])
+        self.assertEqual(self.writes, [])
+        again = await self.run_policy('recovery_heartbeat')
+        self.assertEqual(again['state'], 'DEGRADED')
+        self.assertEqual(self.writes, [])
+
     async def test_cleaning_active_defers_ordinary_preset_correction(self):
         self.drift('pool', 2400)
         self.change(cleaning_active=True)
