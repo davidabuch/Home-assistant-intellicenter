@@ -23,7 +23,7 @@ ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
     "solar_delivery_started", "cleaning_released", "08:00", "23:59"})
 
 DEFAULTS = {"pool": 2600, "spa": 2600, "sanitation": 3200,
-            "heater": 3000, "solar": 2900, "pool_cleaning": 3000, "outage": 1500}
+            "heater": 3000, "solar": 2900, "pool_cleaning": 3040, "outage": 1500}
 # Conservative change floors from the commissioned configuration, not a claim
 # that these are manufacturer-certified minimum flows. Lowering a floor is a
 # separate supervised equipment-flow decision, never inferred from motor RPM.
@@ -116,7 +116,7 @@ class RPMGuardian:
             "last_failure": None,
             "runtime_wait_until": None,
             "routine_scan_pending": False, "pending_routine": {},
-            "pool_cleaning_commissioned": False,
+            "pool_cleaning_commissioned": False, "pool_cleaning_requested": False,
         }
 
     @property
@@ -175,6 +175,7 @@ class RPMGuardian:
                         raise ValueError("Pending routine target differs from applied policy")
                 self.data.update(deepcopy(stored))
                 self.data.setdefault("pool_cleaning_commissioned", False)
+                self.data.setdefault("pool_cleaning_requested", False)
                 if self.data["intent"] or self.data["restoration_pending"]:
                     self.data["restoration_pending"] = True
                     self.data["state"] = "RECOVERY_REQUIRED"
@@ -203,6 +204,8 @@ class RPMGuardian:
         value = speed(value)
         async with self.lock:
             self.data["draft"][key] = value
+            if key == "pool_cleaning":
+                self.data["pool_cleaning_requested"] = True
             await self.persist()  # editing is never a native write
 
     async def apply(self):
@@ -213,7 +216,9 @@ class RPMGuardian:
                 speed(value, max(sample.minimum, self.data["floors"][key]), sample.maximum)
             self.data["applied"] = dict(self.data["draft"])
             # Explicit Apply is the commissioning boundary for the new preset.
-            self.data["pool_cleaning_commissioned"] = True
+            if self.data["pool_cleaning_requested"]:
+                self.data["pool_cleaning_commissioned"] = True
+                self.data["pool_cleaning_requested"] = False
             # Supersede old approved corrections atomically with the new policy.
             self.data["pending_routine"] = {}
             self.data["routine_scan_pending"] = True
