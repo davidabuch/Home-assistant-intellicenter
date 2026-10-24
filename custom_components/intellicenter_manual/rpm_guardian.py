@@ -46,6 +46,17 @@ def speed(value, minimum=600, maximum=3450):
     return int(value)
 
 
+def native_speed(value, minimum=600, maximum=3450):
+    """Validate observed native RPM without imposing operator target increments."""
+    if isinstance(value, bool) or not isinstance(value, (float, int)):
+        raise ValueError("Native RPM must be numeric")
+    if not math.isfinite(value) or int(value) != value:
+        raise ValueError("Native RPM must be a finite integer")
+    if not minimum <= value <= maximum:
+        raise ValueError(f"Native RPM must be {minimum}..{maximum}")
+    return int(value)
+
+
 @dataclass(frozen=True)
 class Conditions:
     """Fresh evidence, not inferred operator intent. None means unknown."""
@@ -337,6 +348,22 @@ class RPMGuardian:
                         raise RuntimeError(f'{key} native identity/readback unavailable: {exc}') from exc
                 self.data["last_observed"] = actual
                 desired = dict(self.data["applied"])
+                # ICP display and native SPEED disagree. Treat differences as
+                # uncertain observations, never as permission for routine writes.
+                if (not sample.protected and not self.data["restoration_pending"]
+                        and self.data["session"] is None
+                        and any(actual[k] != desired[k] and actual[k] % 10 != 0
+                                for k in PROGRAMS)):
+                    self.data["results"] = {
+                        k: ("MATCH" if actual[k] == desired[k]
+                            else f"READBACK_DISCREPANCY: native={actual[k]} expected={desired[k]}")
+                        for k in PROGRAMS}
+                    self.data["pending_routine"] = {}
+                    self.data["routine_scan_pending"] = True
+                    self.data["state"] = "DEGRADED"
+                    self.data["failure"] = "Native RPM readback differs from ICP-confirmed settings; routine writes held"
+                    await self.persist()
+                    return deepcopy(self.data)
                 if sample.protected:
                     desired["pool"] = desired["outage"]
                 self.data["results"] = {key: "MATCH" if actual[key] == desired[key]
