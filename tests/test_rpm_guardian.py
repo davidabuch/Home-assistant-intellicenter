@@ -271,9 +271,9 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.outage(); self.native_authority=False; r=await self.run_policy()
         self.assertFalse(self.writes); self.assertTrue(r['restoration_pending'])
     async def test_41_removed_grid_program_excluded(self):
-        self.assertNotIn('p0106',[obj for obj,_ in policy.BASE_PROGRAMS.values()])
-        self.assertIn('p0106',[obj for obj,_ in policy.PROGRAMS.values()])
-        with self.assertRaises(native.ManualCommandError): await self.t.set_configured_pump_program_rpm('p0106',1500)
+        self.assertNotIn('p0104',[obj for obj,_ in policy.BASE_PROGRAMS.values()])
+        self.assertIn('p0104',[obj for obj,_ in policy.PROGRAMS.values()])
+        with self.assertRaises(native.ManualCommandError): await self.t.set_configured_pump_program_rpm('p0104',1500)
         self.assertFalse(self.writes)
     async def test_42_stale_observation(self):
         self.drift('pool',2400); self.change(fresh=False); await self.run_policy(); self.assertFalse(self.writes)
