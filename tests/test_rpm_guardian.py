@@ -91,7 +91,7 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
     async def test_nonstep_native_readback_holds_all_routine_writes(self):
         self.drift('solar', 2816)
         self.drift('pool', 2560)
-        result = await self.run_policy('manual')
+        result = await self.run_policy('startup')
         self.assertEqual(result['state'], 'DEGRADED')
         self.assertTrue(result['results']['solar'].startswith('READBACK_DISCREPANCY'))
         self.assertEqual(result['pending_routine'], {})
@@ -100,6 +100,29 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         again = await self.run_policy('recovery_heartbeat')
         self.assertEqual(again['state'], 'DEGRADED')
         self.assertEqual(self.writes, [])
+
+    async def test_explicit_repair_of_confirmed_nonstep_native_circuit_drift(self):
+        self.drift('solar', 2816)
+        self.drift('pool', 2560)
+        blocked = await self.run_policy('startup')
+        self.assertEqual(blocked['state'], 'DEGRADED')
+        self.assertEqual(self.writes, [])
+        repaired = await self.run_policy('manual_button')
+        self.assertEqual(repaired['state'], 'NORMAL')
+        self.assertEqual(self.actual('solar'), 2900)
+        self.assertEqual(self.actual('pool'), 2600)
+        self.assertEqual(repaired['results']['solar'], 'VERIFIED')
+        self.assertEqual(repaired['results']['pool'], 'VERIFIED')
+        self.assertFalse(self.g.blocks_normal)
+
+    async def test_explicit_nonstep_repair_remains_deferred_during_cleaning(self):
+        self.drift('solar', 2816)
+        await self.run_policy('startup')
+        self.change(cleaning_active=True)
+        result = await self.run_policy('manual_button')
+        self.assertEqual(result['state'], 'DEGRADED')
+        self.assertEqual(self.writes, [])
+        self.assertEqual(self.actual('solar'), 2816)
 
     async def test_cleaning_active_defers_ordinary_preset_correction(self):
         self.drift('pool', 2400)
