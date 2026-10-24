@@ -40,7 +40,18 @@ def explain(programs, *, fresh, solar_delivery, actual_rpm, settled,
     elif solar_delivery is not True:
         result['status'] = 'NO_CONFIRMED_SOLAR_DELIVERY'
     elif len(solar) != 1 or solar[0].get('active') is False:
-        result['status'] = 'SOLAR_CIRCUIT_UNCONFIRMED'
+        # Native heating delivery and actual motor RPM can agree with the
+        # commissioned Solar preset even when X0052 is not reported active.
+        # Record that independent evidence, but NEVER infer the winning pump
+        # program or claim Solar-circuit RPM verification from an RPM match.
+        result['solar_runtime_rpm_matches'] = (
+            actual is not None and abs(actual - desired_solar) <= 50)
+        result['solar_circuit_active'] = (
+            solar[0].get('active') if len(solar) == 1 else None)
+        result['effective_rpm'] = None
+        result['status'] = ('SOLAR_DELIVERY_RPM_MATCH_CIRCUIT_UNCONFIRMED'
+            if result['solar_runtime_rpm_matches']
+            else 'SOLAR_CIRCUIT_UNCONFIRMED')
     elif not settled:
         result['status'] = 'SETTLING'
     elif effective is None or actual is None or solar[0].get('active') is not True:
