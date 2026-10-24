@@ -372,7 +372,7 @@ class RPMGuardian:
                         self.data['results'][key] = f'FAILED: {exc}'
                         raise RuntimeError(f'{key} native identity/readback unavailable: {exc}') from exc
                 self.data["last_observed"] = actual
-                desired = {key: self.data["applied"][key] for key in active_programs}
+                desired = dict(self.data["applied"])
                 # Background reconciliation remains fail-closed for unusual native
                 # values. An explicit operator request may repair confirmed
                 # configured-circuit drift, but only through the existing
