@@ -509,7 +509,13 @@ class IntelliCenterManualTransport:
         if (str(obj.properties.get(PARENT_ATTR) or "") != "PMP01"
                 or str(obj.properties.get(SELECT_ATTR) or "").upper() != "RPM"
                 or str(obj.properties.get(CIRCUIT_ATTR) or "") != expected[object_id]):
-            raise ManualCommandError("Native pump program identity mismatch")
+            raise ManualCommandError(
+                f"Native pump program identity mismatch for {object_id}: "
+                f"parent={str(obj.properties.get(PARENT_ATTR) or '')!r} "
+                f"mode={str(obj.properties.get(SELECT_ATTR) or '')!r} "
+                f"circuit={str(obj.properties.get(CIRCUIT_ATTR) or '')!r} "
+                f"expected_parent='PMP01' expected_mode='RPM' "
+                f"expected_circuit={expected[object_id]!r}")
         return obj
 
     async def set_configured_pump_program_rpm(self, object_id: str, rpm: float, *, authority=None) -> None:
