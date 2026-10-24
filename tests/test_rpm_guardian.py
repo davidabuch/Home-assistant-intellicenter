@@ -366,5 +366,14 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['runtime_status'],'SETTLING')
         self.assertIsNone(result['failure'])
 
+    async def test_61_cleaning_3000_requires_apply_then_manual_reconcile(self):
+        self.assertEqual(self.g.data['floors']['pool_cleaning'], 3000)
+        await self.g.edit('pool_cleaning', 3000)
+        await self.run_policy('manual_button')
+        self.assertFalse(self.g.data['pool_cleaning_commissioned'])
+        await self.g.apply()
+        self.assertFalse(self.g.data['pool_cleaning_commissioned'])
+        self.assertTrue(self.g.data['pool_cleaning_armed'])
+        self.assertEqual(self.g.data['applied']['pool_cleaning'], 3000)
 
 if __name__=='__main__': unittest.main()
