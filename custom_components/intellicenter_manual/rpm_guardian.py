@@ -363,8 +363,6 @@ class RPMGuardian:
                     except Exception as exc:
                         self.data['results'][key] = f'FAILED: {exc}'
                         raise RuntimeError(f'{key} native identity/readback unavailable: {exc}') from exc
-                if not self.data["pool_cleaning_commissioned"]:
-                    self.data["results"]["pool_cleaning"] = "NOT_COMMISSIONED"
                 self.data["last_observed"] = actual
                 desired = {key: self.data["applied"][key] for key in active_programs}
                 # Background reconciliation remains fail-closed for unusual native
@@ -381,6 +379,8 @@ class RPMGuardian:
                         k: ("MATCH" if actual[k] == desired[k]
                             else f"READBACK_DISCREPANCY: native={actual[k]} expected={desired[k]}")
                         for k in active_programs}
+                    if not self.data["pool_cleaning_commissioned"]:
+                        self.data["results"]["pool_cleaning"] = "NOT_COMMISSIONED"
                     self.data["pending_routine"] = {}
                     self.data["routine_scan_pending"] = True
                     self.data["state"] = "DEGRADED"
@@ -391,6 +391,8 @@ class RPMGuardian:
                     desired["pool"] = desired["outage"]
                 self.data["results"] = {key: "MATCH" if actual[key] == desired[key]
                     else "PENDING" for key in active_programs}
+                if not self.data["pool_cleaning_commissioned"]:
+                    self.data["results"]["pool_cleaning"] = "NOT_COMMISSIONED"
                 for key in active_programs:
                     if actual[key] == desired[key]:
                         self.data["last_verified"][key] = timestamp()
