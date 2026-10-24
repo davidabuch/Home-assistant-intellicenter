@@ -256,6 +256,7 @@ class RPMGuardian:
                 and (not self.blocks_normal or (
                     self.data.get("reason") in {"manual", "manual_button"}
                     and self.data["state"] == "DEGRADED"
+                    and self.data.get("failure") == "Native RPM readback differs from ICP-confirmed settings; routine writes held"
                     and not self.data["restoration_pending"]
                     and self.data["session"] is None
                     and self.data["intent"] is None))
@@ -488,6 +489,7 @@ class RPMGuardian:
                         and not self.data["pending_routine"]
                         and all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values())):
                     self.data["state"] = "NORMAL"
+                    self.data["failure"] = None
                 if all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values()):
                     self.data["last_success"] = timestamp()
                     if (self.data['state'] == 'NORMAL' or
