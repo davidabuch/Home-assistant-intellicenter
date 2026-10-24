@@ -14,7 +14,7 @@ from uuid import uuid4
 
 PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
             "sanitation": ("p0105", "FTR02"), "heater": ("p0103", "X0051"),
-            "solar": ("p0104", "X0052")}
+            "solar": ("p0104", "X0052"), "pool_cleaning": ("p0106", "FTR03")}
 # Only named operator/schedule/session requests discover ordinary drift.
 # Unknown/legacy requests fail closed to recovery servicing, never broad scans.
 ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
@@ -23,7 +23,7 @@ ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
     "solar_delivery_started", "cleaning_released", "08:00", "23:59"})
 
 DEFAULTS = {"pool": 2600, "spa": 2600, "sanitation": 3200,
-            "heater": 3000, "solar": 2900, "outage": 1500}
+            "heater": 3000, "solar": 2900, "pool_cleaning": 3040, "outage": 1500}
 # Conservative change floors from the commissioned configuration, not a claim
 # that these are manufacturer-certified minimum flows. Lowering a floor is a
 # separate supervised equipment-flow decision, never inferred from motor RPM.
@@ -146,7 +146,11 @@ class RPMGuardian:
                     raise ValueError("Unrecognized recovery version")
                 for field in ("draft", "applied", "floors"):
                     if set(stored[field]) != set(DEFAULTS):
-                        raise ValueError("Incomplete RPM policy")
+                        # Add the newly commissioned Pool Cleaning program to
+                        # legacy records without losing outage recovery state.
+                        if set(stored[field]) != set(DEFAULTS) - {"pool_cleaning"}:
+                            raise ValueError("Incomplete RPM policy")
+                        stored[field]["pool_cleaning"] = DEFAULTS["pool_cleaning"]
                     for value in stored[field].values(): speed(value)
                 if stored.get("intent") is not None:
                     intent = stored["intent"]
