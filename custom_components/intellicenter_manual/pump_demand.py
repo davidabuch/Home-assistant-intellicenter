@@ -27,7 +27,7 @@ def explain(programs, *, fresh, solar_delivery, actual_rpm, settled,
     rpms = [finite(r.get('rpm')) for r in active if r.get('mode') == 'RPM']
     known_max = max((v for v in rpms if v is not None), default=None)
     effective = known_max if rows and not unknown else None
-    solar = [r for r in rows if r.get('id') == 'p0105']
+    solar = [r for r in rows if r.get('circuit_id') == 'X0052']
     actual = finite(actual_rpm)
     result = dict(programs=rows, unknown_programs=unknown,
         solar_delivery=solar_delivery, actual_rpm=actual,
