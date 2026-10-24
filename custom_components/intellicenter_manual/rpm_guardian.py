@@ -252,7 +252,14 @@ class RPMGuardian:
                     and sample.raw_outage is False and target == self.data["applied"]["pool"]
                     and self.pool_change_safe(sample))
         return (self.data["pending_routine"].get(key) == target
-                and not sample.protected and not self.blocks_normal
+                and not sample.protected
+                and (not self.blocks_normal or (
+                    self.data.get("reason") in {"manual", "manual_button"}
+                    and self.data["state"] == "DEGRADED"
+                    and self.data.get("failure") == "Native RPM readback differs from ICP-confirmed settings; routine writes held"
+                    and not self.data["restoration_pending"]
+                    and self.data["session"] is None
+                    and self.data["intent"] is None))
                 and sample.bypass is False
                 and sample.raw_outage is False and sample.actual_rpm is not None
                 and sample.actual_rpm < 500 and sample.pool is False
@@ -348,9 +355,13 @@ class RPMGuardian:
                         raise RuntimeError(f'{key} native identity/readback unavailable: {exc}') from exc
                 self.data["last_observed"] = actual
                 desired = dict(self.data["applied"])
-                # ICP display and native SPEED disagree. Treat differences as
-                # uncertain observations, never as permission for routine writes.
-                if (not sample.protected and not self.data["restoration_pending"]
+                # Background reconciliation remains fail-closed for unusual native
+                # values. An explicit operator request may repair confirmed
+                # configured-circuit drift, but only through the existing
+                # fresh-identity, safety, serialized-write and readback gates.
+                explicit_repair = reason in {"manual", "manual_button"}
+                if (not explicit_repair and not sample.protected
+                        and not self.data["restoration_pending"]
                         and self.data["session"] is None
                         and any(actual[k] != desired[k] and actual[k] % 10 != 0
                                 for k in PROGRAMS)):
@@ -462,11 +473,23 @@ class RPMGuardian:
                     # Absolutely no persistent writes before the detector's
                     # existing five-minute qualified latch.
                 else:
-                    self.data["state"] = "NORMAL"
+                    # Preserve the blocking state until an explicit repair has
+                    # verified every mismatched circuit. Never release the HA
+                    # schedule during a partial multi-program correction.
+                    repairing = (explicit_repair and self.data["state"] == "DEGRADED"
+                                 and not self.data["restoration_pending"])
+                    if not repairing:
+                        self.data["state"] = "NORMAL"
                     for key in list(self.data["pending_routine"]):
                         if actual[key] != desired[key]:
                             if await self._change(key, desired[key], "normal"):
                                 del self.data["pending_routine"][key]
+                if (explicit_repair and self.data["state"] == "DEGRADED"
+                        and not self.data["restoration_pending"]
+                        and not self.data["pending_routine"]
+                        and all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values())):
+                    self.data["state"] = "NORMAL"
+                    self.data["failure"] = None
                 if all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values()):
                     self.data["last_success"] = timestamp()
                     if (self.data['state'] == 'NORMAL' or
