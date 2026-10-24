@@ -371,7 +371,7 @@ class RPMGuardian:
                 # values. An explicit operator request may repair confirmed
                 # configured-circuit drift, but only through the existing
                 # fresh-identity, safety, serialized-write and readback gates.
-                explicit_repair = reason in {"manual", "manual_button"}
+                explicit_repair = reason in {"manual", "manual_button", "apply"}
                 if (not explicit_repair and not sample.protected
                         and not self.data["restoration_pending"]
                         and self.data["session"] is None
