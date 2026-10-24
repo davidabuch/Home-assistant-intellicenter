@@ -12,9 +12,12 @@ from datetime import datetime, timezone, timedelta
 import math
 from uuid import uuid4
 
-PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
+BASE_PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
             "sanitation": ("p0105", "FTR02"), "heater": ("p0103", "X0051"),
-            "solar": ("p0104", "X0052"), "pool_cleaning": ("p0106", "FTR03")}
+            "solar": ("p0104", "X0052")}
+POOL_CLEANING_PROGRAM = ("p0106", "FTR03")
+PROGRAMS = dict(BASE_PROGRAMS)
+PROGRAMS["pool_cleaning"] = POOL_CLEANING_PROGRAM
 # Only named operator/schedule/session requests discover ordinary drift.
 # Unknown/legacy requests fail closed to recovery servicing, never broad scans.
 ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
