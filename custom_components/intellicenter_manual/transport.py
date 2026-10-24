@@ -410,7 +410,7 @@ class IntelliCenterManualTransport:
                 and set(args[1]) == {HEATER_ATTR}
                 and args[1][HEATER_ATTR] in HEATER_IDS)
             or (method == "request_changes" and len(args) == 2
-                and args[0] in {"p0101", "p0102", "p0103", "p0104", "p0105"}
+                and args[0] in {"p0101", "p0102", "p0103", "p0104", "p0105", "p0106"}
                 and self._verified_pump_program(args[0]) is not None
                 and type(args[1]) is dict
                 and set(args[1]) == {SPEED_ATTR}
