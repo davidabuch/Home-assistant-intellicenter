@@ -399,8 +399,6 @@ class RPMGuardian:
                     desired["pool"] = desired["outage"]
                 self.data["results"] = {key: "MATCH" if actual[key] == desired[key]
                     else "PENDING" for key in active_programs}
-                if not self.data["pool_cleaning_commissioned"]:
-                    self.data["results"]["pool_cleaning"] = "NOT_COMMISSIONED"
                 for key in active_programs:
                     if actual[key] == desired[key]:
                         self.data["last_verified"][key] = timestamp()
