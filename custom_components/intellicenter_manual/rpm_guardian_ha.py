@@ -192,6 +192,14 @@ class GuardianHA:
             require_entry(call)
             await self.reconcile(str(call.data.get("reason", "manual")))
 
+        async def inspect_native(call):
+            require_entry(call)
+            if not self.conditions().fresh:
+                raise RuntimeError("Fresh native observation required")
+            report = await self.refresh_native_speed_diagnostics()
+            self.hass.bus.async_fire("intellicenter_native_rpm_readback_diagnostic",
+                                     {"programs": report})
+
         async def apply(call):
             require_entry(call)
             await self.core.apply()
@@ -217,6 +225,7 @@ class GuardianHA:
                 running_pool_approved=call.data.get("approve_running_pool_write") is True)
 
         for name, handler in (("reconcile_pump_speeds", reconcile),
+                              ("inspect_native_rpm_readback", inspect_native),
                               ("apply_rpm_configuration", apply),
                               ("configure_rpm_guardian", configure)):
             self.hass.services.async_register(DOMAIN, name, handler)
