@@ -185,7 +185,7 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.outage(); await self.run_policy(); self.assertEqual(self.actual(),1500)
     async def test_13_running_pool_outage(self):
         self.outage(); r=await self.run_policy()
-        self.assertEqual(r['state'],'OUTAGE_ACTIVE'); self.assertTrue(r['restoration_pending'])
+        self.assertEqual(r['state'],'OUTAGE_ACTIVE', r.get('failure')); self.assertTrue(r['restoration_pending'])
     async def test_14_pool_off_never_started(self):
         self.outage(); self.change(pool=False,actual_rpm=0); await self.run_policy()
         self.assertFalse(self.writes); self.assertEqual(self.actual(),2600)
