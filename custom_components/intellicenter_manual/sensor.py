@@ -216,6 +216,34 @@ class GuardianStatus(SensorEntity):
             if value != data['applied'][key]}
         data['blocks_normal_control'] = self._guardian.core.blocks_normal
         data['installed_commit'] = self._guardian.revision
+        # Runtime evidence is computed from the loaded Python code and native
+        # object model, rather than a potentially stale build_revision.json.
+        import inspect
+        from .transport import ManualTransport
+        from .rpm_guardian import PROGRAMS
+        verifier = ManualTransport._verified_pump_program
+        data['native_identity_diagnostics'] = {
+            'verifier_source_sha256': __import__('hashlib').sha256(
+                inspect.getsource(verifier).encode()).hexdigest()[:16],
+            'expected': {k: {'program': v[0], 'circuit': v[1]}
+                         for k, v in PROGRAMS.items()},
+            'programs': {},
+        }
+        from pyintellicenter import PMPCIRC_TYPE, PARENT_ATTR, SELECT_ATTR, CIRCUIT_ATTR
+        for key, (object_id, circuit_id) in PROGRAMS.items():
+            matches = [obj for obj in self._guardian.transport.model.get_by_type(PMPCIRC_TYPE)
+                       if str(obj.objnam) == object_id]
+            if len(matches) != 1:
+                data['native_identity_diagnostics']['programs'][key] = {
+                    'match_count': len(matches)}
+                continue
+            props = matches[0].properties
+            data['native_identity_diagnostics']['programs'][key] = {
+                'parent': props.get(PARENT_ATTR),
+                'mode': props.get(SELECT_ATTR),
+                'circuit': props.get(CIRCUIT_ATTR),
+                'expected_circuit': circuit_id,
+            }
         data['runtime_status_scope'] = 'outage_only; not normal Solar verification'
         data['pump_demand'] = self._guardian.demand_diagnostics()
         return data
