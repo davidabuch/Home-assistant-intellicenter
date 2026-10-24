@@ -99,6 +99,21 @@ class GuardianHA:
         obj = self.transport._verified_pump_program(PROGRAMS[key][0])
         return native_speed(float(obj.properties.get("SPEED")))
 
+    async def refresh_native_speed_diagnostics(self):
+        """Read-only direct GetParamList comparison; never correct presets."""
+        report = {}
+        for key, (object_id, circuit_id) in PROGRAMS.items():
+            before = self.read(key)
+            fresh = await self.transport.controller.refresh_pump_circuit_speed(object_id)
+            after = self.read(key)
+            report[key] = {
+                "program": object_id, "circuit": circuit_id,
+                "cached_before": before, "direct_response": fresh,
+                "cached_after": after, "expected": self.core.data["applied"][key],
+                "matches_expected": fresh == self.core.data["applied"][key],
+            }
+        return report
+
     async def write(self, object_id, value, permit):
         await self.transport.set_configured_pump_program_rpm(object_id, value, authority=permit)
 
