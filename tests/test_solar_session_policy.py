@@ -67,7 +67,7 @@ class DemandDiagnosticsTests(unittest.TestCase):
 
     def test_05_selected_solar_is_not_active_virtual_circuit(self):
         self.assertEqual(self.report(rows(solar=False))['status'],'SOLAR_CIRCUIT_UNCONFIRMED')
-        r=rows();r[3]['active']=None
+        r=rows();next(row for row in r if row['circuit_id']=='X0052')['active']=None
         self.assertEqual(self.report(r)['status'],'INCOMPLETE_NATIVE_DEMAND')
 
     def test_08_transitions_settling_stale_and_unknown_extra_demands(self):
@@ -98,10 +98,10 @@ class DemandDiagnosticsTests(unittest.TestCase):
         t.model=Model();t.read_observation=lambda:SimpleNamespace(connected=True)
         t._send=AsyncMock(side_effect=AssertionError('Read-only diagnostics actuated'))
         r=t.pump_demand_evidence()
-        self.assertEqual(next(row for row in r if row['id']=='p0105')['active'],True)
-        self.assertEqual(next(row for row in r if row['id']=='p0104')['active'],False)
+        self.assertEqual(next(row for row in r if row['circuit_id']=='X0052')['active'],True)
+        self.assertEqual(next(row for row in r if row['circuit_id']=='X0051')['active'],False)
         objects['X0052'].properties.clear()
-        self.assertIsNone(next(row for row in t.pump_demand_evidence() if row['id']=='p0105')['active'])
+        self.assertIsNone(next(row for row in t.pump_demand_evidence() if row['circuit_id']=='X0052')['active'])
         t.read_observation=lambda:SimpleNamespace(connected=False)
         self.assertTrue(all(row['active'] is None for row in t.pump_demand_evidence()))
         t._send.assert_not_called()

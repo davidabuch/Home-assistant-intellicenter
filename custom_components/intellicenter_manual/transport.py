@@ -497,8 +497,8 @@ class IntelliCenterManualTransport:
         raise ManualCommandError("Live pump RPM is telemetry; use an explicit configured pump program")
 
     def _verified_pump_program(self, object_id: str):
-        expected = {"p0101": "C0001", "p0102": "C0006", "p0103": "FTR02",
-                    "p0104": "X0051", "p0105": "X0052"}
+        from .rpm_guardian import PROGRAMS
+        expected = {program_id: circuit_id for program_id, circuit_id in PROGRAMS.values()}
         if object_id not in expected:
             raise ManualCommandError("Uncommissioned native pump program")
         matches = [obj for obj in self.model.get_by_type(PMPCIRC_TYPE)

@@ -243,7 +243,7 @@ class AntiDriftTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.gather(self.run_policy('manual_button'),
                              *(self.heartbeat() for _ in range(5)))
         self.assertEqual(self.actual('solar'), 2900)
-        self.assertEqual(self.writes, [('p0105', {native.SPEED_ATTR: '2900'})])
+        self.assertEqual(self.writes, [('p0104', {native.SPEED_ATTR: '2900'})])
 
     def test_automation_preserves_triggers_and_routes_request_reason(self):
         config = json.loads((Path(__file__).parents[1] /
