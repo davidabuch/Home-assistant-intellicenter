@@ -13,9 +13,9 @@ import math
 from uuid import uuid4
 
 BASE_PROGRAMS = {"pool": ("p0102", "C0006"), "spa": ("p0101", "C0001"),
-            "sanitation": ("p0105", "FTR02"), "heater": ("p0103", "X0051"),
-            "solar": ("p0104", "X0052")}
-POOL_CLEANING_PROGRAM = ("p0106", "FTR03")
+            "sanitation": ("p0103", "FTR02"), "heater": ("p0105", "X0051"),
+            "solar": ("p0106", "X0052")}
+POOL_CLEANING_PROGRAM = ("p0104", "FTR03")
 PROGRAMS = dict(BASE_PROGRAMS)
 PROGRAMS["pool_cleaning"] = POOL_CLEANING_PROGRAM
 # Only named operator/schedule/session requests discover ordinary drift.
