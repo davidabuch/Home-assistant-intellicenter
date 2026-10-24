@@ -9,7 +9,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .rpm_guardian import Conditions, PROGRAMS, RPMGuardian, speed
+from .rpm_guardian import Conditions, PROGRAMS, RPMGuardian, speed, native_speed
 
 DOMAIN = "intellicenter_manual"
 
@@ -97,7 +97,7 @@ class GuardianHA:
 
     def read(self, key):
         obj = self.transport._verified_pump_program(PROGRAMS[key][0])
-        return speed(float(obj.properties.get("SPEED")))
+        return native_speed(float(obj.properties.get("SPEED")))
 
     async def write(self, object_id, value, permit):
         await self.transport.set_configured_pump_program_rpm(object_id, value, authority=permit)
