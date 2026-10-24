@@ -23,7 +23,7 @@ ROUTINE_REASONS = frozenset({"manual", "manual_button", "apply", "startup",
     "solar_delivery_started", "cleaning_released", "08:00", "23:59"})
 
 DEFAULTS = {"pool": 2600, "spa": 2600, "sanitation": 3200,
-            "heater": 3000, "solar": 2900, "pool_cleaning": 3040, "outage": 1500}
+            "heater": 3000, "solar": 2900, "pool_cleaning": 3000, "outage": 1500}
 # Conservative change floors from the commissioned configuration, not a claim
 # that these are manufacturer-certified minimum flows. Lowering a floor is a
 # separate supervised equipment-flow decision, never inferred from motor RPM.
@@ -116,6 +116,7 @@ class RPMGuardian:
             "last_failure": None,
             "runtime_wait_until": None,
             "routine_scan_pending": False, "pending_routine": {},
+            "pool_cleaning_commissioned": False,
         }
 
     @property
@@ -173,6 +174,7 @@ class RPMGuardian:
                     if value != stored["applied"][key]:
                         raise ValueError("Pending routine target differs from applied policy")
                 self.data.update(deepcopy(stored))
+                self.data.setdefault("pool_cleaning_commissioned", False)
                 if self.data["intent"] or self.data["restoration_pending"]:
                     self.data["restoration_pending"] = True
                     self.data["state"] = "RECOVERY_REQUIRED"
@@ -210,6 +212,8 @@ class RPMGuardian:
             for key, value in self.data["draft"].items():
                 speed(value, max(sample.minimum, self.data["floors"][key]), sample.maximum)
             self.data["applied"] = dict(self.data["draft"])
+            # Explicit Apply is the commissioning boundary for the new preset.
+            self.data["pool_cleaning_commissioned"] = True
             # Supersede old approved corrections atomically with the new policy.
             self.data["pending_routine"] = {}
             self.data["routine_scan_pending"] = True
@@ -347,18 +351,22 @@ class RPMGuardian:
                 await self.persist()
             sample = self.conditions()
             try:
-                self.data['results'] = {key: 'UNKNOWN' for key in PROGRAMS}
+                self.data['results'] = {key: 'UNKNOWN' for key in active_programs}
                 if not sample.fresh:
                     raise RuntimeError("Fresh native observations required")
                 # Identity validation is in read(), never skipped for a match.
                 actual = {}
-                for key in PROGRAMS:
+                active_programs = [key for key in PROGRAMS
+                    if key != "pool_cleaning" or self.data["pool_cleaning_commissioned"]]
+                for key in active_programs:
                     try: actual[key] = self.read(key)
                     except Exception as exc:
                         self.data['results'][key] = f'FAILED: {exc}'
                         raise RuntimeError(f'{key} native identity/readback unavailable: {exc}') from exc
+                if not self.data["pool_cleaning_commissioned"]:
+                    self.data["results"]["pool_cleaning"] = "NOT_COMMISSIONED"
                 self.data["last_observed"] = actual
-                desired = dict(self.data["applied"])
+                desired = {key: self.data["applied"][key] for key in active_programs}
                 # Background reconciliation remains fail-closed for unusual native
                 # values. An explicit operator request may repair confirmed
                 # configured-circuit drift, but only through the existing
@@ -368,11 +376,11 @@ class RPMGuardian:
                         and not self.data["restoration_pending"]
                         and self.data["session"] is None
                         and any(actual[k] != desired[k] and actual[k] % 10 != 0
-                                for k in PROGRAMS)):
+                                for k in active_programs)):
                     self.data["results"] = {
                         k: ("MATCH" if actual[k] == desired[k]
                             else f"READBACK_DISCREPANCY: native={actual[k]} expected={desired[k]}")
-                        for k in PROGRAMS}
+                        for k in active_programs}
                     self.data["pending_routine"] = {}
                     self.data["routine_scan_pending"] = True
                     self.data["state"] = "DEGRADED"
@@ -382,8 +390,8 @@ class RPMGuardian:
                 if sample.protected:
                     desired["pool"] = desired["outage"]
                 self.data["results"] = {key: "MATCH" if actual[key] == desired[key]
-                    else "PENDING" for key in PROGRAMS}
-                for key in PROGRAMS:
+                    else "PENDING" for key in active_programs}
+                for key in active_programs:
                     if actual[key] == desired[key]:
                         self.data["last_verified"][key] = timestamp()
                 # Native persistent state wins over a clean/missing journal.
@@ -491,7 +499,7 @@ class RPMGuardian:
                 if (explicit_repair and self.data["state"] == "DEGRADED"
                         and not self.data["restoration_pending"]
                         and not self.data["pending_routine"]
-                        and all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values())):
+                        and all(v in {"MATCH", "VERIFIED", "NOT_COMMISSIONED"} for v in self.data["results"].values())):
                     self.data["state"] = "NORMAL"
                     self.data["failure"] = None
                 if all(v in {"MATCH", "VERIFIED"} for v in self.data["results"].values()):
