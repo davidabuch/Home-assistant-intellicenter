@@ -33,7 +33,7 @@ class GuardianTests(unittest.IsolatedAsyncioTestCase):
         self.rows = {obj: SimpleNamespace(objnam=obj, properties={
             native.PARENT_ATTR:'PMP01', native.SELECT_ATTR:'RPM', native.CIRCUIT_ATTR:circuit,
             native.SPEED_ATTR:str(policy.DEFAULTS[key])})
-            for key, (obj, circuit) in policy.PROGRAMS.items()}
+            for key, (obj, circuit) in policy.BASE_PROGRAMS.items()}
         self.t.model = SimpleNamespace(get_by_type=lambda kind: list(self.rows.values())
             if kind == native.PMPCIRC_TYPE else [])
         self.t.read_observation = lambda: SimpleNamespace(connected=self.sample.fresh)
