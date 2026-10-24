@@ -348,6 +348,21 @@ class RPMGuardian:
                         raise RuntimeError(f'{key} native identity/readback unavailable: {exc}') from exc
                 self.data["last_observed"] = actual
                 desired = dict(self.data["applied"])
+                # ICP display and native SPEED disagree. Treat differences as
+                # uncertain observations, never as permission for routine writes.
+                if (not sample.protected and not self.data["restoration_pending"]
+                        and self.data["session"] is None
+                        and any(actual[k] != desired[k] for k in PROGRAMS)):
+                    self.data["results"] = {
+                        k: ("MATCH" if actual[k] == desired[k]
+                            else f"READBACK_DISCREPANCY: native={actual[k]} expected={desired[k]}")
+                        for k in PROGRAMS}
+                    self.data["pending_routine"] = {}
+                    self.data["routine_scan_pending"] = True
+                    self.data["state"] = "DEGRADED"
+                    self.data["failure"] = "Native RPM readback differs from ICP-confirmed settings; routine writes held"
+                    await self.persist()
+                    return deepcopy(self.data)
                 if sample.protected:
                     desired["pool"] = desired["outage"]
                 self.data["results"] = {key: "MATCH" if actual[key] == desired[key]
