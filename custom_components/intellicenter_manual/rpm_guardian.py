@@ -46,6 +46,17 @@ def speed(value, minimum=600, maximum=3450):
     return int(value)
 
 
+def native_speed(value, minimum=600, maximum=3450):
+    """Validate observed native RPM without imposing operator target increments."""
+    if isinstance(value, bool) or not isinstance(value, (float, int)):
+        raise ValueError("Native RPM must be numeric")
+    if not math.isfinite(value) or int(value) != value:
+        raise ValueError("Native RPM must be a finite integer")
+    if not minimum <= value <= maximum:
+        raise ValueError(f"Native RPM must be {minimum}..{maximum}")
+    return int(value)
+
+
 @dataclass(frozen=True)
 class Conditions:
     """Fresh evidence, not inferred operator intent. None means unknown."""
