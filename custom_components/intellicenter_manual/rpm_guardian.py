@@ -31,6 +31,7 @@ DEFAULTS = {"pool": 2600, "spa": 2600, "sanitation": 3200,
 # that these are manufacturer-certified minimum flows. Lowering a floor is a
 # separate supervised equipment-flow decision, never inferred from motor RPM.
 FLOORS = dict(DEFAULTS)
+FLOORS["pool_cleaning"] = 3000
 BLOCKING = {"APPLYING_OUTAGE_SPEED", "OUTAGE_ACTIVE", "RESTORING_NORMAL_SPEED",
             "REEVALUATING_DEMAND", "RECOVERY_REQUIRED", "DEGRADED"}
 
@@ -120,6 +121,7 @@ class RPMGuardian:
             "runtime_wait_until": None,
             "routine_scan_pending": False, "pending_routine": {},
             "pool_cleaning_commissioned": False, "pool_cleaning_requested": False,
+            "pool_cleaning_armed": False,
         }
 
     @property
@@ -156,6 +158,11 @@ class RPMGuardian:
                             raise ValueError("Incomplete RPM policy")
                         stored[field]["pool_cleaning"] = DEFAULTS["pool_cleaning"]
                     for value in stored[field].values(): speed(value)
+                # Upgrade only the never-commissioned initial cleaning floor.
+                # Do not relax an operator-commissioned minimum.
+                if (stored.get("pool_cleaning_commissioned") is False
+                        and stored["floors"]["pool_cleaning"] == 3040):
+                    stored["floors"]["pool_cleaning"] = 3000
                 if stored.get("intent") is not None:
                     intent = stored["intent"]
                     if intent.get("program") != "p0102" or type(intent.get("epoch")) is not int:
@@ -179,6 +186,7 @@ class RPMGuardian:
                 self.data.update(deepcopy(stored))
                 self.data.setdefault("pool_cleaning_commissioned", False)
                 self.data.setdefault("pool_cleaning_requested", False)
+                self.data.setdefault("pool_cleaning_armed", False)
                 if self.data["intent"] or self.data["restoration_pending"]:
                     self.data["restoration_pending"] = True
                     self.data["state"] = "RECOVERY_REQUIRED"
@@ -220,7 +228,7 @@ class RPMGuardian:
             self.data["applied"] = dict(self.data["draft"])
             # Explicit Apply is the commissioning boundary for the new preset.
             if self.data["pool_cleaning_requested"]:
-                self.data["pool_cleaning_commissioned"] = True
+                self.data["pool_cleaning_armed"] = True
                 self.data["pool_cleaning_requested"] = False
             # Supersede old approved corrections atomically with the new policy.
             self.data["pending_routine"] = {}
@@ -349,6 +357,12 @@ class RPMGuardian:
             if not self.loaded:
                 return deepcopy(self.data)
             self._generation += 1
+            # Pool Cleaning is authorized only by Apply followed by a manual
+            # Reconcile; Apply itself must never dispatch its native preset.
+            if reason in {"manual", "manual_button"} and self.data["pool_cleaning_armed"]:
+                self.data["pool_cleaning_commissioned"] = True
+                self.data["pool_cleaning_armed"] = False
+                await self.persist()
             self.data["last_reconciliation"] = timestamp()
             self.data["reason"] = reason
             self.data["request_class"] = "routine" if reason in ROUTINE_REASONS else "recovery"
