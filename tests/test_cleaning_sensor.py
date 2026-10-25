@@ -60,7 +60,10 @@ class CleaningEntityTests(unittest.IsolatedAsyncioTestCase):
         def track(hass, entities, listener):
             self.state_listeners.append(listener)
             return lambda: self.state_listeners.remove(listener)
+        class EntityCategory:
+            DIAGNOSTIC = 'diagnostic'
         stubs = {
+            'homeassistant.helpers.entity': types.SimpleNamespace(EntityCategory=EntityCategory),
             'homeassistant.components.sensor': types.SimpleNamespace(SensorEntity=Entity),
             'homeassistant.core': types.SimpleNamespace(callback=lambda fn: fn),
             'homeassistant.helpers.event': types.SimpleNamespace(async_track_state_change_event=track),
