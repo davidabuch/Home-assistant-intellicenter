@@ -1,0 +1,58 @@
+{
+  "source": "HA recorder read-only query",
+  "timezone": "America/Los_Angeles",
+  "limitations": "State history is not per-object native receipts or command provenance. It corroborates idle activation failure only.",
+  "entities": [
+    {
+      "entity_id": "switch.pool_cleaning",
+      "states": [
+        {
+          "state": "on",
+          "last_updated": "2026-10-24T17:12:25.501635-07:00",
+          "last_changed": "2026-10-24T17:12:25.501635-07:00"
+        },
+        {
+          "state": "off",
+          "last_updated": "2026-10-24T17:22:29.644548-07:00",
+          "last_changed": "2026-10-24T17:22:29.644548-07:00"
+        }
+      ]
+    },
+    {
+      "entity_id": "binary_sensor.pool_cleaning_active",
+      "states": [
+        {
+          "state": "on",
+          "last_updated": "2026-10-24T17:12:25.501441-07:00",
+          "last_changed": "2026-10-24T17:12:25.501441-07:00"
+        },
+        {
+          "state": "off",
+          "last_updated": "2026-10-24T17:22:29.644181-07:00",
+          "last_changed": "2026-10-24T17:22:29.644181-07:00"
+        }
+      ]
+    },
+    {
+      "entity_id": "climate.pool_thermostat",
+      "states": [
+        {
+          "state": "off",
+          "attributes": {},
+          "last_updated": "2026-10-24T17:04:12.501147-07:00",
+          "last_changed": "2026-10-24T17:04:12.501147-07:00"
+        }
+      ]
+    },
+    {
+      "entity_id": "sensor.pump_rpm",
+      "states": [
+        {
+          "state": "0.0",
+          "last_updated": "2026-10-24T17:04:12.518923-07:00",
+          "last_changed": "2026-10-24T17:04:12.518923-07:00"
+        }
+      ]
+    }
+  ]
+}

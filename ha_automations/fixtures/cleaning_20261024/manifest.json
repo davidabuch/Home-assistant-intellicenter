@@ -1,0 +1,25 @@
+{
+  "source_main": "5a46cf0ff7bbce07da1095d6ab90bfe7c7f6fff3",
+  "captured_date_local": "2026-10-24",
+  "purpose": "Untouched live originals; NOT deployment candidates",
+  "automations": {
+    "schedule": {
+      "entity_id": "automation.pool_simple_solar_and_filtration_commissioning",
+      "ha_config_hash": "59cd45a45d9f6452",
+      "file": "schedule.original.json",
+      "sha256": "0e7bf3b24af9706b1db97c312bd36d008c4fb71cb53a69998e26c2dc66afcb52"
+    },
+    "heating": {
+      "entity_id": "automation.pool_and_hot_tub_heating_preference_controller",
+      "ha_config_hash": "685e9fae5db6a85c",
+      "file": "heating.original.json",
+      "sha256": "12d98d5ca5e9f04810d6fc39c00d445d600bdc3e61bfca60aa5ebad18e41727c"
+    },
+    "sanitation": {
+      "entity_id": "automation.sanitation_sessions_pool_and_spa_3_hour_limit",
+      "ha_config_hash": "c74d5d703ca076d1",
+      "file": "sanitation.original.json",
+      "sha256": "d992a857627f0a376d6c0bccf048f826d8eea7c928ae258d32ee46533832401f"
+    }
+  }
+}
