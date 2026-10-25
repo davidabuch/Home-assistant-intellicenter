@@ -5,6 +5,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -39,7 +40,7 @@ class CleaningObservationSensor(SensorEntity):
 
     _attr_name = 'Pool Cleaning Observer'
     _attr_should_poll = False
-    _attr_entity_category = 'diagnostic'
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, entry):
         self._runtime = entry.runtime_data
