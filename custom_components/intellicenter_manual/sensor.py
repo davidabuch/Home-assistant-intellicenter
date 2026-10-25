@@ -87,12 +87,14 @@ class NativeTelemetry(SensorEntity):
 
 async def async_setup_entry(hass, entry, async_add_entities):
     from .cleaning_sensor import CleaningObservationSensor
+    from .cleaning_shadow_sensor import CleaningShadowSensor
 
     runtime = entry.runtime_data
     async_add_entities(NativeTelemetry(entry, runtime, *item)
                        for item in MEASUREMENTS)
     async_add_entities([GuardianStatus(entry)])
     async_add_entities([CleaningObservationSensor(entry)])
+    async_add_entities([CleaningShadowSensor(entry)])
 
     # Discover by stable native identity, never by current active pump speed.
     # Refresh discovery on each native observation to handle late model arrival.
