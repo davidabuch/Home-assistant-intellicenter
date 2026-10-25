@@ -40,3 +40,13 @@ B. Implement Stage B state machine with simulated transport and deterministic re
 C. CI green, review and merge, deploy with flag OFF, verify unchanged Stage A.
 D. With explicit physical commissioning approval, enable limited Pool ON only after exclusive command authority and provenance tests pass; observe pump and 3000 RPM.
 E. Keep automatic Pool OFF blocked until manual-intent ambiguity is solved and independent controller arbitration is demonstrated.
+
+## Live writer inventory and controller coupling (inspected 2026-10-24)
+- HA automation `automation.pool_simple_solar_and_filtration_commissioning` directly calls `climate.set_hvac_mode` on `climate.pool_thermostat` (including OFF), and maintains `input_boolean.pool_simple_schedule_owns_pool` plus `input_boolean.pool_simple_manual_circulation`. It already suppresses ordinary equipment commands while `binary_sensor.pool_cleaning_active` is ON and requires 20 seconds OFF and fresh native telemetry for resumption.
+- The same automation adopts an unowned Pool ON after a 10-minute service grace and may stop it after filtration debt is satisfied. This is **not** a reliable record of which actor physically started Pool, nor an exclusive Pool writer.
+- `automation.pool_and_hot_tub_heating_preference_controller` controls heat-source selection only, and similarly defers Pool writes until cleaning OFF is stable for 20 seconds.
+- Manual Bridge `climate.pool_thermostat` uses `transport.set_body_active('B1101', ...)`. The transport has an async dispatch lock, native-command allowlist, exclusive-authority check, and outage gate, but **no shared arbitration with HA automations or Pentair-panel manual operations**. The transport explicitly describes itself as manual-only, with no autonomous scheduling.
+- Native cleaning switch `switch.pool_cleaning` invokes `transport.set_pool_cleaning`; it is a manual actuator, not a cleaning circulation controller.
+
+### Implementation consequence
+The simplest safe next implementation is **read-only provenance diagnostics**, not a second Pool writer: capture the Pool controller's actual automation execution trace and the relevant HA service-call context, and compare that with native Pool transitions. Context/trace correlation is supporting evidence only; it cannot prove absence of a simultaneous Pentair-panel action. No Stage B OFF actuation should be introduced on the strength of a helper or state timestamp alone. Before changing the existing automation, preserve its complete config/hash and establish regression checks for the 10-minute grace, cleaning suppression, and Solar/filtration handoff.
