@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers import config_validation as cv
 from datetime import timedelta
 from homeassistant.util import dt as dt_util
 from pyintellicenter import STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR, SPEED_ATTR
@@ -21,6 +22,7 @@ from .observation_coordinator import ObservationFanout
 
 DIAGNOSTIC_SERVICE = "commission_abort_own_tcp"
 DOMAIN = "intellicenter_manual"
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 PLATFORMS = ["climate", "binary_sensor", "sensor", "switch", "light", "number", "select", "button"]
 
@@ -34,6 +36,14 @@ class Runtime:
     def __getattr__(self, name):
         # Climate platform receives runtime_data and calls transport methods.
         return getattr(self.transport, name)
+
+
+async def async_setup(hass: HomeAssistant, config) -> bool:
+    """Register Guardian actions before config-entry IO; retain them on unload."""
+    from .rpm_guardian_ha import async_register_guardian_services
+
+    async_register_guardian_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

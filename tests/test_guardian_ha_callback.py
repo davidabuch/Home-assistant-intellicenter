@@ -27,7 +27,11 @@ class GuardianHACallbackTests(unittest.IsolatedAsyncioTestCase):
 
         modules = {name: ModuleType(name) for name in (
             'homeassistant', 'homeassistant.core', 'homeassistant.helpers',
-            'homeassistant.helpers.storage', 'homeassistant.helpers.event')}
+            'homeassistant.helpers.storage', 'homeassistant.helpers.event',
+            'homeassistant.helpers.service', 'homeassistant.exceptions')}
+        modules['homeassistant.exceptions'].ServiceValidationError = ValueError
+        modules['homeassistant.helpers.service'].async_get_config_entry = (
+            lambda hass, domain, entry_id: self.guardian.entry)
         modules['homeassistant.core'].callback = callback
         modules['homeassistant.helpers.storage'].Store = object
         modules['homeassistant.helpers.event'].async_track_state_change_event = track
@@ -56,6 +60,8 @@ class GuardianHACallbackTests(unittest.IsolatedAsyncioTestCase):
         self.guardian.core = policy.RPMGuardian(
             lambda key: 2600, None, lambda: None, save, notify=self.guardian.publish)
         await self.guardian.setup()
+        self.guardian.entry.runtime_data = SimpleNamespace(guardian=self.guardian)
+        module.async_register_guardian_services(self.guardian.hass)
         self.notifications = []
         self.loop_thread = threading.get_ident()
 

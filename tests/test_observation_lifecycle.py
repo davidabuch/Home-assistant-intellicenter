@@ -9,7 +9,11 @@ class LifecycleTests(unittest.TestCase):
     def test_entry_lifecycle_present(self):
         tree = ast.parse((PKG / "__init__.py").read_text())
         funcs = {n.name for n in tree.body if isinstance(n, ast.AsyncFunctionDef)}
-        self.assertEqual(funcs, {"async_setup_entry", "async_unload_entry"})
+        self.assertEqual(funcs, {"async_setup", "async_setup_entry", "async_unload_entry"})
+        setup = next(n for n in tree.body if isinstance(n, ast.AsyncFunctionDef) and n.name == "async_setup")
+        calls = [n.func.id for n in ast.walk(setup) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
+        self.assertEqual(calls, ["async_register_guardian_services"])
+        self.assertFalse(any(isinstance(n, ast.Await) for n in ast.walk(setup)))
 
     def test_observation_fanout_has_teardown(self):
         tree = ast.parse((PKG / "observation_coordinator.py").read_text())

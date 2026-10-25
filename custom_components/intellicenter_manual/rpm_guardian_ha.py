@@ -6,12 +6,39 @@ from datetime import datetime, timezone
 from time import monotonic
 
 from homeassistant.core import callback
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import service
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.event import async_track_state_change_event
 
 from .rpm_guardian import Conditions, PROGRAMS, RPMGuardian, speed, native_speed
 
 DOMAIN = "intellicenter_manual"
+GUARDIAN_SERVICES = (
+    "reconcile_pump_speeds", "inspect_native_rpm_readback",
+    "apply_rpm_configuration", "configure_rpm_guardian",
+)
+
+
+@callback
+def async_register_guardian_services(hass):
+    """Component-lifetime services; resolve a loaded entry on every call.
+
+    Entry unload must never remove these handlers. An unavailable runtime is a
+    visible validation failure, not an unknown action or queued stale command.
+    """
+    for name in GUARDIAN_SERVICES:
+        async def handle(call, service_name=name):
+            entry_id = call.data.get("entry_id")
+            if not isinstance(entry_id, str) or not entry_id:
+                raise ServiceValidationError("Exact config entry ID required")
+            entry = service.async_get_config_entry(hass, DOMAIN, entry_id)
+            guardian = getattr(getattr(entry, "runtime_data", None), "guardian", None)
+            if guardian is None:
+                raise ServiceValidationError("IntelliCenter RPM Guardian runtime is unavailable")
+            await guardian.service_handlers()[service_name](call)
+
+        hass.services.async_register(DOMAIN, name, handle)
 
 
 class GuardianHA:
@@ -184,6 +211,8 @@ class GuardianHA:
             'input_boolean.grid_outage_use_real_sensor', 'input_boolean.grid_outage_simulation',
             'binary_sensor.1_powerwall_grid_status'], authority_changed))
 
+    def service_handlers(self):
+        """Unchanged service operations bound only to this loaded runtime."""
         def require_entry(call):
             if call.data.get("entry_id") != self.entry.entry_id:
                 raise ValueError("Exact config entry ID required")
@@ -224,9 +253,9 @@ class GuardianHA:
             await self.core.enable(call.data.get("enabled") is True,
                 running_pool_approved=call.data.get("approve_running_pool_write") is True)
 
-        for name, handler in (("reconcile_pump_speeds", reconcile),
-                              ("inspect_native_rpm_readback", inspect_native),
-                              ("apply_rpm_configuration", apply),
-                              ("configure_rpm_guardian", configure)):
-            self.hass.services.async_register(DOMAIN, name, handler)
-            self.entry.async_on_unload(lambda n=name: self.hass.services.async_remove(DOMAIN, n))
+        return {
+            "reconcile_pump_speeds": reconcile,
+            "inspect_native_rpm_readback": inspect_native,
+            "apply_rpm_configuration": apply,
+            "configure_rpm_guardian": configure,
+        }
