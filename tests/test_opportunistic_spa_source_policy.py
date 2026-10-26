@@ -13,7 +13,14 @@ spec.loader.exec_module(mod)
 
 class SourcePolicyTests(unittest.TestCase):
     def test_normal_manual_spa_preferences_unchanged_without_claim(self):
-        self.assertEqual(mod.arbitrate_spa_source(mod.SourceContext()), mod.SourceDecision.NORMAL_PREFERENCE)
+        self.assertEqual(mod.arbitrate_spa_source(mod.SourceContext(spa_session_claimed=False)), mod.SourceDecision.NORMAL_PREFERENCE)
+
+    def test_unknown_claim_blocks_ordinary_source_writes(self):
+        for value in (None, "unknown", "unavailable", "", 0, 1):
+            with self.subTest(value=value):
+                context = mod.SourceContext(spa_session_claimed=value)
+                self.assertEqual(mod.arbitrate_spa_source(context), mod.SourceDecision.DEFER)
+        self.assertEqual(mod.arbitrate_spa_source(mod.SourceContext()), mod.SourceDecision.DEFER)
 
     def test_claim_never_grants_gas_fallback(self):
         for context in (
