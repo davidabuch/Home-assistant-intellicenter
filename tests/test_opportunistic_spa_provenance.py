@@ -38,6 +38,13 @@ class ProvenanceTests(unittest.TestCase):
         self.assertEqual(self.check(r=self.readback(observed_at_s=99)), m.ReceiptStatus.CONFLICT)
         self.assertEqual(self.check(epoch="run-2"), m.ReceiptStatus.CONFLICT)
 
+    def test_nonfinite_receipt_metadata_is_conflict(self):
+        for bad in (float("nan"), float("inf"), -float("inf")):
+            with self.subTest(bad=bad):
+                self.assertEqual(self.check(r=self.readback(observed_at_s=bad)), m.ReceiptStatus.CONFLICT)
+                self.assertEqual(self.check(p=m.Pending("run-1", m.CommandKind.SPA_ON, bad, 4)), m.ReceiptStatus.CONFLICT)
+        self.assertEqual(self.check(r=self.readback(generation=5.0)), m.ReceiptStatus.CONFLICT)
+
     def test_concurrent_writer_never_claimed(self):
         self.assertEqual(self.check(r=self.readback(competing_writer_seen=True)), m.ReceiptStatus.CONFLICT)
         self.assertEqual(self.check(self.pending(m.CommandKind.SOURCE_SOLAR), self.readback(source="Gas")), m.ReceiptStatus.UNPROVEN)
