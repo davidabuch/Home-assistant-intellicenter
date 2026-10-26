@@ -62,9 +62,30 @@ class TestOpportunisticSpaPolicy(unittest.TestCase):
     def test_solar_only_and_priority_preemption(self):
         owned = Session(Phase.OWNED, receipt_id="ack-1")
         base = dict(spa_off=False, owned_receipt_verified=True)
-        self.assertEqual(evaluate(owned, eligible(**base, native_spa_source="Gas"), 100).decision, Decision.RELEASE_IF_OWNED)
+        self.assertEqual(evaluate(owned, eligible(**base, native_spa_source="Gas"), 100).decision, Decision.YIELD_NO_WRITE)
         self.assertEqual(evaluate(owned, eligible(**base, filtration_due=True), 100).decision, Decision.RELEASE_IF_OWNED)
         self.assertEqual(evaluate(owned, eligible(**base, pool_demand=True), 100).decision, Decision.RELEASE_IF_OWNED)
+
+    def test_nonfinite_values_never_acquire_or_maintain(self):
+        for invalid in (float("nan"), float("inf"), -float("inf")):
+            with self.subTest(invalid=invalid):
+                self.assertNotEqual(
+                    evaluate(Session(Phase.IDLE), eligible(roof_f=invalid), 100).decision,
+                    Decision.ACQUIRE,
+                )
+                self.assertNotEqual(
+                    evaluate(Session(Phase.IDLE), eligible(native_spa_target_f=invalid), 100).decision,
+                    Decision.ACQUIRE,
+                )
+                owned = Session(Phase.OWNED, receipt_id="ack")
+                self.assertEqual(
+                    evaluate(owned, eligible(spa_off=False, owned_receipt_verified=True, roof_f=invalid), 100).decision,
+                    Decision.YIELD_NO_WRITE,
+                )
+                self.assertEqual(
+                    evaluate(Session(Phase.IDLE), eligible(), invalid).decision,
+                    Decision.YIELD_NO_WRITE,
+                )
 
     def test_external_spa_off_yields_without_restarting(self):
         owned = Session(Phase.OWNED, receipt_id="ack-1")
