@@ -545,7 +545,20 @@ class IntelliCenterManualTransport:
     async def set_heat_source(self, body_id: str, heater_id: str) -> None:
         if body_id not in BODY_IDS or heater_id not in HEATER_IDS:
             raise ValueError("invalid body or heat source")
-        await self._send("request_changes", body_id, {HEATER_ATTR: heater_id})
+        dispatched_at = await self._send("request_changes", body_id, {HEATER_ATTR: heater_id})
+        # A TCP ACK is not proof that IntelliCenter selected this source.
+        # Require a fresh native observation, just as body ON/OFF does.
+        deadline = asyncio.get_running_loop().time() + 25.0
+        while asyncio.get_running_loop().time() < deadline:
+            observation = self.read_observation()
+            body = observation.body(body_id) if observation.connected else None
+            if (body is not None and observation.observed_at > dispatched_at
+                    and body.heat_source == heater_id):
+                return
+            await asyncio.sleep(0.5)
+        raise ManualCommandError(
+            f"Native heat-source confirmation timeout for {body_id}; physical state unverified"
+        )
 
     async def set_circuit(self, circuit_id: str, active: bool) -> None:
         if circuit_id not in (CIRCUIT_IDS | {self.sanitation_circuit_id(), self.pool_cleaning_circuit_id()}) or type(active) is not bool:
