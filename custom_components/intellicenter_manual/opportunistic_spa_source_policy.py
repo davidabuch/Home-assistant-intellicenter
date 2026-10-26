@@ -17,7 +17,7 @@ class SourceDecision(str, Enum):
 
 @dataclass(frozen=True)
 class SourceContext:
-    spa_session_claimed: bool = False
+    spa_session_claimed: bool | None = None
     ownership_receipt_verified: bool = False
     telemetry_fresh: bool = False
     manual_override_seen: bool = False
@@ -26,8 +26,12 @@ class SourceContext:
 
 def arbitrate_spa_source(context: SourceContext) -> SourceDecision:
     """Never return normal Gas/Eco authority when an unverified claim exists."""
-    if not context.spa_session_claimed:
+    # Only a positively confirmed inactive claim permits normal preference.
+    # Missing/unavailable/unknown must never silently become Gas authority.
+    if context.spa_session_claimed is False:
         return SourceDecision.NORMAL_PREFERENCE
+    if context.spa_session_claimed is not True:
+        return SourceDecision.DEFER
     if context.manual_override_seen or context.recovery_required:
         return SourceDecision.DEFER
     if not context.ownership_receipt_verified or not context.telemetry_fresh:
