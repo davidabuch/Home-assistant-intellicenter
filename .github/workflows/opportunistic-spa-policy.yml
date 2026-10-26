@@ -26,6 +26,8 @@ on:
       - 'tests/test_opportunistic_spa_heat_source_readback.py'
       - 'custom_components/intellicenter_manual/opportunistic_spa_command_fence.py'
       - 'tests/test_opportunistic_spa_command_fence.py'
+      - 'tests/test_opportunistic_spa_pool_baseline.py'
+      - 'ha_automations/pool_simple_solar_and_filtration.json'
       - '.github/workflows/opportunistic-spa-policy.yml'
   push:
     branches:
@@ -54,6 +56,8 @@ on:
       - 'tests/test_opportunistic_spa_heat_source_readback.py'
       - 'custom_components/intellicenter_manual/opportunistic_spa_command_fence.py'
       - 'tests/test_opportunistic_spa_command_fence.py'
+      - 'tests/test_opportunistic_spa_pool_baseline.py'
+      - 'ha_automations/pool_simple_solar_and_filtration.json'
       - '.github/workflows/opportunistic-spa-policy.yml'
 
 jobs:
@@ -65,6 +69,6 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile pure policy and tests
-        run: python -m py_compile custom_components/intellicenter_manual/opportunistic_spa_policy.py tests/test_opportunistic_spa_policy.py custom_components/intellicenter_manual/opportunistic_spa_source_policy.py tests/test_opportunistic_spa_source_policy.py tests/test_opportunistic_spa_heating_preference_guard.py custom_components/intellicenter_manual/opportunistic_spa_command_plan.py tests/test_opportunistic_spa_command_plan.py custom_components/intellicenter_manual/opportunistic_spa_provenance.py tests/test_opportunistic_spa_provenance.py custom_components/intellicenter_manual/opportunistic_spa_collision.py tests/test_opportunistic_spa_collision.py custom_components/intellicenter_manual/opportunistic_spa_native_adapter.py tests/test_opportunistic_spa_native_adapter.py custom_components/intellicenter_manual/opportunistic_spa_shadow.py tests/test_opportunistic_spa_shadow.py custom_components/intellicenter_manual/opportunistic_spa_ha_gates.py tests/test_opportunistic_spa_ha_gates.py tests/test_opportunistic_spa_heat_source_readback.py custom_components/intellicenter_manual/opportunistic_spa_command_fence.py tests/test_opportunistic_spa_command_fence.py
+        run: python -m py_compile custom_components/intellicenter_manual/opportunistic_spa_policy.py tests/test_opportunistic_spa_policy.py custom_components/intellicenter_manual/opportunistic_spa_source_policy.py tests/test_opportunistic_spa_source_policy.py tests/test_opportunistic_spa_heating_preference_guard.py custom_components/intellicenter_manual/opportunistic_spa_command_plan.py tests/test_opportunistic_spa_command_plan.py custom_components/intellicenter_manual/opportunistic_spa_provenance.py tests/test_opportunistic_spa_provenance.py custom_components/intellicenter_manual/opportunistic_spa_collision.py tests/test_opportunistic_spa_collision.py custom_components/intellicenter_manual/opportunistic_spa_native_adapter.py tests/test_opportunistic_spa_native_adapter.py custom_components/intellicenter_manual/opportunistic_spa_shadow.py tests/test_opportunistic_spa_shadow.py custom_components/intellicenter_manual/opportunistic_spa_ha_gates.py tests/test_opportunistic_spa_ha_gates.py tests/test_opportunistic_spa_heat_source_readback.py custom_components/intellicenter_manual/opportunistic_spa_command_fence.py tests/test_opportunistic_spa_command_fence.py tests/test_opportunistic_spa_pool_baseline.py
       - name: Run no-hardware policy tests
         run: python -m unittest discover -s tests -p 'test_opportunistic_spa*.py' -v
