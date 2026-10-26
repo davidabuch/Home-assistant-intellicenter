@@ -10,10 +10,12 @@ on:
       - '.github/workflows/opportunistic-spa-policy.yml'
   push:
     branches:
-      - 'feature/opportunistic-spa-solar-isolated'
+      - 'feature/opportunistic-spa-solar-current-main'
     paths:
       - 'custom_components/intellicenter_manual/opportunistic_spa_policy.py'
       - 'tests/test_opportunistic_spa_policy.py'
+      - 'custom_components/intellicenter_manual/opportunistic_spa_source_policy.py'
+      - 'tests/test_opportunistic_spa_source_policy.py'
       - '.github/workflows/opportunistic-spa-policy.yml'
 
 jobs:
