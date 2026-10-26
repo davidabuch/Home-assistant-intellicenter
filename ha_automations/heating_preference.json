@@ -1,7 +1,7 @@
 {
   "id": "1791649697448",
   "alias": "Pool and Hot Tub - Heating Preference Controller",
-  "description": "Maps HA Off/Gas/Solar/Eco Heat preference to native IntelliCenter heat source independently per body. Eco Heat uses roof >=90F pool and >=130F spa, otherwise Gas. Two-minute stabilized roof changes. Does not start/stop equipment or set RPM. Native source can also be controlled externally; preference reapplies at activation or roof change. Pool source writes require Automatic Ownership ON, including a check immediately before each write. Manual Pool source is preserved; Spa policy is independent. Opportunistic Spa claim ON suppresses ordinary Spa heat-source writes; this does not itself grant coordinator authority.",
+  "description": "Maps HA Off/Gas/Solar/Eco Heat preference to native IntelliCenter heat source independently per body. Eco Heat uses roof >=90F pool and >=130F spa, otherwise Gas. Two-minute stabilized roof changes. Does not start/stop equipment or set RPM. Native source can also be controlled externally; preference reapplies at activation or roof change. Pool source writes require Automatic Ownership ON, including a check immediately before each write. Manual Pool source is preserved; Spa policy is independent. Opportunistic Spa claim ON suppresses ordinary Spa heat-source writes; this does not itself grant coordinator authority. Spa preference is fail-closed when the claim helper is missing/unavailable; only explicit OFF permits ordinary Spa source writes.",
   "triggers": [
     {
       "trigger": "state",
@@ -249,14 +249,9 @@
     {
       "if": [
         {
-          "condition": "not",
-          "conditions": [
-            {
-              "condition": "state",
-              "entity_id": "input_boolean.opportunistic_spa_session_claim",
-              "state": "on"
-            }
-          ]
+          "condition": "state",
+          "entity_id": "input_boolean.opportunistic_spa_session_claim",
+          "state": "off"
         },
         {
           "condition": "state",
