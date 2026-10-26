@@ -94,6 +94,8 @@ def evaluate(session: Session, o: Observation, now_s: float) -> Outcome:
         if (not o.feature_enabled or not o.automatic_ownership
                 or o.higher_priority_active or o.pool_demand or o.filtration_due):
             return Outcome(session, Decision.RELEASE_IF_OWNED, "priority preemption")
+        if o.spa_off:
+            return Outcome(Session(Phase.YIELDED), Decision.YIELD_NO_WRITE, "Spa stopped externally; do not restart")
         if o.native_spa_source != "Solar":
             return Outcome(session, Decision.RELEASE_IF_OWNED, "non-Solar source")
         if o.roof_f is None:
