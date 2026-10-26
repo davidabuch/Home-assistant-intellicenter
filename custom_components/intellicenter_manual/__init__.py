@@ -33,6 +33,7 @@ class Runtime:
     observation_fanout: ObservationFanout
     guardian: object = None
     spa_shadow: object = None
+    spa_gate_evidence: object = None
 
     def __getattr__(self, name):
         # Climate platform receives runtime_data and calls transport methods.
@@ -139,7 +140,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Read-only shadow observation. No command authority or HA service writes.
     from .opportunistic_spa_shadow import SpaSolarShadowCoordinator
     runtime.spa_shadow = SpaSolarShadowCoordinator()
-    unsubscribe_spa_shadow = fanout.subscribe(runtime.spa_shadow.observe)
+    from .opportunistic_spa_ha_gates import inspect_ha_gates
+    def _observe_spa_shadow(observation):
+        runtime.spa_gate_evidence = inspect_ha_gates(hass.states)
+        runtime.spa_shadow.observe(observation, safety=runtime.spa_gate_evidence.safety)
+    unsubscribe_spa_shadow = fanout.subscribe(_observe_spa_shadow)
     entry.async_on_unload(unsubscribe_spa_shadow)
     entry.async_on_unload(runtime.spa_shadow.close)
     fanout.start()
