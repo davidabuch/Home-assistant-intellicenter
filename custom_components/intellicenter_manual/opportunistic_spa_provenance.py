@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+import math
 
 
 class CommandKind(str, Enum):
@@ -52,6 +53,15 @@ def verify_readback(
 ) -> ReceiptStatus:
     """Confirm matching readback; never infer unique writer from matching state."""
     if not pending.epoch or pending.epoch != current_epoch:
+        return ReceiptStatus.CONFLICT
+    if (type(pending.observed_generation) is not int
+            or type(readback.generation) is not int
+            or type(pending.issued_at_s) not in (int, float)
+            or type(readback.observed_at_s) not in (int, float)
+            or type(max_ack_delay_s) not in (int, float)
+            or not all(math.isfinite(v) for v in (
+                pending.issued_at_s, readback.observed_at_s, max_ack_delay_s))
+            or max_ack_delay_s <= 0):
         return ReceiptStatus.CONFLICT
     if readback.competing_writer_seen:
         return ReceiptStatus.CONFLICT
