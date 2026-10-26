@@ -7,6 +7,8 @@ on:
       - 'tests/test_opportunistic_spa_policy.py'
       - 'custom_components/intellicenter_manual/opportunistic_spa_source_policy.py'
       - 'tests/test_opportunistic_spa_source_policy.py'
+      - 'ha_automations/heating_preference.json'
+      - 'tests/test_opportunistic_spa_heating_preference_guard.py'
       - '.github/workflows/opportunistic-spa-policy.yml'
   push:
     branches:
@@ -16,6 +18,8 @@ on:
       - 'tests/test_opportunistic_spa_policy.py'
       - 'custom_components/intellicenter_manual/opportunistic_spa_source_policy.py'
       - 'tests/test_opportunistic_spa_source_policy.py'
+      - 'ha_automations/heating_preference.json'
+      - 'tests/test_opportunistic_spa_heating_preference_guard.py'
       - '.github/workflows/opportunistic-spa-policy.yml'
 
 jobs:
@@ -27,6 +31,6 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile pure policy and tests
-        run: python -m py_compile custom_components/intellicenter_manual/opportunistic_spa_policy.py tests/test_opportunistic_spa_policy.py custom_components/intellicenter_manual/opportunistic_spa_source_policy.py tests/test_opportunistic_spa_source_policy.py
+        run: python -m py_compile custom_components/intellicenter_manual/opportunistic_spa_policy.py tests/test_opportunistic_spa_policy.py custom_components/intellicenter_manual/opportunistic_spa_source_policy.py tests/test_opportunistic_spa_source_policy.py tests/test_opportunistic_spa_heating_preference_guard.py
       - name: Run no-hardware policy tests
         run: python -m unittest discover -s tests -p 'test_opportunistic_spa*.py' -v
