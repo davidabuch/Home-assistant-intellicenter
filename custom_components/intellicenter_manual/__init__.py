@@ -32,6 +32,7 @@ class Runtime:
     transport: IntelliCenterManualTransport
     observation_fanout: ObservationFanout
     guardian: object = None
+    spa_shadow: object = None
 
     def __getattr__(self, name):
         # Climate platform receives runtime_data and calls transport methods.
@@ -135,12 +136,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime.guardian = GuardianHA(hass, entry, transport)
     await runtime.guardian.setup()
     entry.runtime_data = runtime
+    # Read-only shadow observation. No command authority or HA service writes.
+    from .opportunistic_spa_shadow import SpaSolarShadowCoordinator
+    runtime.spa_shadow = SpaSolarShadowCoordinator()
+    unsubscribe_spa_shadow = fanout.subscribe(runtime.spa_shadow.observe)
+    entry.async_on_unload(unsubscribe_spa_shadow)
+    entry.async_on_unload(runtime.spa_shadow.close)
     fanout.start()
     try:
         await transport.start()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         _reacquire_native_authority()
     except Exception:
+        runtime.spa_shadow.close()
         fanout.close()
         await transport.stop()
         raise
@@ -201,6 +209,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
     runtime = entry.runtime_data
+    runtime.spa_shadow.close()
     runtime.observation_fanout.close()
     await runtime.transport.stop()
     return True
