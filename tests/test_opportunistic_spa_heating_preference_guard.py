@@ -25,8 +25,7 @@ class HeatingPreferenceGuardTests(unittest.TestCase):
     def test_spa_path_denies_all_preference_writes_while_claimed(self):
         spa = self.doc["actions"][1]
         self.assertEqual(spa["if"][0], {
-            "condition": "not",
-            "conditions": [{"condition": "state", "entity_id": CLAIM, "state": "on"}],
+            "condition": "state", "entity_id": CLAIM, "state": "off",
         })
         options = [item["sequence"][0]["data"]["option"] for item in spa["then"][-1]["choose"]]
         self.assertIn("Gas", options)
@@ -35,7 +34,7 @@ class HeatingPreferenceGuardTests(unittest.TestCase):
 
     def test_guard_is_before_spa_source_choose(self):
         spa = self.doc["actions"][1]
-        self.assertEqual(spa["if"][0]["condition"], "not")
+        self.assertEqual(spa["if"][0]["condition"], "state")
         self.assertTrue(any("choose" in a for a in spa["then"]))
 
 
