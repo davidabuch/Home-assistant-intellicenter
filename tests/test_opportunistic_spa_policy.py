@@ -66,6 +66,12 @@ class TestOpportunisticSpaPolicy(unittest.TestCase):
         self.assertEqual(evaluate(owned, eligible(**base, filtration_due=True), 100).decision, Decision.RELEASE_IF_OWNED)
         self.assertEqual(evaluate(owned, eligible(**base, pool_demand=True), 100).decision, Decision.RELEASE_IF_OWNED)
 
+    def test_external_spa_off_yields_without_restarting(self):
+        owned = Session(Phase.OWNED, receipt_id="ack-1")
+        result = evaluate(owned, eligible(spa_off=True, owned_receipt_verified=True), 100)
+        self.assertEqual(result.decision, Decision.YIELD_NO_WRITE)
+        self.assertEqual(result.session.phase, Phase.YIELDED)
+
     def test_manual_override_yields_without_off(self):
         owned = Session(Phase.OWNED, receipt_id="ack-1")
         self.assertEqual(evaluate(owned, eligible(manual_override_seen=True), 100).decision, Decision.YIELD_NO_WRITE)
