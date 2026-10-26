@@ -46,7 +46,7 @@ class SpaSolarShadowCoordinator:
         shadow_safety = HASafety(
             enabled=False,
             recovery_required=True,
-            manual_lockout=True,
+            manual_lockout=False,
             pool_demand=requested.pool_demand,
             filtration_due=requested.filtration_due,
             automatic_ownership=False,
