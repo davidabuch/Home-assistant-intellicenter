@@ -32,6 +32,17 @@ class HeatingPreferenceGuardTests(unittest.TestCase):
         self.assertIn("Solar", options)
         self.assertIn("Off", options)
 
+    def test_missing_or_unknown_claim_blocks_spa_preference_in_replay(self):
+        from test_lightweight_schedule import Replay
+        for claim in ("unknown", "unavailable", "on"):
+            with self.subTest(claim=claim):
+                replay = Replay(self.doc, **{
+                    CLAIM: claim,
+                    "input_select.hot_tub_heating_preference": "Gas",
+                })
+                commands = replay.run("roof_change")
+                self.assertFalse(any(entity == "select.hot_tub_heat_source" for entity, _ in commands))
+
     def test_guard_is_before_spa_source_choose(self):
         spa = self.doc["actions"][1]
         self.assertEqual(spa["if"][0]["condition"], "state")
