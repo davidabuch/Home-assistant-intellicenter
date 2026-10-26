@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+import math
 
 from .opportunistic_spa_provenance import (
     CommandKind, Pending, Readback, ReceiptStatus, verify_readback,
@@ -66,6 +67,9 @@ class SpaCommandFence:
             return Gate.RECOVERY_REQUIRED
         if self._pending is not None:
             return Gate.BUSY
+        if (type(observed_generation) is not int or observed_generation < 0
+                or type(now_s) not in (int, float) or not math.isfinite(now_s)):
+            return Gate.DENIED
         if not (all_external_writers_excluded and fresh_priority_gates and native_fresh):
             return Gate.DENIED
         self._pending = Reservation(epoch, kind, observed_generation, now_s)
