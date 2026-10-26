@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+import math
 
 
 class Phase(str, Enum):
@@ -63,6 +64,10 @@ class Outcome:
     reason: str
 
 
+def _finite(value: object) -> bool:
+    return type(value) in (int, float) and math.isfinite(value)
+
+
 def _safe_to_acquire(o: Observation) -> bool:
     return (
         o.feature_enabled and not o.recovery_required
@@ -70,8 +75,8 @@ def _safe_to_acquire(o: Observation) -> bool:
         and o.pool_off and o.spa_off and not o.pool_demand
         and not o.filtration_due and o.automatic_ownership
         and not o.higher_priority_active and not o.manual_override_seen
-        and o.native_spa_target_f is not None
-        and o.roof_f is not None
+        and _finite(o.native_spa_target_f)
+        and _finite(o.roof_f)
     )
 
 
@@ -82,6 +87,8 @@ def evaluate(session: Session, o: Observation, now_s: float) -> Outcome:
     A receipt must be issued by an external command-acknowledgment coordinator,
     never synthesized by this policy.
     """
+    if not _finite(now_s):
+        return Outcome(Session(Phase.RECOVERY_REQUIRED), Decision.YIELD_NO_WRITE, "clock nonfinite")
     if o.manual_override_seen or o.manual_lockout:
         return Outcome(Session(Phase.YIELDED), Decision.YIELD_NO_WRITE, "manual takeover")
     if o.recovery_required:
@@ -97,13 +104,13 @@ def evaluate(session: Session, o: Observation, now_s: float) -> Outcome:
         if o.spa_off:
             return Outcome(Session(Phase.YIELDED), Decision.YIELD_NO_WRITE, "Spa stopped externally; do not restart")
         if o.native_spa_source != "Solar":
-            return Outcome(session, Decision.RELEASE_IF_OWNED, "non-Solar source")
-        if o.roof_f is None:
-            return Outcome(Session(Phase.RECOVERY_REQUIRED), Decision.YIELD_NO_WRITE, "roof unknown")
+            return Outcome(Session(Phase.YIELDED), Decision.YIELD_NO_WRITE, "source changed; possible manual takeover")
+        if not _finite(o.roof_f) or not _finite(o.native_spa_target_f):
+            return Outcome(Session(Phase.RECOVERY_REQUIRED), Decision.YIELD_NO_WRITE, "native telemetry invalid")
         if o.roof_f >= 120:
             return Outcome(Session(Phase.OWNED, receipt_id=session.receipt_id), Decision.MAINTAIN, "Solar viable")
         since = session.solar_lost_since_s if session.phase == Phase.SOLAR_RECOVERY else now_s
-        if since is None or now_s < since:
+        if not _finite(since) or now_s < since:
             return Outcome(Session(Phase.RECOVERY_REQUIRED), Decision.YIELD_NO_WRITE, "clock invalid")
         if now_s - since >= 300:
             return Outcome(session, Decision.RELEASE_IF_OWNED, "Solar lost five minutes")
