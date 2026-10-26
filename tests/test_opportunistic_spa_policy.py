@@ -1,9 +1,16 @@
 """Deterministic no-hardware policy tests. No HA connection required."""
 import unittest
 
-from custom_components.intellicenter_manual.opportunistic_spa_policy import (
-    Decision, Observation, Phase, Session, evaluate,
-)
+import importlib.util
+from pathlib import Path
+import sys
+
+POLICY_PATH = Path(__file__).resolve().parents[1] / 'custom_components' / 'intellicenter_manual' / 'opportunistic_spa_policy.py'
+spec = importlib.util.spec_from_file_location('opportunistic_spa_policy', POLICY_PATH)
+policy = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = policy
+spec.loader.exec_module(policy)
+Decision, Observation, Phase, Session, evaluate = (policy.Decision, policy.Observation, policy.Phase, policy.Session, policy.evaluate)
 
 
 def eligible(**kw):
