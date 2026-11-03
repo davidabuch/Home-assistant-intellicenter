@@ -216,8 +216,11 @@ class Handler(BaseHTTPRequestHandler):
                     result[key] = ha_request("/api/states/" + entity)
                 except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
                     result[key] = {"state": "unavailable", "attributes": {}}
-            # No supported Superchlorinate entity has been identified; never guess an action.
-            result["superchlorinate_available"] = False
+            try:
+                result["superchlorinate"] = ha_request(
+                    "/api/states/switch.intellichlor_super_chlorinate")
+            except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+                result["superchlorinate"] = {"state": "unavailable", "attributes": {}}
             return self.send_json(result)
         if path == "/api/state":
             if not self.authorized():
@@ -308,6 +311,16 @@ class Handler(BaseHTTPRequestHandler):
                     if key in PUMP_KEYS and value < float(attrs.get("approved_minimum_rpm", minimum)):
                         return self.send_json({"error": "Below Guardian approved minimum"}, 400)
                     ha_request("/api/services/number/set_value", {"entity_id": entity, "value": value})
+                    return self.send_json({"accepted": True, "pending_verification": True})
+                if operation == "superchlorinate":
+                    enabled = body.get("enabled")
+                    if type(enabled) is not bool:
+                        return self.send_json({"error": "Boolean enabled required"}, 400)
+                    current = ha_request("/api/states/switch.intellichlor_super_chlorinate")
+                    if current.get("state") not in ("on", "off"):
+                        return self.send_json({"error": "Native Super Chlorinate state unavailable"}, 503)
+                    ha_request("/api/services/switch/" + ("turn_on" if enabled else "turn_off"),
+                               {"entity_id": "switch.intellichlor_super_chlorinate"})
                     return self.send_json({"accepted": True, "pending_verification": True})
                 if operation in SETTINGS_BUTTONS:
                     ha_request("/api/services/button/press", {"entity_id": SETTINGS_BUTTONS[operation]})
