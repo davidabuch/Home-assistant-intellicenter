@@ -98,7 +98,8 @@ class ManualPoolOwnershipTests(unittest.TestCase):
                 for trigger in ['pool_start','roof_change','preference_change','grid_restored','startup','ownership_resumed']:
                     with self.subTest(authority=authority, preference=preference, trigger=trigger):
                         r = Replay(HEATING, **{MASTER:authority, SOURCE:'Gas', 'input_select.pool_heating_preference':preference,
-                            'input_select.hot_tub_heating_preference':'Gas'})
+                            'input_select.hot_tub_heating_preference':'Gas',
+                            'input_boolean.opportunistic_spa_session_claim':'off'})
                         commands = r.run(trigger)
                         self.assertFalse(any(e == SOURCE for e, _ in commands))
                         self.assertEqual(r.states[SOURCE], 'Gas')
