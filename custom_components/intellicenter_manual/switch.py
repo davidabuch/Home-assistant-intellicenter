@@ -53,6 +53,48 @@ class ManualAccessory(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         await self._runtime.transport.set_circuit(self._circuit_id, False)
 
+class NativeSuperchlorinate(SwitchEntity):
+    """Native IntelliChlor boost switch; never emulate with a 100% output timer."""
+    _attr_should_poll = False
+
+    def __init__(self, entry, runtime):
+        self._runtime = runtime
+        self._attr_name = "IntelliChlor Super Chlorinate"
+        self._attr_unique_id = f"{entry.entry_id}_manual_intellichlor_super_chlorinate"
+        self._unsubscribe = None
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._unsubscribe = self._runtime.observation_fanout.subscribe(self._updated)
+
+    async def async_will_remove_from_hass(self):
+        if self._unsubscribe:
+            self._unsubscribe()
+
+    def _updated(self, observation):
+        self.async_write_ha_state()
+
+    @property
+    def available(self):
+        return self._runtime.transport.superchlorinate_state() is not None
+
+    @property
+    def is_on(self):
+        return self._runtime.transport.superchlorinate_state()
+
+    @property
+    def extra_state_attributes(self):
+        # BOOST is exposed as raw native telemetry; its duration semantics are
+        # not verified and therefore must not be represented as hours.
+        return {"native_boost_value": self._runtime.transport.superchlorinate_boost()}
+
+    async def async_turn_on(self, **kwargs):
+        await self._runtime.transport.set_superchlorinate(True)
+
+    async def async_turn_off(self, **kwargs):
+        await self._runtime.transport.set_superchlorinate(False)
+
+
 class PoolCleaningSwitch(ManualAccessory):
     """Native AUX 9 command, only when the exclusive manual gateway is armed."""
 
@@ -66,6 +108,7 @@ class PoolCleaningSwitch(ManualAccessory):
 async def async_setup_entry(hass, entry, async_add_entities):
     runtime = entry.runtime_data
     async_add_entities(ManualAccessory(entry, runtime, *row) for row in ACCESSORIES)
+    async_add_entities([NativeSuperchlorinate(entry, runtime)])
     discovered = set()
 
     def discover_sanitation(_observation):
