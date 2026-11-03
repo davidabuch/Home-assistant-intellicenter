@@ -224,6 +224,45 @@ class AuthenticationAcceptance(unittest.TestCase):
                 self.ha.assert_called_with("/api/services/input_boolean/turn_" + operation,
                                            {"entity_id": server.CONTROLS[key][0]})
 
+    def test_admin_settings_are_inaccessible_to_family(self):
+        family = self.login("1234")
+        self.ha.reset_mock()
+        self.assertEqual(self.request("/api/settings", headers=family, method="GET")[0], 403)
+        for payload in ({"operation": "set", "key": "pool_chlorine", "value": 50},
+                        {"operation": "set", "key": "pool_rpm", "value": 2800},
+                        {"operation": "apply"}, {"operation": "reconcile"},
+                        {"operation": "superchlorinate", "enabled": True}):
+            self.assertEqual(self.request("/api/settings", payload, headers=family)[0], 403)
+        self.ha.assert_not_called()
+
+    def test_admin_settings_use_existing_ha_controls(self):
+        admin = self.login("9876")
+        self.ha.return_value = {"state": "2600", "attributes": {"min": 600, "max": 3450, "step": 10,
+                                                                 "approved_minimum_rpm": 2600}}
+        self.assertEqual(self.request("/api/settings", {"operation": "set", "key": "pool_rpm",
+                                                        "value": 2800}, headers=admin)[0], 200)
+        self.ha.assert_called_with("/api/services/number/set_value",
+                                   {"entity_id": "number.intellicenter_desired_pool_rpm", "value": 2800})
+        self.assertEqual(self.request("/api/settings", {"operation": "set", "key": "pool_rpm",
+                                                        "value": 2500}, headers=admin)[0], 400)
+        self.assertEqual(self.request("/api/settings", {"operation": "set", "key": "pool_rpm",
+                                                        "value": 2805}, headers=admin)[0], 400)
+        self.assertEqual(self.request("/api/settings", {"operation": "apply"}, headers=admin)[0], 200)
+        self.ha.assert_called_with("/api/services/button/press",
+                                   {"entity_id": "button.apply_configuration_changes"})
+        self.assertEqual(self.request("/api/settings", {"operation": "reconcile"}, headers=admin)[0], 200)
+        self.ha.assert_called_with("/api/services/button/press",
+                                   {"entity_id": "button.reconcile_pump_speeds"})
+        self.assertEqual(self.request("/api/settings", {"operation": "superchlorinate"}, headers=admin)[0], 400)
+        self.ha.return_value = {"state": "off", "attributes": {}}
+        self.assertEqual(self.request("/api/settings", {"operation": "superchlorinate",
+                                                        "enabled": True}, headers=admin)[0], 200)
+        self.ha.assert_called_with("/api/services/switch/turn_on",
+                                   {"entity_id": "switch.intellichlor_super_chlorinate"})
+        self.ha.return_value = {"state": "unavailable", "attributes": {}}
+        self.assertEqual(self.request("/api/settings", {"operation": "superchlorinate",
+                                                        "enabled": True}, headers=admin)[0], 503)
+
     def test_ha_unavailable_returns_503(self):
         headers = self.login("1234")
         self.ha.side_effect = RuntimeError("offline")

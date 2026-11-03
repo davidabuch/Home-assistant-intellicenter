@@ -697,3 +697,32 @@ main{z-index:101!important}
  #controls #auxControls #sanitation{height:94px!important;min-height:94px!important}
  #controls #auxControls{gap:10px!important}
 }
+
+/* Compact administrator settings, over the same backyard scene */
+header{position:relative}
+.settings-nav{position:fixed;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));z-index:8;width:45px;height:45px;min-height:45px;padding:0;border-radius:50%;font-size:27px;background:#1a334a99!important}
+#settingsScreen{position:relative;z-index:2;margin-top:10px;padding:12px 0 35px}
+.settings-heading{display:flex;align-items:center;gap:12px;background:#10293f88;border:1px solid #ffffff66;border-radius:18px;padding:8px 12px;backdrop-filter:blur(16px)}
+.settings-heading h2{font-size:19px;margin:0}
+#settingsBack{width:42px;min-height:42px;padding:0;font-size:28px}
+#settingsScreen h3{font-size:17px;margin:21px 0 10px;text-shadow:0 2px 4px #001a2b}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.settings-tile{min-width:0;padding:13px 9px;border-radius:18px;background:linear-gradient(140deg,#284758b5,#183345a8);border:1px solid #ffffff8a;box-shadow:0 6px 20px #001b2c5e;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.settings-tile strong{display:block;font-size:13px;min-height:32px;line-height:1.2}
+.settings-stepper{display:grid;grid-template-columns:31px minmax(0,1fr) 31px;align-items:center;gap:3px;margin-top:8px}
+.settings-stepper button{min-width:0;min-height:37px;height:37px;padding:0;font-size:21px;border-radius:11px}
+.settings-stepper .settings-value{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis}
+.settings-help{font-size:12px;color:#e6f2f9;background:#0c2339b3;padding:11px;border-radius:12px}
+.settings-disabled{margin-top:10px;opacity:.75}
+.settings-disabled span{font-size:12px;line-height:1.4;display:block}
+.settings-actions{margin-top:12px}
+.settings-actions button{min-height:75px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;font-size:24px}
+.settings-actions span{font-size:13px}
+#settingsFeedback{font-size:13px;min-height:30px;background:#09243cb8;border-radius:10px;padding:8px}
+.settings-modal{position:fixed;inset:0;z-index:20;background:#0009;display:grid;place-items:center;padding:20px}
+.settings-modal-card{width:min(100%,350px);padding:20px;border:1px solid #ffffff9c;border-radius:20px;background:#142e43;box-shadow:0 20px 55px #000a}
+.settings-modal-card label{font-size:16px;font-weight:700}
+.settings-modal-card input{font-variant-numeric:tabular-nums}
+.settings-modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.settings-modal-actions button{min-height:44px;font-size:14px}
+@media(max-width:370px){.settings-tile{padding:10px 6px}.settings-stepper{grid-template-columns:27px minmax(0,1fr) 27px;gap:2px}.settings-stepper .settings-value{font-size:11px}}
