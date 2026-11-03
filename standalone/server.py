@@ -98,6 +98,20 @@ READ_ONLY = ["binary_sensor.solar_heating_active", "binary_sensor.gas_heater_act
              "binary_sensor.1_powerwall_grid_status", "input_boolean.grid_outage_active"]
 HEAT_PREFERENCES = {"pool": "input_select.pool_heating_preference", "spa": "input_select.hot_tub_heating_preference"}
 HEAT_OPTIONS = ("Solar", "Gas", "Eco Heat", "Off")
+SETTINGS_NUMBERS = {
+    "pool_chlorine": "number.intellichlor_pool_output",
+    "spa_chlorine": "number.intellichlor_spa_output",
+    "pool_rpm": "number.intellicenter_desired_pool_rpm",
+    "spa_rpm": "number.intellicenter_desired_spa_rpm",
+    "sanitation_rpm": "number.intellicenter_desired_sanitation_rpm",
+    "heater_rpm": "number.intellicenter_desired_heater_rpm",
+    "solar_rpm": "number.intellicenter_desired_solar_rpm",
+    "cleaning_rpm": "number.intellicenter_desired_pool_cleaning_rpm",
+    "outage_rpm": "number.intellicenter_desired_outage_rpm",
+}
+PUMP_KEYS = tuple(k for k in SETTINGS_NUMBERS if k.endswith("_rpm"))
+SETTINGS_BUTTONS = {"apply": "button.apply_configuration_changes",
+                    "reconcile": "button.reconcile_pump_speeds"}
 MAX_BODY = 1024
 
 def ha_request(path, payload=None):
@@ -193,6 +207,18 @@ class Handler(BaseHTTPRequestHandler):
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
             return self.send_json({"pool_control": self.admin_authorized(), "light_control": self.admin_authorized()})
+        if path == "/api/settings":
+            if not self.admin_authorized():
+                return self.send_json({"error": "Administrator authorization required"}, 403)
+            result = {}
+            for key, entity in SETTINGS_NUMBERS.items():
+                try:
+                    result[key] = ha_request("/api/states/" + entity)
+                except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError):
+                    result[key] = {"state": "unavailable", "attributes": {}}
+            # No supported Superchlorinate entity has been identified; never guess an action.
+            result["superchlorinate_available"] = False
+            return self.send_json(result)
         if path == "/api/state":
             if not self.authorized():
                 return self.send_json({"error": "Sign in required"}, 401)
@@ -262,6 +288,33 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": True}, cookie="session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0")
         if not self.authorized():
             return self.send_json({"error": "Sign in required"}, 401)
+        if path == "/api/settings":
+            if not self.admin_authorized():
+                return self.send_json({"error": "Administrator authorization required"}, 403)
+            operation = body.get("operation")
+            try:
+                if operation == "set":
+                    key, value = body.get("key"), body.get("value")
+                    if key not in SETTINGS_NUMBERS or isinstance(value, bool) or not isinstance(value, (int, float)):
+                        return self.send_json({"error": "Invalid setting"}, 400)
+                    entity = SETTINGS_NUMBERS[key]
+                    current = ha_request("/api/states/" + entity)
+                    attrs = current.get("attributes", {})
+                    if current.get("state") in ("unknown", "unavailable") or not all(k in attrs for k in ("min", "max", "step")):
+                        return self.send_json({"error": "Setting unavailable"}, 503)
+                    minimum, maximum, step = (float(attrs[k]) for k in ("min", "max", "step"))
+                    if not (minimum <= value <= maximum) or step <= 0 or abs((value - minimum) / step - round((value - minimum) / step)) > 0.00001:
+                        return self.send_json({"error": "Value outside allowed range or increment"}, 400)
+                    if key in PUMP_KEYS and value < float(attrs.get("approved_minimum_rpm", minimum)):
+                        return self.send_json({"error": "Below Guardian approved minimum"}, 400)
+                    ha_request("/api/services/number/set_value", {"entity_id": entity, "value": value})
+                    return self.send_json({"accepted": True, "pending_verification": True})
+                if operation in SETTINGS_BUTTONS:
+                    ha_request("/api/services/button/press", {"entity_id": SETTINGS_BUTTONS[operation]})
+                    return self.send_json({"accepted": True, "pending_verification": True})
+                return self.send_json({"error": "Unsupported setting operation"}, 400)
+            except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError, ValueError, TypeError):
+                return self.send_json({"error": "Home Assistant setting command unavailable"}, 503)
         if path == "/api/heating-preference":
             if not self.admin_authorized():
                 return self.send_json({"error": "Administrator authorization required"}, 403)
