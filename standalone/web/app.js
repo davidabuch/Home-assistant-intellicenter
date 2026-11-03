@@ -103,12 +103,14 @@ document.getElementById("pinForm").addEventListener("submit",async event=>{event
 const settingNames={pool_chlorine:"Pool Chlorine",spa_chlorine:"Spa Chlorine",pool_rpm:"Pool Circulation",spa_rpm:"Spa",sanitation_rpm:"Sanitation",heater_rpm:"Gas Heater",solar_rpm:"Solar Heating",cleaning_rpm:"Pool Cleaning",outage_rpm:"Grid Outage"};
 const speedKeys=["pool_rpm","spa_rpm","sanitation_rpm","heater_rpm","solar_rpm","cleaning_rpm","outage_rpm"];
 let settingsData={},settingsBusy=false,settingsOpen=false,settingsDirty=false;
+const settingQueues=new Map(),settingDrafts=new Map();
+let settingsModalOpen=false;
 function settingsMessage(message){$("settingsFeedback").textContent=message}
 function settingValue(key){const n=Number(settingsData[key]?.state);return Number.isFinite(n)&&settingsData[key]?.state!=="unavailable"&&settingsData[key]?.state!=="unknown"?n:null}
 function renderSettingGroup(target,keys){
  const root=$(target);root.replaceChildren();
  for(const key of keys){
-  const entity=settingsData[key]||{},attrs=entity.attributes||{},value=settingValue(key),rpm=key.endsWith("_rpm"),step=Number(attrs.step)||1;
+  const entity=settingsData[key]||{},attrs=entity.attributes||{},value=settingDrafts.has(key)?settingDrafts.get(key):settingValue(key),rpm=key.endsWith("_rpm"),step=Number(attrs.step)||1;
   const tile=document.createElement("div");tile.className="settings-tile";
   const name=document.createElement("strong");name.textContent=settingNames[key];
   const controls=document.createElement("div");controls.className="settings-stepper";
@@ -116,16 +118,42 @@ function renderSettingGroup(target,keys){
   const number=document.createElement("button");number.className="settings-value";number.textContent=value===null?"Unavailable":value.toLocaleString()+ (rpm?" rpm":"%");
   number.setAttribute("aria-label","Enter "+settingNames[key]+" using keypad");
   const plus=document.createElement("button");plus.textContent="+";plus.setAttribute("aria-label","Increase "+settingNames[key]);
-  const save=async(next)=>{
-   if(settingsBusy||value===null||!Number.isFinite(next))return;
+  const save=(next)=>{
+   if(value===null||!Number.isFinite(next))return;
    const min=Math.max(Number(attrs.min),rpm?Number(attrs.approved_minimum_rpm??attrs.min):Number(attrs.min));
    const max=Number(attrs.max);
    if(next<min||next>max){settingsMessage("Allowed range: "+min+" to "+max);return}
-   settingsBusy=true;settingsMessage("Saving desired value…");
-   try{await api("settings",{operation:"set",key,value:next});if(rpm)settingsDirty=true;await loadSettings();settingsMessage(rpm?"Desired speed staged. Press Apply Changes when ready.":"Chlorine output command sent; verify the reported value.")}
-   catch(e){settingsMessage(e.message)}finally{settingsBusy=false}
+   // Keep the intended value visible while Home Assistant reports the previous state.
+   settingDrafts.set(key,next);
+   renderSettingGroup(rpm?"pumpSettings":"chlorineSettings",rpm?speedKeys:["pool_chlorine","spa_chlorine"]);
+   settingsMessage("Saving "+settingNames[key]+"…");
+   const previous=settingQueues.get(key)||Promise.resolve();
+   const current=previous.catch(()=>{}).then(async()=>{
+    await api("settings",{operation:"set",key,value:next});
+    if(rpm)settingsDirty=true;
+   });
+   settingQueues.set(key,current);
+   current.then(async()=>{
+    if(settingQueues.get(key)!==current)return;
+    // Allow the controller's asynchronous state observation to settle.
+    await new Promise(resolve=>setTimeout(resolve,850));
+    if(settingQueues.get(key)!==current)return;
+    const fresh=await api("settings");
+    if(settingQueues.get(key)!==current)return;
+    settingsData=fresh;
+    const observed=settingValue(key);
+    settingDrafts.delete(key);
+    if(settingsOpen)renderSettingGroup(rpm?"pumpSettings":"chlorineSettings",rpm?speedKeys:["pool_chlorine","spa_chlorine"]);
+    settingsMessage(observed===next?(rpm?"Desired speed staged; Apply Changes when ready.":"Chlorine output verified."):"Command accepted; controller still reports "+(observed===null?"unavailable":observed)+". Please verify.");
+   }).catch(e=>{
+    if(settingQueues.get(key)!==current)return;
+    settingDrafts.delete(key);
+    if(settingsOpen)loadSettings().catch(()=>{});
+    settingsMessage("Unable to save "+settingNames[key]+": "+e.message);
+   });
   };
-  minus.addEventListener("click",()=>save(value-step));plus.addEventListener("click",()=>save(value+step));
+  minus.addEventListener("click",()=>save((settingDrafts.get(key)??value)-step));
+  plus.addEventListener("click",()=>save((settingDrafts.get(key)??value)+step));
   number.addEventListener("click",()=>{
    if(value===null)return;
    const dialog=document.createElement("div");dialog.className="settings-modal";
@@ -133,10 +161,10 @@ function renderSettingGroup(target,keys){
    const label=document.createElement("label");label.textContent="Enter "+settingNames[key]+(rpm?" (rpm)":" (%)");
    const input=document.createElement("input");input.type="number";input.inputMode="numeric";input.min=String(attrs.min);input.max=String(attrs.max);input.step=String(step);input.value=String(value);input.required=true;
    const actions=document.createElement("div");actions.className="settings-modal-actions";
-   const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Cancel";cancel.addEventListener("click",()=>dialog.remove());
+   const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Cancel";cancel.addEventListener("click",()=>{dialog.remove();settingsModalOpen=false;document.body.classList.remove("settings-dialog-open")});
    const confirm=document.createElement("button");confirm.type="submit";confirm.textContent="Set Value";
-   actions.append(cancel,confirm);form.append(label,input,actions);dialog.append(form);document.body.append(dialog);input.focus();input.select();
-   form.addEventListener("submit",e=>{e.preventDefault();if(!input.reportValidity())return;const next=Number(input.value);dialog.remove();save(next)});
+   actions.append(cancel,confirm);form.append(label,input,actions);dialog.append(form);document.body.append(dialog);settingsModalOpen=true;document.body.classList.add("settings-dialog-open");input.focus();input.select();
+   form.addEventListener("submit",e=>{e.preventDefault();if(!input.reportValidity())return;const next=Number(input.value);dialog.remove();settingsModalOpen=false;document.body.classList.remove("settings-dialog-open");save(next)});
   });
   for(const b of [minus,number,plus])b.disabled=value===null;
   controls.append(minus,number,plus);tile.append(name,controls);root.append(tile);
@@ -144,7 +172,7 @@ function renderSettingGroup(target,keys){
 }
 async function loadSettings(){
  if(!settingsOpen||!permissions.pool_control)return;
- settingsData=await api("settings");renderSettingGroup("chlorineSettings",["pool_chlorine","spa_chlorine"]);renderSettingGroup("pumpSettings",speedKeys);
+ const fresh=await api("settings");if(!settingsOpen)return;settingsData=fresh;renderSettingGroup("chlorineSettings",["pool_chlorine","spa_chlorine"]);renderSettingGroup("pumpSettings",speedKeys);
  renderSuperchlorinate();
 }
 function settingsNavigate(open){
@@ -185,6 +213,6 @@ function renderSuperchlorinate(){
    settingsMessage(observed===(enabled?"on":"off")?"Native Superchlorinate state verified.":"Command sent, but native state not yet verified. Check Pentair.");
   }catch(e){settingsMessage(e.message)}finally{settingsBusy=false;renderSuperchlorinate()}
  });
- const note=document.createElement("span");note.textContent="Duration setting unavailable until native BOOST units are verified.";
+ const note=document.createElement("span");note.className="superchlorinate-note";note.textContent="Duration setting unavailable until native BOOST units are verified.";
  tile.append(title,details,toggle,note);
 }
