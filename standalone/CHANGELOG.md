@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.38
+
+- Fix iPhone Settings numeric dialog stacking, scrolling, and keyboard layout.
+- Fix chlorine +/- single-tap behavior with serialized writes and verified state feedback.
+- Improve Superchlorinate control layout and Settings contrast.
+- Preserve IntelliCenter authority and safety behavior.
+
 ## 0.1.33
 
 - Prevent native iOS text selection and callouts during administrator heat-preference long press.
