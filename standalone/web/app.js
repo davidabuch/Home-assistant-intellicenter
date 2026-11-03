@@ -145,7 +145,7 @@ function renderSettingGroup(target,keys){
 async function loadSettings(){
  if(!settingsOpen||!permissions.pool_control)return;
  settingsData=await api("settings");renderSettingGroup("chlorineSettings",["pool_chlorine","spa_chlorine"]);renderSettingGroup("pumpSettings",speedKeys);
- $("superchlorinate").setAttribute("aria-disabled","true");
+ renderSuperchlorinate();
 }
 function settingsNavigate(open){
  if(open&&!permissions.pool_control)return;
@@ -163,4 +163,28 @@ for(const [id,operation] of [["applyPump","apply"],["reconcilePump","reconcile"]
   try{await api("settings",{operation});if(operation==="apply")settingsDirty=false;settingsMessage("Request accepted. Guardian will apply and verify only when safe. Check Home Assistant for final result.");await loadSettings()}
   catch(e){settingsMessage(e.message)}finally{settingsBusy=false}
  });
+}
+
+function renderSuperchlorinate(){
+ const tile=$("superchlorinate"),native=settingsData.superchlorinate||{},state=native.state;
+ tile.replaceChildren();tile.classList.toggle("settings-disabled",state!=="on"&&state!=="off");
+ const title=document.createElement("strong");title.textContent="Superchlorinate";
+ const details=document.createElement("span");details.textContent=state==="on"?"Native IntelliChlor boost is ON":state==="off"?"Native IntelliChlor boost is OFF":"Native controller unavailable";
+ const toggle=document.createElement("button");toggle.type="button";toggle.textContent=state==="on"?"Stop Superchlorination":"Start Superchlorination";
+ toggle.disabled=!["on","off"].includes(state)||settingsBusy;
+ toggle.addEventListener("click",async()=>{
+  const enabled=state==="off";
+  if(!confirm(enabled?"Start native IntelliChlor Superchlorination? Pentair will manage the cycle.":"Stop native IntelliChlor Superchlorination?"))return;
+  settingsBusy=true;toggle.disabled=true;settingsMessage(enabled?"Sending native start request…":"Sending native stop request…");
+  try{
+   await api("settings",{operation:"superchlorinate",enabled});
+   settingsMessage("Command accepted; checking actual IntelliChlor state…");
+   await new Promise(resolve=>setTimeout(resolve,1200));
+   await loadSettings();
+   const observed=settingsData.superchlorinate?.state;
+   settingsMessage(observed===(enabled?"on":"off")?"Native Superchlorinate state verified.":"Command sent, but native state not yet verified. Check Pentair.");
+  }catch(e){settingsMessage(e.message)}finally{settingsBusy=false;renderSuperchlorinate()}
+ });
+ const note=document.createElement("span");note.textContent="Duration setting unavailable until native BOOST units are verified.";
+ tile.append(title,details,toggle,note);
 }
