@@ -36,7 +36,7 @@ function attachHeatLongPress(root,key){
  for(const event of ["pointerup","pointercancel","pointerleave"])root.addEventListener(event,cancel);
  root.addEventListener("contextmenu",e=>{if(!e.target.closest("button"))e.preventDefault()});
 }
-function render(){updateScene();for(const key of ["pool","spa"]){const root=$(key),entity=state[key]||{},on=entity.state==="heat",available=entity.state&&!["unavailable","unknown"].includes(entity.state),a=entity.attributes||{},current=a.current_temperature??"—",target=a.temperature??"—";root.replaceChildren();const solarActive=state["binary_sensor.solar_heating_active"]?.state==="on";const gasActive=state["binary_sensor.gas_heater_active"]?.state==="on";const heating=on&&(solarActive||gasActive);root.classList.toggle("is-on",on);root.classList.toggle("is-heating",heating);root.classList.toggle("is-off",!on);const top=document.createElement("div");top.className="top";const title=document.createElement("h2");title.textContent=names[key];const indicator=document.createElement("span");indicator.className="state-pill";indicator.textContent=available?(heating?"Heating":on?"On · Ready":"Off"):"Unavailable";top.append(title,indicator);const temp=document.createElement("div");temp.className="temp";temp.textContent=current+"°";const desc=document.createElement("p");desc.className="muted";desc.textContent="Water temperature";const actions=document.createElement("div");actions.className="actions";const power=button(on?"Turn off":"Turn on",()=>send(key,on?"off":"on"),on);power.classList.add("power-button");power.setAttribute("aria-label",(on?"Turn off ":"Turn on ")+names[key]);const powerSymbol=document.createElement("span");powerSymbol.className="power-symbol";powerSymbol.textContent="⏻";power.replaceChildren(powerSymbol);actions.append(power);const readout=document.createElement("div");readout.className="readout";const reading=document.createElement("div");reading.className="reading";reading.append(temp,desc);readout.append(reading,actions);const step=document.createElement("div");step.className="stepper";const targetLabel=document.createElement("span");targetLabel.className="target-label";targetLabel.textContent="Target  "+target+"°F";const minus=button("−",()=>send(key,"temperature",Number(target)-1));minus.setAttribute("aria-label","Lower "+names[key]+" target temperature");const plus=button("+",()=>send(key,"temperature",Number(target)+1));plus.setAttribute("aria-label","Raise "+names[key]+" target temperature");step.append(targetLabel,minus,plus);root.append(top,readout,step);attachHeatLongPress(root,key);root.querySelectorAll("button").forEach(b=>b.disabled=busy||!available||(key==="pool"&&!permissions.pool_control))}renderLight();const f=$("features");f.replaceChildren();for(const key of ["jets","spillway","slide"]){const e=state[key]||{},on=e.state==="on";const label=key==="jets"?"Jets":key==="spillway"?"Waterfall":"Water Slide";const toggle=button(label,()=>send(key,on?"off":"on"),on);toggle.classList.add("feature","feature-tile");toggle.dataset.key=key;toggle.insertBefore(featureIcon(key),toggle.firstChild);toggle.setAttribute("role","switch");toggle.setAttribute("aria-checked",String(on));toggle.setAttribute("aria-label",label+(on?", on":", off"));toggle.disabled=busy||!["on","off"].includes(e.state);f.append(toggle)}renderSanitation()}let poolDialog=null;
+function render(){updateScene();$("settingsNav").hidden=!permissions.pool_control||settingsOpen;for(const key of ["pool","spa"]){const root=$(key),entity=state[key]||{},on=entity.state==="heat",available=entity.state&&!["unavailable","unknown"].includes(entity.state),a=entity.attributes||{},current=a.current_temperature??"—",target=a.temperature??"—";root.replaceChildren();const solarActive=state["binary_sensor.solar_heating_active"]?.state==="on";const gasActive=state["binary_sensor.gas_heater_active"]?.state==="on";const heating=on&&(solarActive||gasActive);root.classList.toggle("is-on",on);root.classList.toggle("is-heating",heating);root.classList.toggle("is-off",!on);const top=document.createElement("div");top.className="top";const title=document.createElement("h2");title.textContent=names[key];const indicator=document.createElement("span");indicator.className="state-pill";indicator.textContent=available?(heating?"Heating":on?"On · Ready":"Off"):"Unavailable";top.append(title,indicator);const temp=document.createElement("div");temp.className="temp";temp.textContent=current+"°";const desc=document.createElement("p");desc.className="muted";desc.textContent="Water temperature";const actions=document.createElement("div");actions.className="actions";const power=button(on?"Turn off":"Turn on",()=>send(key,on?"off":"on"),on);power.classList.add("power-button");power.setAttribute("aria-label",(on?"Turn off ":"Turn on ")+names[key]);const powerSymbol=document.createElement("span");powerSymbol.className="power-symbol";powerSymbol.textContent="⏻";power.replaceChildren(powerSymbol);actions.append(power);const readout=document.createElement("div");readout.className="readout";const reading=document.createElement("div");reading.className="reading";reading.append(temp,desc);readout.append(reading,actions);const step=document.createElement("div");step.className="stepper";const targetLabel=document.createElement("span");targetLabel.className="target-label";targetLabel.textContent="Target  "+target+"°F";const minus=button("−",()=>send(key,"temperature",Number(target)-1));minus.setAttribute("aria-label","Lower "+names[key]+" target temperature");const plus=button("+",()=>send(key,"temperature",Number(target)+1));plus.setAttribute("aria-label","Raise "+names[key]+" target temperature");step.append(targetLabel,minus,plus);root.append(top,readout,step);attachHeatLongPress(root,key);root.querySelectorAll("button").forEach(b=>b.disabled=busy||!available||(key==="pool"&&!permissions.pool_control))}renderLight();const f=$("features");f.replaceChildren();for(const key of ["jets","spillway","slide"]){const e=state[key]||{},on=e.state==="on";const label=key==="jets"?"Jets":key==="spillway"?"Waterfall":"Water Slide";const toggle=button(label,()=>send(key,on?"off":"on"),on);toggle.classList.add("feature","feature-tile");toggle.dataset.key=key;toggle.insertBefore(featureIcon(key),toggle.firstChild);toggle.setAttribute("role","switch");toggle.setAttribute("aria-checked",String(on));toggle.setAttribute("aria-label",label+(on?", on":", off"));toggle.disabled=busy||!["on","off"].includes(e.state);f.append(toggle)}renderSanitation()}let poolDialog=null;
 function closePoolDialog(){if(poolDialog){poolDialog.remove();poolDialog=null}}
 function openPoolDialog(title,options){
  closePoolDialog();
@@ -94,6 +94,73 @@ function renderLight(){
  details.tabIndex=0;details.setAttribute("role","button");details.setAttribute("aria-label","Hold to choose pool light scene")}
 }
 
-async function refresh(){try{state=await api("state");try{permissions=await api("permissions")}catch(e){permissions={pool_control:false,light_control:false}}$("controls").hidden=false;$("pinLogin").hidden=true;render();say("Live status · updated "+new Date().toLocaleTimeString())}catch(e){if(e.message==="Sign in required"){$("controls").hidden=true;$("pinLogin").hidden=false;state={};updateScene();say("Enter your device PIN to continue.")}else say(e.message)}}refresh();setInterval(()=>{if(!busy&&!document.hidden)refresh()},4000);document.addEventListener("visibilitychange",()=>{document.body.classList.toggle("scene-paused",document.hidden);if(!document.hidden)refresh()});
+async function refresh(){try{state=await api("state");try{permissions=await api("permissions")}catch(e){permissions={pool_control:false,light_control:false}}$("controls").hidden=settingsOpen;$("pinLogin").hidden=true;render();say("Live status · updated "+new Date().toLocaleTimeString())}catch(e){if(e.message==="Sign in required"){$("controls").hidden=true;$("settingsScreen").hidden=true;$("settingsNav").hidden=true;settingsOpen=false;$("pinLogin").hidden=false;state={};updateScene();say("Enter your device PIN to continue.")}else say(e.message)}}refresh();setInterval(()=>{if(!busy&&!document.hidden)refresh()},4000);document.addEventListener("visibilitychange",()=>{document.body.classList.toggle("scene-paused",document.hidden);if(!document.hidden)refresh()});
 if("serviceWorker" in navigator && location.protocol==="https:"){navigator.serviceWorker.register("/sw.js").catch(()=>{});}
 document.getElementById("pinForm").addEventListener("submit",async event=>{event.preventDefault();const field=document.getElementById("pinInput");try{await api("login",{pin:field.value});field.value="";await refresh()}catch(error){field.value="";say(error.message)}});
+
+
+/* Admin settings are a separate view; all writes remain server-authorized. */
+const settingNames={pool_chlorine:"Pool Chlorine",spa_chlorine:"Spa Chlorine",pool_rpm:"Pool Circulation",spa_rpm:"Spa",sanitation_rpm:"Sanitation",heater_rpm:"Gas Heater",solar_rpm:"Solar Heating",cleaning_rpm:"Pool Cleaning",outage_rpm:"Grid Outage"};
+const speedKeys=["pool_rpm","spa_rpm","sanitation_rpm","heater_rpm","solar_rpm","cleaning_rpm","outage_rpm"];
+let settingsData={},settingsBusy=false,settingsOpen=false,settingsDirty=false;
+function settingsMessage(message){$("settingsFeedback").textContent=message}
+function settingValue(key){const n=Number(settingsData[key]?.state);return Number.isFinite(n)&&settingsData[key]?.state!=="unavailable"&&settingsData[key]?.state!=="unknown"?n:null}
+function renderSettingGroup(target,keys){
+ const root=$(target);root.replaceChildren();
+ for(const key of keys){
+  const entity=settingsData[key]||{},attrs=entity.attributes||{},value=settingValue(key),rpm=key.endsWith("_rpm"),step=Number(attrs.step)||1;
+  const tile=document.createElement("div");tile.className="settings-tile";
+  const name=document.createElement("strong");name.textContent=settingNames[key];
+  const controls=document.createElement("div");controls.className="settings-stepper";
+  const minus=document.createElement("button");minus.textContent="−";minus.setAttribute("aria-label","Decrease "+settingNames[key]);
+  const number=document.createElement("button");number.className="settings-value";number.textContent=value===null?"Unavailable":value.toLocaleString()+ (rpm?" rpm":"%");
+  number.setAttribute("aria-label","Enter "+settingNames[key]+" using keypad");
+  const plus=document.createElement("button");plus.textContent="+";plus.setAttribute("aria-label","Increase "+settingNames[key]);
+  const save=async(next)=>{
+   if(settingsBusy||value===null||!Number.isFinite(next))return;
+   const min=Math.max(Number(attrs.min),rpm?Number(attrs.approved_minimum_rpm??attrs.min):Number(attrs.min));
+   const max=Number(attrs.max);
+   if(next<min||next>max){settingsMessage("Allowed range: "+min+" to "+max);return}
+   settingsBusy=true;settingsMessage("Saving desired value…");
+   try{await api("settings",{operation:"set",key,value:next});if(rpm)settingsDirty=true;await loadSettings();settingsMessage(rpm?"Desired speed staged. Press Apply Changes when ready.":"Chlorine output command sent; verify the reported value.")}
+   catch(e){settingsMessage(e.message)}finally{settingsBusy=false}
+  };
+  minus.addEventListener("click",()=>save(value-step));plus.addEventListener("click",()=>save(value+step));
+  number.addEventListener("click",()=>{
+   if(value===null)return;
+   const dialog=document.createElement("div");dialog.className="settings-modal";
+   const form=document.createElement("form");form.className="settings-modal-card";
+   const label=document.createElement("label");label.textContent="Enter "+settingNames[key]+(rpm?" (rpm)":" (%)");
+   const input=document.createElement("input");input.type="number";input.inputMode="numeric";input.min=String(attrs.min);input.max=String(attrs.max);input.step=String(step);input.value=String(value);input.required=true;
+   const actions=document.createElement("div");actions.className="settings-modal-actions";
+   const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Cancel";cancel.addEventListener("click",()=>dialog.remove());
+   const confirm=document.createElement("button");confirm.type="submit";confirm.textContent="Set Value";
+   actions.append(cancel,confirm);form.append(label,input,actions);dialog.append(form);document.body.append(dialog);input.focus();input.select();
+   form.addEventListener("submit",e=>{e.preventDefault();if(!input.reportValidity())return;const next=Number(input.value);dialog.remove();save(next)});
+  });
+  for(const b of [minus,number,plus])b.disabled=value===null;
+  controls.append(minus,number,plus);tile.append(name,controls);root.append(tile);
+ }
+}
+async function loadSettings(){
+ if(!settingsOpen||!permissions.pool_control)return;
+ settingsData=await api("settings");renderSettingGroup("chlorineSettings",["pool_chlorine","spa_chlorine"]);renderSettingGroup("pumpSettings",speedKeys);
+ $("superchlorinate").setAttribute("aria-disabled","true");
+}
+function settingsNavigate(open){
+ if(open&&!permissions.pool_control)return;
+ settingsOpen=open;
+ $("settingsScreen").hidden=!open;$("controls").hidden=open;$("settingsNav").hidden=open||!permissions.pool_control;
+ if(open){loadSettings().catch(e=>settingsMessage(e.message))}
+}
+$("settingsNav").addEventListener("click",()=>settingsNavigate(true));
+$("settingsBack").addEventListener("click",()=>settingsNavigate(false));
+for(const [id,operation] of [["applyPump","apply"],["reconcilePump","reconcile"]]){
+ $(id).addEventListener("click",async()=>{
+  if(settingsBusy)return;
+  if(!confirm(operation==="apply"?"Apply staged pump speeds through Guardian safety checks?":"Reconcile the last applied pump speed configuration?"))return;
+  settingsBusy=true;settingsMessage(operation==="apply"?"Requesting Guardian apply…":"Requesting Guardian reconciliation…");
+  try{await api("settings",{operation});if(operation==="apply")settingsDirty=false;settingsMessage("Request accepted. Guardian will apply and verify only when safe. Check Home Assistant for final result.");await loadSettings()}
+  catch(e){settingsMessage(e.message)}finally{settingsBusy=false}
+ });
+}
