@@ -13,7 +13,7 @@ from pyintellicenter import (
     ICConnectionHandler, ICModelController, PoolModel, LIGHT_EFFECTS,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
     BODY_TYPE, CIRCUIT_TYPE, SENSE_TYPE, PUMP_TYPE, SYSTEM_TYPE,
-    CHEM_TYPE, PMPCIRC_TYPE, CIRCUIT_ATTR, SELECT_ATTR, SPEED_ATTR, BODY_ATTR, PRIM_ATTR, SEC_ATTR, SALT_ATTR, SUPER_ATTR, BOOST_ATTR,
+    CHEM_TYPE, PMPCIRC_TYPE, CIRCUIT_ATTR, SELECT_ATTR, SPEED_ATTR, BODY_ATTR, PRIM_ATTR, SEC_ATTR, SALT_ATTR,
     LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR, SOURCE_ATTR,
     RPM_ATTR, GPM_ATTR, PWR_ATTR, MIN_ATTR, MAX_ATTR, VER_ATTR, SERVICE_ATTR,
     OBJTYP_ATTR, SNAME_ATTR, HITMP_ATTR, MODE_ATTR,
@@ -21,6 +21,8 @@ from pyintellicenter import (
 )
 from pyintellicenter.attributes import ALL_ATTRIBUTES_BY_TYPE
 
+SUPER_ATTR = "SUPER"  # pyintellicenter native CHEM protocol attribute
+BOOST_ATTR = "BOOST"  # Raw protocol attribute; duration semantics unverified
 BODY_IDS = frozenset({"B1101", "B1202"})
 CIRCUIT_IDS = frozenset({"C0002", "C0003", "C0004", "FTR01"})
 
