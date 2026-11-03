@@ -740,3 +740,7 @@ body.settings-dialog-open{overflow:hidden;touch-action:none}
 #superchlorinate button{display:block;width:100%;min-height:48px;font-size:14px;white-space:normal}
 #superchlorinate .superchlorinate-note{display:block;font-size:12px;line-height:1.4;color:#e2eff8}
 #superchlorinate button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Keep rapid chlorine +/- taps from triggering Safari double-tap zoom.
+   Scope to interactive Settings controls; preserve normal pinch zoom elsewhere. */
+#settingsScreen .settings-stepper button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
