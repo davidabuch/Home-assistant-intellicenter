@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.39
+
+- Prevent iOS Safari double-tap zoom when quickly adjusting Settings +/- controls; retain pinch zoom elsewhere.
+
 ## 0.1.38
 
 - Fix iPhone Settings numeric dialog stacking, scrolling, and keyboard layout.
