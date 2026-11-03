@@ -13,7 +13,7 @@ from pyintellicenter import (
     ICConnectionHandler, ICModelController, PoolModel, LIGHT_EFFECTS,
     STATUS_ATTR, STATUS_ON, STATUS_OFF, HEATER_ATTR,
     BODY_TYPE, CIRCUIT_TYPE, SENSE_TYPE, PUMP_TYPE, SYSTEM_TYPE,
-    CHEM_TYPE, PMPCIRC_TYPE, CIRCUIT_ATTR, SELECT_ATTR, SPEED_ATTR, BODY_ATTR, PRIM_ATTR, SEC_ATTR, SALT_ATTR,
+    CHEM_TYPE, PMPCIRC_TYPE, CIRCUIT_ATTR, SELECT_ATTR, SPEED_ATTR, BODY_ATTR, PRIM_ATTR, SEC_ATTR, SALT_ATTR, SUPER_ATTR, BOOST_ATTR,
     LOTMP_ATTR, LSTTMP_ATTR, HTMODE_ATTR, SOURCE_ATTR,
     RPM_ATTR, GPM_ATTR, PWR_ATTR, MIN_ATTR, MAX_ATTR, VER_ATTR, SERVICE_ATTR,
     OBJTYP_ATTR, SNAME_ATTR, HITMP_ATTR, MODE_ATTR,
@@ -421,6 +421,10 @@ class IntelliCenterManualTransport:
                 and args[0] in (CIRCUIT_IDS | {self.sanitation_circuit_id(), self.pool_cleaning_circuit_id()}) and type(args[1]) is bool)
             or (method == "set_light_effect" and len(args) == 2
                 and args[0] == "C0002" and args[1] in LIGHT_EFFECTS)
+            or (method == "set_super_chlorinate" and len(args) == 2
+                and args[0] == "CHR01" and type(args[1]) is bool
+                and self.intellichlor_object() is not None
+                and self.superchlorinate_state() is not None)
             or (method == "set_chlorinator_output" and len(args) in (2, 3)
                 and args[0] == "CHR01"
                 and all(type(v) is int and 0 <= v <= 100 for v in args[1:]))
@@ -579,6 +583,34 @@ class IntelliCenterManualTransport:
         if effect_code not in LIGHT_EFFECTS:
             raise ValueError("unsupported IntelliBrite effect")
         await self._send("set_light_effect", "C0002", effect_code)
+
+    def intellichlor_object(self):
+        """Only the uniquely commissioned native IntelliChlor object may be controlled."""
+        matches = [obj for obj in self.model.get_by_type(CHEM_TYPE)
+                   if str(obj.objnam) == "CHR01"
+                   and str(obj.subtype or "").upper() == "ICHLOR"]
+        return matches[0] if len(matches) == 1 else None
+
+    def superchlorinate_state(self):
+        obj = self.intellichlor_object()
+        if not self.connected or obj is None:
+            return None
+        return _native_status(obj.properties.get(SUPER_ATTR))
+
+    def superchlorinate_boost(self):
+        obj = self.intellichlor_object()
+        if not self.connected or obj is None:
+            return None
+        value = obj.properties.get(BOOST_ATTR)
+        try:
+            return int(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    async def set_superchlorinate(self, enabled: bool):
+        if type(enabled) is not bool or self.superchlorinate_state() is None:
+            raise ManualCommandError("Fresh IntelliChlor Super Chlorinate state required")
+        await self._send("set_super_chlorinate", "CHR01", enabled)
 
     async def set_chlorine(self, pool_percent: int, spa_percent: int | None = None) -> None:
         if type(pool_percent) is not int or not 0 <= pool_percent <= 100:
