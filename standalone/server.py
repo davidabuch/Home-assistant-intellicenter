@@ -94,7 +94,7 @@ CONTROLS = {
     "pool_sanitation": ("input_boolean.pool_sanitation_session", "input_boolean"),
     "spa_sanitation": ("input_boolean.spa_sanitation_session", "input_boolean"),
 }
-READ_ONLY = ["binary_sensor.solar_heating_active", "binary_sensor.gas_heater_active", "sensor.pool_temperature", "sensor.spa_temperature",
+READ_ONLY = ["binary_sensor.solar_heating_active", "binary_sensor.gas_heater_active", "sensor.pool_temperature", "sensor.spa_temperature", "sensor.air_temperature", "sensor.solar_temperature",
              "binary_sensor.1_powerwall_grid_status", "input_boolean.grid_outage_active"]
 HEAT_PREFERENCES = {"pool": "input_select.pool_heating_preference", "spa": "input_select.hot_tub_heating_preference"}
 HEAT_OPTIONS = ("Solar", "Gas", "Eco Heat", "Off")
