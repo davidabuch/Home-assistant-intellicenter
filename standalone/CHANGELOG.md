@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.40
+
+- Show live outdoor air and solar roof temperatures in a subtle upper-left readout on the family PWA.
+- Read only existing Home Assistant temperature sensors; unavailable values display as dashes and never affect pool control.
+
 ## 0.1.39
 
 - Prevent iOS Safari double-tap zoom when quickly adjusting Settings +/- controls; retain pinch zoom elsewhere.
