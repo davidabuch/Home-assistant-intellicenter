@@ -749,3 +749,9 @@ body.settings-dialog-open{overflow:hidden;touch-action:none}
 .ambient-temps{position:absolute;top:0;left:0;display:flex;flex-direction:column;gap:3px;padding:8px 11px;border:1px solid rgba(255,255,255,.32);border-radius:13px;background:rgba(8,29,48,.46);color:#e8f5ff;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;font-weight:500;line-height:1.25;text-shadow:0 1px 3px #001525;pointer-events:none;white-space:nowrap}
 .ambient-temps strong{font-weight:700;font-variant-numeric:tabular-nums;margin-left:5px;color:#fff}
 @media(max-width:700px){main>header .ambient-temps{top:0;left:0}main>header #settingsNav{right:0}}
+
+#superchlorinate{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 12px;padding:12px 14px!important}
+#superchlorinate strong{grid-column:1;font-size:15px}
+#superchlorinate .superchlorinate-status{grid-column:1;font-size:12px;color:#d8e9f5}
+#superchlorinate button{grid-column:2;grid-row:1 / span 2;width:auto;min-height:40px;padding:8px 12px;font-size:12px}
+.filtration-progress{display:block;border:1px solid #ffffff55;border-radius:12px;background:rgba(8,30,48,.72);padding:10px 13px;color:#eef8ff;font-size:13px;font-weight:600;line-height:1.35;backdrop-filter:blur(8px)}
