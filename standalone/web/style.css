@@ -744,3 +744,10 @@ body.settings-dialog-open{overflow:hidden;touch-action:none}
 /* Keep rapid chlorine +/- taps from triggering Safari double-tap zoom.
    Scope to interactive Settings controls; preserve normal pinch zoom elsewhere. */
 #settingsScreen .settings-stepper button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+/* Compact native boost control and daily filtration credit. */
+#superchlorinate{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 12px;padding:12px 14px!important}
+#superchlorinate strong{grid-column:1;font-size:15px}
+#superchlorinate .superchlorinate-status{grid-column:1;font-size:12px;color:#d8e9f5}
+#superchlorinate button{grid-column:2;grid-row:1 / span 2;width:auto;min-height:40px;padding:8px 12px;font-size:12px}
+.filtration-progress{display:block;border:1px solid #ffffff55;border-radius:12px;background:rgba(8,30,48,.72);padding:10px 13px;color:#eef8ff;font-size:13px;font-weight:600;line-height:1.35;backdrop-filter:blur(8px)}
