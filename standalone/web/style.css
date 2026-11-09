@@ -744,3 +744,8 @@ body.settings-dialog-open{overflow:hidden;touch-action:none}
 /* Keep rapid chlorine +/- taps from triggering Safari double-tap zoom.
    Scope to interactive Settings controls; preserve normal pinch zoom elsewhere. */
 #settingsScreen .settings-stepper button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+/* Compact, subtle ambient temperatures at the top-left of the PWA. */
+.ambient-temps{position:absolute;top:0;left:0;display:flex;flex-direction:column;gap:3px;padding:8px 11px;border:1px solid rgba(255,255,255,.32);border-radius:13px;background:rgba(8,29,48,.46);color:#e8f5ff;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;font-weight:500;line-height:1.25;text-shadow:0 1px 3px #001525;pointer-events:none;white-space:nowrap}
+.ambient-temps strong{font-weight:700;font-variant-numeric:tabular-nums;margin-left:5px;color:#fff}
+@media(max-width:700px){main>header .ambient-temps{top:0;left:0}main>header #settingsNav{right:0}}
