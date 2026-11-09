@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.41
+
+- Compact the native Superchlorinate Settings tile and remove the lengthy unavailable-duration explanation.
+- Show credited daily filtration minutes and the remaining daily target based on the active Home Assistant counter and target sensor.
+- Do not invent a native IntelliChlor boost countdown when no duration or expiry is reported.
+
 ## 0.1.39
 
 - Prevent iOS Safari double-tap zoom when quickly adjusting Settings +/- controls; retain pinch zoom elsewhere.
