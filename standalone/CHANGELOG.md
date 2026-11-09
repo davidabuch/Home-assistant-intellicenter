@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.41
+
+- Compact Superchlorinate control and display native ON/OFF status without an unverified boost countdown.
+- Show daily filtration target, credited minutes, and remaining minutes from the active Home Assistant counter.
+
 ## 0.1.40
 
 - Show live outdoor air and solar roof temperatures in a subtle upper-left readout on the family PWA.
