@@ -44,6 +44,8 @@ class ScheduleGatewayTests(unittest.IsolatedAsyncioTestCase):
         self.transport.arm_manual_thermostats()
         self.delivered = []
         self.actual_active = True
+        self.actual_source = 'H0002'
+        self.pending_source = None
         self.pending = None
         self.old_observed_at = datetime.now(timezone.utc) - timedelta(seconds=1)
         self.stale = False
@@ -55,6 +57,8 @@ class ScheduleGatewayTests(unittest.IsolatedAsyncioTestCase):
             self.delivered.append((object_id, dict(changes)))
             if native.STATUS_ATTR in changes:
                 self.pending = changes[native.STATUS_ATTR] == native.STATUS_ON
+            if native.HEATER_ATTR in changes:
+                self.pending_source = changes[native.HEATER_ATTR]
 
         # Retain _CommissioningController.request_changes and its gate. Replace
         # only the external library's protocol backend underneath that method.
@@ -69,9 +73,11 @@ class ScheduleGatewayTests(unittest.IsolatedAsyncioTestCase):
             self.reads += 1
             if self.reads >= self.confirm_after:
                 self.actual_active = self.pending
+        if self.pending_source is not None:
+            self.actual_source = self.pending_source
         observed_at = self.old_observed_at if self.hold_old_receipt else datetime.now(timezone.utc)
         return SimpleNamespace(connected=not self.stale, observed_at=observed_at,
-            body=lambda body_id: SimpleNamespace(active=self.actual_active)
+            body=lambda body_id: SimpleNamespace(active=self.actual_active, heat_source=self.actual_source)
                 if body_id == 'B1101' else None)
 
     async def dispatch(self, commands):
