@@ -24,7 +24,7 @@ async function render(browser, engine, version, viewport, mode) {
   const calls = [], errors = [];
   let signedIn=true, admin=true;
   let state={pool:{state:['off','spa-heating'].includes(mode)?'off':'heat',attributes:{current_temperature:76,temperature:90}},
-    spa:{state:['idle','spa-heating'].includes(mode)?'heat':'off',attributes:{current_temperature:75,temperature:98}},
+    spa:{state:['idle','spa-heating'].includes(mode)?'heat':'off',last_changed:new Date().toISOString(),attributes:{current_temperature:75,temperature:98}},
     ...Object.fromEntries(['jets','spillway','slide','light','pool_sanitation','spa_sanitation']
       .map(k=>[k,{state:'off',attributes:{effect:null,effect_list:['Light Show']}}])),
     'binary_sensor.solar_heating_active':{state:mode.endsWith('heating')?'on':'off'},
