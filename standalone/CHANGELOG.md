@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.42
+
+- Hide stale Hot Tub water temperature after 30 minutes continuously OFF, using Home Assistant's thermostat state transition timestamp.
+- Restore temperature immediately when Hot Tub turns ON; leave Pool and all equipment commands unchanged.
+
 ## 0.1.41
 
 - Compact Superchlorinate control and display native ON/OFF status without an unverified boost countdown.
